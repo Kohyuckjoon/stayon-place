@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+  <script type="module">
+    import { injectIntoGlobalHook } from "/@react-refresh";
+    injectIntoGlobalHook(window);
+    window.$RefreshReg$ = () => {};
+    window.$RefreshSig$ = () => (type) => type;
+  </script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>교회 수련회 장소 예약 | 스테이온(STAYON PLACE)</title>
+    <meta name="description" content="교회 수련회, 단체 워크숍 장소 섭외가 고민이라면? 스테이온에서 전국 수련회 장소를 한눈에 확인하고 간편하게 예약하세요." />
+    <meta name="keywords" content="수련회장소, 수련회예약, 교회수련회, 단체워크숍, 공간대여, 스테이온, 수련회장소대관" />
+
+    <!-- 후에 체크 -->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+    <!-- <script src="https://cdn.portone.io/v2/browser-sdk.js"></script> -->
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://place.stayon-platform.com" />
+    <!-- <meta property="og:title" content="수련회 준비, STAYON PLACE" />
+    <meta property="og:description" content="수련회 준비, STAYON PLACE" /> -->
+    <meta property="og:title" content="교회 수련회 장소 예약 | 스테이온(STAYON PLACE)" />
+    <meta property="og:description" content="교회 수련회, 단체 워크숍 장소 섭외가 고민이라면? 스테이온에서 전국 수련회 장소를 한눈에 확인하고 간편하게 예약하세요." />
+    <meta property="og:image" content="https://place.stayon-platform.com/stayon_place_kakao_cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="STAYON - 스테이온" />
+    <meta name="twitter:description" content="수련회 준비, STAYON PLACE" />
+    <meta name="twitter:image" content="https://place.stayon-platform.com/stayon_place_kakao_cover.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

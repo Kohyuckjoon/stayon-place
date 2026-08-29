@@ -1,0 +1,69 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/venue/**",
+        "function": {
+          "functionId": "venuePreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/teams",
+        "function": {
+          "functionId": "teamsPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/team-register",
+        "function": {
+          "functionId": "teamRegisterPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/teams/**",
+        "function": {
+          "functionId": "teamDetailPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/band-room/**",
+        "function": {
+          "functionId": "bandRoomPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ]
+}

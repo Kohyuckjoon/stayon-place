@@ -1,0 +1,1497 @@
+import { useState, useEffect } from "react";
+// import { ScrollRestoration } from "react-router-dom";
+import { ScrollRestoration, useSearchParams } from "react-router-dom";
+import {
+  CheckCircle, XCircle, Clock, Eye,
+  Search, Building2, AlertTriangle,
+  MapPin, Users, CreditCard, Music, Mic2, Info,
+  Trash2, RotateCcw, Edit3, Save, X, ChevronRight,
+  Maximize2, Video, Utensils, Plus, Image as ImageIcon,
+  ShieldCheck, Award, Check, Calendar, Settings,
+  ClipboardCheck, CalendarCheck, MapPinned,
+  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone
+} from "lucide-react";
+import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
+import { db, storage } from "../lib/firebase";
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayUnion, arrayRemove, Timestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
+import { VenueScheduleModal } from "../components/admin/VenueScheduleModal";
+import { TagEditor } from "../components/TagEditor";
+
+// [유틸리티] 숫자 콤마 포맷팅
+const formatNumber = (val: any) => {
+  if (!val) return "";
+  const num = val.toString().replace(/[^0-9]/g, "");
+  return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+// [유틸리티] 콤마 제거
+const unformatNumber = (val: string) => val.replace(/,/g, "");
+
+// 통계 카드 컴포넌트 (클릭 시 해당 탭으로 이동 + 현재 탭 하이라이트)
+const StatCard = ({ title, value, icon: Icon, colorClass, onClick, isActive }: any) => (
+  <button
+    onClick={onClick}
+    className={`bg-white px-5 py-4 rounded-2xl border shadow-[0_4px_16px_rgb(0,0,0,0.03)] flex items-center justify-between transition-all hover:shadow-[0_8px_24px_rgba(0,0,0,0.05)] group text-left w-full ${
+      isActive ? "border-[#3182F6] ring-2 ring-[#3182F6]/15" : "border-transparent"
+    }`}
+  >
+    <div>
+      <p className="text-[13px] font-medium text-[#6B7684] mb-1">{title}</p>
+      <p className="text-[20px] font-bold text-[#191F28]">{value}</p>
+    </div>
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClass} bg-opacity-10 transition-transform group-hover:scale-110`}>
+      <Icon className={`w-5 h-5 ${colorClass.replace('bg-', 'text-')}`} />
+    </div>
+  </button>
+);
+
+// 상세 정보 라벨 컴포넌트
+const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "text" }: any) => {
+  const displayValue = name === "price" ? formatNumber(value) : value;
+
+  return (
+    <div className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-[#F2F4F6] hover:border-[#E5E8EB] transition-colors">
+      <div className="mt-0.5 p-2.5 bg-white border border-gray-100 rounded-xl shrink-0 shadow-sm">
+        <Icon className="w-4 h-4 text-[#ADB5BD]" />
+      </div>
+      <div className="flex-1">
+        <p className="text-[11px] font-black text-[#8B95A1] uppercase tracking-widest mb-1">{label}</p>
+        {isEdit ? (
+          <div className="relative">
+            <input
+              type={type}
+              name={name}
+              value={displayValue || ""}
+              onChange={onChange}
+              placeholder={name === "price" ? "0" : ""}
+              className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-black focus:border-[#3182F6] focus:ring-4 ring-[#3182F6]/5 outline-none transition-all"
+            />
+            {name === "price" && displayValue && (
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-[#8B95A1]">원</span>
+            )}
+          </div>
+        ) : (
+          <p className="text-[16px] font-black text-[#3182F6] leading-snug">
+            {name === "price" && value ? `${formatNumber(value)}원` : (value || "-")}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// 장소 사진 순서 변경 항목: 드래그 핸들 + 위/아래 버튼을 함께 제공한다.
+// images[0]이 공개 페이지(목록/상세)의 대표 사진으로 그대로 쓰이기 때문에 첫 항목에 라벨을 표시한다.
+const SortableVenueImage = ({
+  img, idx, total, onRemove, onMoveUp, onMoveDown, onImageClick,
+}: {
+  img: string;
+  idx: number;
+  total: number;
+  onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onImageClick: () => void;
+}) => {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={img}
+      dragListener={false}
+      dragControls={dragControls}
+      className="relative group rounded-2xl overflow-hidden border border-[#E5E8EB] bg-white"
+    >
+      <img
+        src={img}
+        className="w-full aspect-[4/3] object-cover cursor-zoom-in"
+        alt=""
+        draggable={false}
+        onClick={onImageClick}
+      />
+
+      {idx === 0 && (
+        <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#3182F6] text-white text-[10px] font-black rounded-full shadow-md pointer-events-none">
+          대표 사진
+        </span>
+      )}
+
+      <button
+        type="button"
+        onPointerDown={(e) => dragControls.start(e)}
+        className="absolute bottom-2 left-2 p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all cursor-grab active:cursor-grabbing touch-none"
+        title="드래그해서 순서 변경"
+      >
+        <GripVertical className="w-3 h-3" />
+      </button>
+
+      <div className="absolute bottom-2 right-2 flex gap-1">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={idx === 0}
+          className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          title="이전으로 이동"
+        >
+          <ChevronLeft className="w-3 h-3" />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={idx === total - 1}
+          className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          title="다음으로 이동"
+        >
+          <ChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-2 right-2 p-1.5 bg-[#F04452] text-white rounded-full shadow-md hover:bg-red-600 transition-all border border-white"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </Reorder.Item>
+  );
+};
+
+type VenueTab = "pending" | "approved" | "rejected" | "schedule";
+const VALID_VENUE_TABS: VenueTab[] = ["pending", "approved", "rejected", "schedule"];
+
+export function AdminDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = VALID_VENUE_TABS.includes(searchParams.get("tab") as VenueTab) ? (searchParams.get("tab") as VenueTab) : "pending";
+  const [activeTab, setActiveTabState] = useState<VenueTab>(initialTab);
+  const setActiveTab = (tab: VenueTab) => {
+    setActiveTabState(tab);
+    setSearchParams({ tab });
+  };
+  const [searchQuery, setSearchQuery] = useState("");
+  const [venues, setVenues] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [suspendedCount, setSuspendedCount] = useState(0);
+  const [scheduleVenueId, setScheduleVenueId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedVenue, setSelectedVenue] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedVenue, setEditedVenue] = useState<any>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // 로컬 추가 UI 상태 (구조 파괴 방지용 로컬 state 결합)
+  const [depositType, setDepositType] = useState<"percent" | "amount">("percent");
+  const [boostAmount, setBoostAmount] = useState("7");
+  const [boostUnit, setBoostUnit] = useState<"일" | "개월">("일");
+
+  const AVAILABLE_BADGES = [
+    { id: "stayon", label: "스테이온 인증", icon: ShieldCheck, color: "#3182F6", bg: "#E8F3FF" },
+    { id: "partyroom", label: "파티룸(소그룹)", icon: ShieldCheck, color: "#3182F6", bg: "#E8F3FF" },
+  ];
+
+  const handleToggleBadge = (badgeId: string) => {
+    const currentBadges = editedVenue.badges || [];
+    let updatedBadges = [];
+    if (currentBadges.includes(badgeId)) {
+      updatedBadges = currentBadges.filter((b: string) => b !== badgeId);
+    } else {
+      updatedBadges = [...currentBadges, badgeId];
+    }
+    setEditedVenue({ ...editedVenue, badges: updatedBadges });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const updatedImages = [...editedVenue.images];
+    updatedImages.splice(index, 1);
+    setEditedVenue({ ...editedVenue, images: updatedImages });
+  };
+
+  const handleReorderImages = (newOrder: string[]) => {
+    setEditedVenue({ ...editedVenue, images: newOrder });
+  };
+
+  const handleMoveImage = (index: number, direction: -1 | 1) => {
+    const images = [...(editedVenue.images || [])];
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+    [images[index], images[targetIndex]] = [images[targetIndex], images[index]];
+    setEditedVenue({ ...editedVenue, images });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newImageUrls = [...(editedVenue.images || [])];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const storageRef = ref(storage, `venues/${editedVenue.venueName || 'unnamed'}_${Date.now()}_${i}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snapshot.ref);
+        newImageUrls.push(url);
+      }
+      setEditedVenue({ ...editedVenue, images: newImageUrls });
+    } catch (error) {
+      console.error("이미지 업로드 실패:", error);
+      alert("이미지 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleToggleVisibility = async (id: string, currentStatus: boolean) => {
+    try {
+      const venueRef = doc(db, "venues", id);
+      await updateDoc(venueRef, { isVisible: !currentStatus });
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+    }
+  };
+
+  useEffect(() => {
+    const q = query(collection(db, "venues"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const venueData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setVenues(venueData);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 사이드바의 "예약 및 답사 문의" 그룹 배지 표시용 (실제 목록/상세는 /admin/bookings에서 관리)
+  useEffect(() => {
+    const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setBookings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 사이드바의 "차단된 회원" 배지 표시용 (실제 목록/상세는 /admin/users에서 관리)
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+      setSuspendedCount(snapshot.docs.filter((d) => d.data().status === "suspended").length);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 사진 확대보기(라이트박스) 키보드 내비게이션: ← → 로 사진 넘기기, Esc로 닫기
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const images = editedVenue?.images || [];
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight") setLightboxIndex((i) => (i === null ? null : (i + 1) % images.length));
+      if (e.key === "ArrowLeft") setLightboxIndex((i) => (i === null ? null : (i - 1 + images.length) % images.length));
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, editedVenue?.images]);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      const venueRef = doc(db, "venues", id);
+      await updateDoc(venueRef, { status: newStatus });
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  // 끌어올리기: 지정한 기간(일 단위) 뒤에 자동으로 상단 노출이 풀리도록 만료 시각을 저장한다.
+  // 공개 목록(VenueList.tsx)에서 boostedUntil이 현재보다 미래인 장소를 최상단으로 정렬한다.
+  const handleSetBoost = async (id: string, days: number) => {
+    if (!days || days <= 0) return;
+    try {
+      const boostedAt = new Date();
+      const boostedUntil = new Date(boostedAt.getTime() + days * 24 * 60 * 60 * 1000);
+      const updateData = {
+        boostedAt: Timestamp.fromDate(boostedAt),
+        boostedUntil: Timestamp.fromDate(boostedUntil),
+      };
+      await updateDoc(doc(db, "venues", id), updateData);
+      setSelectedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+    } catch (error) {
+      console.error("끌어올리기 설정 실패:", error);
+      alert("끌어올리기 설정 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleClearBoost = async (id: string) => {
+    try {
+      const updateData = { boostedAt: null, boostedUntil: null };
+      await updateDoc(doc(db, "venues", id), updateData);
+      setSelectedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+    } catch (error) {
+      console.error("끌어올리기 해제 실패:", error);
+      alert("끌어올리기 해제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("이 장소의 데이터를 영구적으로 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) {
+      try {
+        await deleteDoc(doc(db, "venues", id));
+      } catch (error) {
+        console.error("Error deleting:", error);
+      }
+    }
+  };
+
+  const handleToggleBlockedDate = async (venueId: string, dateStr: string, isCurrentlyBlocked: boolean) => {
+    try {
+      const venueRef = doc(db, "venues", venueId);
+      await updateDoc(venueRef, {
+        blockedDates: isCurrentlyBlocked ? arrayRemove(dateStr) : arrayUnion(dateStr)
+      });
+    } catch (error) {
+      console.error("Error toggling blocked date:", error);
+    }
+  };
+
+  const openEditModal = (venue: any) => {
+    const initialDepositType = venue.depositType || (venue.depositAmount ? "amount" : "percent");
+
+    setEditedVenue({
+      ...venue,
+      tags: venue.tags ?? [],
+      useSeasonalPrice: venue.useSeasonalPrice ?? false,
+      depositType: initialDepositType,
+      depositPercent: venue.depositPercent ?? 10,
+      depositAmount: venue.depositAmount ?? "",
+      seasonPrices: venue.seasonPrices ?? [
+        { label: "성수기", start: "08-01", end: "08-15", price: "" },
+        { label: "비수기", start: "10-01", end: "01-30", price: "" }
+      ]
+    });
+    setDepositType(initialDepositType);
+    setSelectedVenue(venue);
+    setIsEditMode(true);
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name === "price") {
+      const onlyNum = unformatNumber(value);
+      setEditedVenue((prev: any) => ({ ...prev, [name]: onlyNum === "" ? "" : Number(onlyNum) }));
+    } else {
+      setEditedVenue((prev: any) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSeasonPriceChange = (index: number, field: string, value: string) => {
+    const updatedSeasons = [...editedVenue.seasonPrices];
+
+    if (field === "start" || field === "end") {
+      // 🟢 인풋에서 YYYY-MM-DD 형태로 넘어오면 앞의 YYYY- 부분을 잘라내고 MM-DD 포맷만 추출
+      if (value.length === 10 && value.includes("-")) {
+        const [_, month, day] = value.split("-");
+        updatedSeasons[index][field] = `${month}-${day}`;
+      } else {
+        updatedSeasons[index][field] = value.trim();
+      }
+    } else if (field === "price") {
+      updatedSeasons[index][field] = unformatNumber(value);
+    } else {
+      updatedSeasons[index][field] = value;
+    }
+
+    setEditedVenue({ ...editedVenue, seasonPrices: updatedSeasons });
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const venueRef = doc(db, "venues", editedVenue.id);
+
+      const currentOptions = editedVenue.timeSlotOptions || [];
+      const sanitizedTimeSlotOptions = currentOptions.map((opt: any) => ({
+        days: opt.days || [],
+        start: opt.start || "",
+        end: opt.end || "",
+        price: opt.price ? opt.price.toString() : "",
+        label: opt.label || "" // 여기서 입력된 값을 확실히 가져옵니다
+      }));
+
+      // 선택한 탭 모드에 따라 디비에 최종 저장될 데이터를 트림 처리합니다.
+      // const finalUpdateData = {
+      //   ...editedVenue,
+      //   depositType: depositType,
+      //   depositPercent: depositType === "percent" ? Number(editedVenue.depositPercent || 10) : 0,
+      //   depositAmount: depositType === "amount" ? unformatNumber(editedVenue.depositAmount.toString()) : "",
+
+      //   // 옵션 추가
+      //   useTimeSlotPrice: editedVenue.useTimeSlotPrice ?? false,
+      //   timeSlotOptions: sanitizedTimeSlotOptions
+      //   // timeSlotOptions: editedVenue.timeSlotOptions || []
+      // };
+
+      const updateData = {
+        ...editedVenue,
+        depositType: depositType,
+        depositPercent: depositType === "percent" ? Number(editedVenue.depositPercent || 10) : 0,
+        depositAmount: depositType === "amount" ? unformatNumber(editedVenue.depositAmount?.toString() || "0") : "",
+        useTimeSlotPrice: editedVenue.useTimeSlotPrice ?? false,
+        timeSlotOptions: sanitizedTimeSlotOptions, // 여기서 명확하게 정제된 데이터를 주입
+        perPersonPrice: editedVenue.perPersonPrice ? editedVenue.perPersonPrice.toString() : "0"
+      };
+
+      delete updateData.id;
+
+      // const { id, ...updateData } = finalUpdateData;
+      await updateDoc(venueRef, updateData);
+
+      setIsEditMode(false);
+      setSelectedVenue(null);
+      alert("성공적으로 저장되었습니다.");
+    } catch (error) {
+      console.error("Error updating venue:", error);
+      alert("설정 저장 중 오류가 발생했습니다.");
+    }
+  };
+
+  const filteredData = venues.filter(v => v.status === activeTab && (v.venueName || "").includes(searchQuery));
+  const pendingCount = venues.filter(v => v.status === "pending").length;
+  const approvedCount = venues.filter(v => v.status === "approved").length;
+  const rejectedCount = venues.filter(v => v.status === "rejected").length;
+
+  const headerCopy: Record<string, { title: string; subtitle: string }> = {
+    pending: { title: "검토 대기중인 신청", subtitle: "실시간 수련회 장소 등록 및 승인 현황을 관리하세요." },
+    approved: { title: "승인 완료된 장소", subtitle: "현재 운영 중인 장소 목록을 확인하고 관리하세요." },
+    rejected: { title: "반려 / 삭제 내역", subtitle: "반려되었거나 삭제된 신청 내역을 확인하세요." },
+    schedule: { title: "장소별 일정 관리", subtitle: "오픈된 장소의 예약 불가(차단) 일정을 관리하세요." },
+  };
+  const adminEmail = getAuth().currentUser?.email || "admin@stayon.com";
+  const openVenues = venues.filter(v => v.status === "approved" && (v.venueName || "").includes(searchQuery));
+  const scheduleVenue = venues.find(v => v.id === scheduleVenueId) || null;
+
+  const handleTimeSlotChange = (index: number, field: string, value: any) => {
+    const updatedOptions = editedVenue.timeSlotOptions
+      ? [...editedVenue.timeSlotOptions]
+      : Array.from({ length: 8 }).map(() => ({ days: [], start: "", end: "", price: "", label: "" }));
+
+    if (!updatedOptions[index]) {
+      updatedOptions[index] = { days: [], start: "", end: "", price: "", label: "" };
+    }
+
+    updatedOptions[index] = {
+      ...updatedOptions[index],
+      [field]: value
+    };
+
+    setEditedVenue({ ...editedVenue, timeSlotOptions: updatedOptions });
+  };
+
+  return (
+    <AdminSidebarLayout
+      brandSubtitle="수련회 장소 관리자"
+      sections={[
+        {
+          label: "회원 관리",
+          items: [
+            { id: "users", label: "전체 회원", icon: Users, href: "/admin/users" },
+            { id: "suspended", label: "차단된 회원", count: suspendedCount, icon: ShieldOff, accentColor: "#F04452", href: "/admin/users?tab=suspended" },
+          ],
+        },
+        {
+          label: "장소 등록 관리",
+          items: [
+            { id: "pending", label: "검토 대기", count: pendingCount, icon: Clock, accentColor: "#FF9500" },
+            { id: "approved", label: "승인 완료", count: approvedCount, icon: CheckCircle, accentColor: "#3182F6" },
+            { id: "rejected", label: "반려 / 삭제", count: rejectedCount, icon: XCircle, accentColor: "#F04452" },
+            { id: "schedule", label: "장소별 일정관리", count: approvedCount, icon: Calendar },
+          ],
+        },
+        {
+          label: "예약 및 답사 문의",
+          items: [
+            { id: "bk_pending", label: "예약 대기", count: bookings.filter(b => b.status === "pending").length, icon: ClipboardCheck, accentColor: "#FF9500", href: "/admin/bookings?tab=pending" },
+            { id: "bk_confirmed", label: "답사 승인", count: bookings.filter(b => b.status === "confirmed").length, icon: CalendarCheck, href: "/admin/bookings?tab=confirmed" },
+            { id: "bk_inspection_confirmed", label: "답사 확정", count: bookings.filter(b => b.status === "inspection_confirmed").length, icon: MapPinned, accentColor: "#3182F6", href: "/admin/bookings?tab=inspection_confirmed" },
+            { id: "bk_approved", label: "결제 대기", count: bookings.filter(b => b.status === "approved").length, icon: CreditCard, href: "/admin/bookings?tab=approved" },
+            { id: "bk_deposit_paid", label: "완료", count: bookings.filter(b => b.status === "deposit_paid").length, icon: CheckCircle, href: "/admin/bookings?tab=deposit_paid" },
+          ],
+        },
+        {
+          label: "외부 사역팀 관리",
+          items: [
+            { id: "t_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/teams?tab=pending" },
+            { id: "t_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/teams?tab=approved" },
+            { id: "t_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/teams?tab=rejected" },
+            { id: "t_inquiries", label: "문의 현황", icon: BarChart3, href: "/admin/team-inquiries" },
+            { id: "t_ads", label: "광고 설정", icon: Megaphone, href: "/admin/team-ads" },
+          ],
+        },
+        {
+          label: "합주실 관리",
+          items: [
+            { id: "r_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/band-rooms?tab=pending" },
+            { id: "r_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/band-rooms?tab=approved" },
+            { id: "r_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/band-rooms?tab=rejected" },
+            { id: "r_bookings", label: "예약 관리", icon: CreditCard, href: "/admin/band-room-bookings" },
+            { id: "r_ads", label: "광고 설정", icon: Megaphone, href: "/admin/band-room-ads" },
+          ],
+        },
+        {
+          label: "교회 관리",
+          items: [
+            { id: "c_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/churches?tab=pending" },
+            { id: "c_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/churches?tab=approved" },
+            { id: "c_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/churches?tab=rejected" },
+          ],
+        },
+      ]}
+      activeId={activeTab}
+      onSelect={(id) => setActiveTab(id as any)}
+      adminEmail={adminEmail}
+    >
+      <ScrollRestoration />
+
+      <main className="max-w-[1300px] px-6 md:px-10 py-6 md:py-8">
+        {/* 목록/상세 화면 전환: 장소를 선택하면 팝업이 아니라 이 영역 안에서 목록 대신
+            상세·수정 패널이 그대로 대체되어 표시된다 (좌측 사이드바 선택에 따라 우측
+            영역이 바뀌는 것과 동일한 방식). */}
+        {selectedVenue && editedVenue ? null : (
+        <>
+        {/* 모바일 전용 탭 (사이드바가 숨겨지는 좁은 화면) */}
+        <div className="flex md:hidden bg-[#E5E8EB] p-1.5 rounded-[18px] w-full mb-5 overflow-x-auto">
+          {[
+            { id: "pending", label: "검토 대기", count: pendingCount },
+            { id: "approved", label: "승인 완료", count: approvedCount },
+            { id: "rejected", label: "반려/삭제", count: rejectedCount },
+            { id: "schedule", label: "일정관리", count: approvedCount }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-[14px] text-[13px] font-bold whitespace-nowrap transition-all duration-200 ${activeTab === tab.id ? "bg-white text-[#3182F6] shadow-sm" : "text-[#6B7684]"
+                }`}
+            >
+              {tab.label}
+              <span className={`text-[12px] ${activeTab === tab.id ? "text-[#3182F6]" : "text-[#ADB5BD]"}`}>{tab.count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-5">
+          <h1 className="text-[22px] md:text-[26px] font-black tracking-tight leading-tight mb-1">{headerCopy[activeTab].title}</h1>
+          <p className="text-[#4E5968] font-bold text-[13px] md:text-[14px]">{headerCopy[activeTab].subtitle}</p>
+        </div>
+
+        {activeTab !== "schedule" && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+            <StatCard title="검토 대기중" value={`${pendingCount}건`} icon={Clock} colorClass="bg-[#FF9500]" onClick={() => setActiveTab("pending")} isActive={activeTab === "pending"} />
+            <StatCard title="운영 중인 장소" value={`${approvedCount}개`} icon={Building2} colorClass="bg-[#3182F6]" onClick={() => setActiveTab("approved")} isActive={activeTab === "approved"} />
+            <StatCard title="반려된 내역" value={`${rejectedCount}건`} icon={XCircle} colorClass="bg-[#F04452]" onClick={() => setActiveTab("rejected")} isActive={activeTab === "rejected"} />
+          </div>
+        )}
+
+        {activeTab === "schedule" ? (
+          <div>
+            <div className="relative w-full md:w-80 mb-5">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ADB5BD]" />
+              <input
+                type="text"
+                placeholder="장소 이름 검색"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-medium outline-none focus:ring-2 ring-[#3182F6]/10 transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {openVenues.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {openVenues.map((venue) => {
+                  const blockedCount = (venue.blockedDates || []).length;
+                  return (
+                    <div key={venue.id} className="bg-white p-5 rounded-2xl border border-[#F2F4F6] shadow-[0_4px_16px_rgba(0,0,0,0.03)] flex flex-col gap-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="px-2.5 py-1 bg-[#E8F3FF] text-[#3182F6] rounded-full text-[11px] font-black shrink-0">예약 가능</span>
+                        <span className="text-[11px] font-bold text-[#ADB5BD] truncate">{venue.denomination}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-[#F2F4F6] overflow-hidden flex items-center justify-center shrink-0">
+                          {venue.images?.[0] ? <img src={venue.images[0]} className="w-full h-full object-cover" /> : <Building2 className="w-5 h-5 text-[#8B95A1]" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-black text-[#191F28] truncate">{venue.venueName}</p>
+                          <div className="flex items-center gap-1 text-[12px] font-bold text-[#8B95A1]">
+                            <MapPin className="w-3 h-3 text-[#3182F6] shrink-0" />
+                            <span className="truncate">{venue.location}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between px-1 py-2 border-t border-[#F2F4F6]">
+                        <span className="text-[12px] font-bold text-[#8B95A1]">차단된 날짜</span>
+                        <span className="text-[13px] font-black text-[#F04452]">{blockedCount}일 선택됨</span>
+                      </div>
+                      <button
+                        onClick={() => setScheduleVenueId(venue.id)}
+                        className="w-full py-3 bg-[#3182F6] text-white rounded-xl font-bold text-[13px] hover:bg-[#1B64DA] transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                      >
+                        <Calendar className="w-4 h-4" /> 일정 관리
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-white rounded-[20px] border border-[#F2F4F6] py-20 text-center">
+                <div className="flex flex-col items-center gap-3 text-[#ADB5BD]">
+                  <AlertTriangle className="w-10 h-10 opacity-10" />
+                  <p className="font-bold text-[14px]">오픈된 장소가 없습니다.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+        <div className="bg-white rounded-[20px] shadow-[0_8px_24px_rgba(0,0,0,0.02)] border border-[#F2F4F6] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#F9FAFB] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ADB5BD]" />
+              <input
+                type="text"
+                placeholder="장소 이름 검색"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#F2F4F6] border-none rounded-xl text-[14px] font-medium outline-none focus:ring-2 ring-[#3182F6]/10 transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <p className="text-[12px] font-bold text-[#8B95A1] shrink-0">
+              총 <span className="text-[#3182F6]">{filteredData.length}</span>개의 검색 결과
+            </p>
+          </div>
+
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full min-w-[760px] border-collapse">
+              <thead>
+                <tr className="bg-[#F9FAFB] text-left">
+                  <th className="px-5 py-2.5 text-[11px] font-black text-[#8B95A1] uppercase tracking-widest">장소 및 신청자</th>
+                  <th className="px-5 py-2.5 text-[11px] font-black text-[#8B95A1] uppercase tracking-widest">지역 정보</th>
+                  <th className="px-5 py-2.5 text-[11px] font-black text-[#8B95A1] uppercase tracking-widest">신청 일자</th>
+                  <th className="px-5 py-2.5 text-[11px] font-black text-[#8B95A1] uppercase tracking-widest text-right">관리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F2F4F6]">
+                <AnimatePresence mode="popLayout">
+                  {filteredData.length > 0 ? filteredData.map((venue) => (
+                    <motion.tr key={venue.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="group hover:bg-[#F9FAFB]/50 transition-colors">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#F2F4F6] overflow-hidden shrink-0 cursor-pointer border border-[#F2F4F6]" onClick={() => openEditModal(venue)}>
+                            {venue.images?.[0] ? <img src={venue.images[0]} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <Building2 className="w-full p-2.5 text-[#ADB5BD]" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[14px] font-black text-[#191F28] mb-0.5 leading-tight whitespace-nowrap">{venue.venueName}</p>
+                              {venue.boostedUntil?.toDate?.() && venue.boostedUntil.toDate() > new Date() && (
+                                <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-[#FFF7ED] text-[#C2410C] rounded text-[10px] font-black">
+                                  <TrendingUp className="w-2.5 h-2.5" /> 끌올중
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span className="text-[12px] font-bold text-[#8B95A1]">{venue.applicantName || "익명"}</span>
+                              <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
+                              <span className="text-[12px] font-bold text-[#3182F6]">{venue.denomination}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-1.5 text-[#4E5968] font-bold text-[13px] whitespace-nowrap">
+                          <MapPin className="w-3.5 h-3.5 text-[#3182F6] shrink-0" /> {venue.location}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-[13px] font-bold text-[#8B95A1] whitespace-nowrap">
+                        {venue.createdAt?.toDate?.() ? venue.createdAt.toDate().toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) : "-"}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setScheduleVenueId(venue.id)}
+                            title="예약 불가 일정 설정"
+                            className="p-2 bg-white border border-[#F2F4F6] text-[#F04452] hover:bg-[#FFF0F0] rounded-lg transition-all active:scale-95 flex items-center justify-center"
+                          >
+                            <Calendar className="w-4 h-4 text-[#F04452]" />
+                          </button>
+
+                          <button onClick={() => openEditModal(venue)} className="p-2 bg-white border border-[#E5E8EB] text-[#4E5968] hover:bg-[#F2F4F6] rounded-lg transition-all active:scale-95">
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {activeTab === "approved" && (
+                            <>
+                              <button onClick={() => handleStatusChange(venue.id, "pending")} className="flex items-center justify-center w-8 h-8 bg-[#FFF0F0] text-[#F04452] hover:bg-[#FFE0E0] rounded-lg transition-all active:scale-95">
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => openEditModal(venue)} className="p-2 bg-[#F2F4F6] text-[#3182F6] hover:bg-[#E8F3FF] rounded-lg transition-all active:scale-95">
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+
+                          {activeTab === "pending" && (
+                            <>
+                              <button onClick={() => handleStatusChange(venue.id, "approved")} className="px-4 py-2 bg-[#3182F6] text-white rounded-lg font-bold text-[13px] hover:bg-[#1B64DA] transition-all active:scale-95 whitespace-nowrap">
+                                승인
+                              </button>
+                              <button onClick={() => handleStatusChange(venue.id, "rejected")} className="px-4 py-2 bg-[#F2F4F6] text-[#4E5968] rounded-lg font-bold text-[13px] hover:bg-[#E5E8EB] transition-all active:scale-95 whitespace-nowrap">
+                                반려
+                              </button>
+                            </>
+                          )}
+
+                          {activeTab === "rejected" && (
+                            <>
+                              <button onClick={() => handleStatusChange(venue.id, "pending")} className="px-3 py-2 bg-[#E8F3FF] text-[#3182F6] rounded-lg font-black text-[13px] hover:bg-[#D1E5FF] transition-all active:scale-95">재검토</button>
+                              <button onClick={() => handleDelete(venue.id)} className="p-2 bg-[#FFF0F0] text-[#F04452] hover:bg-[#FFE0E0] rounded-lg transition-all active:scale-95">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={4} className="py-20 text-center">
+                        <div className="flex flex-col items-center gap-3 text-[#ADB5BD]">
+                          <AlertTriangle className="w-10 h-10 opacity-10" />
+                          <p className="font-bold text-[14px]">해당 내역이 없습니다.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        )}
+        </>
+        )}
+
+        {/* 상세/수정 패널: 팝업이 아니라 목록을 대체해 같은 영역 안에서 바로 표시된다 */}
+        {selectedVenue && editedVenue && (
+          <div>
+            <button
+              onClick={() => { setSelectedVenue(null); setIsEditMode(false); }}
+              className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-[#4E5968] hover:bg-[#F2F4F6] hover:text-[#3182F6] transition-all active:scale-95"
+            >
+              <ArrowLeft className="w-4 h-4" /> 목록으로 돌아가기
+            </button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-6"
+            >
+              {/* 끌어올리기: 지정 기간 동안 공개 목록 최상단에 노출시키는 관리자 전용 기능. */}
+              <div className="bg-[#FFF7ED] border border-[#FFEDD5] rounded-2xl p-4">
+                {selectedVenue.boostedUntil?.toDate?.() && selectedVenue.boostedUntil.toDate() > new Date() ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-[13px] font-bold text-[#C2410C]">
+                      <TrendingUp className="w-4 h-4 shrink-0" />
+                      {selectedVenue.boostedUntil.toDate().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}까지 상단 노출 중
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleClearBoost(selectedVenue.id)}
+                      className="shrink-0 px-3 py-1.5 bg-white border border-[#FFEDD5] rounded-lg text-[12px] font-black text-[#C2410C] hover:bg-[#FFF1E6] transition-all"
+                    >
+                      해제
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={boostAmount}
+                      onChange={(e) => setBoostAmount(e.target.value)}
+                      className="w-20 px-3 py-2 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold outline-none focus:border-[#C2410C]"
+                    />
+                    <select
+                      value={boostUnit}
+                      onChange={(e) => setBoostUnit(e.target.value as "일" | "개월")}
+                      className="px-3 py-2 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold outline-none focus:border-[#C2410C]"
+                    >
+                      <option value="일">일</option>
+                      <option value="개월">개월</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => handleSetBoost(selectedVenue.id, Number(boostAmount) * (boostUnit === "개월" ? 30 : 1))}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-[#EA580C] text-white rounded-xl text-[13px] font-black hover:bg-[#C2410C] transition-all active:scale-95"
+                    >
+                      <TrendingUp className="w-4 h-4" /> 끌어올리기
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 사진: 가독성을 위해 세로로 긴 목록 대신 카드형 그리드로 배치. 각 카드를 클릭하면
+                  라이트박스로 확대해서 볼 수 있고, 대표사진/삭제/순서이동 아이콘은 항상 보인다. */}
+              <div className="bg-white rounded-[28px] border border-[#E5E8EB] shadow-sm p-5 md:p-8">
+                <div className="flex items-center justify-between mb-5">
+                  <p className="text-[14px] font-black text-[#8B95A1] uppercase tracking-wider">현장 사진 {editedVenue.images?.length || 0}</p>
+                  {isEditMode && (
+                    <label className="cursor-pointer bg-[#3182F6] text-white px-3 py-1.5 rounded-xl hover:bg-[#1B64DA] transition-all flex items-center gap-1 text-[12px] font-bold shadow-sm">
+                      <Plus className="w-3.5 h-3.5" /> 사진 추가
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
+                    </label>
+                  )}
+                </div>
+
+                {/* 가독성을 위해 사진 영역은 3줄까지만 보이고, 그 이상은 이 안에서만 스크롤된다
+                    (스크롤바를 숨기지 않아 사진이 더 있다는 걸 바로 알 수 있게 한다). */}
+                <div className="max-h-[420px] lg:max-h-[560px] overflow-y-auto pr-1">
+                  {isEditMode ? (
+                    <Reorder.Group
+                      axis="y"
+                      values={editedVenue.images || []}
+                      onReorder={handleReorderImages}
+                      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    >
+                      {(editedVenue.images || []).map((img: string, idx: number) => (
+                        <SortableVenueImage
+                          key={img}
+                          img={img}
+                          idx={idx}
+                          total={(editedVenue.images || []).length}
+                          onRemove={() => handleRemoveImage(idx)}
+                          onMoveUp={() => handleMoveImage(idx, -1)}
+                          onMoveDown={() => handleMoveImage(idx, 1)}
+                          onImageClick={() => setLightboxIndex(idx)}
+                        />
+                      ))}
+                    </Reorder.Group>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {(editedVenue.images || []).map((img: string, idx: number) => (
+                        <div key={idx} className="relative rounded-2xl overflow-hidden border border-[#E5E8EB]">
+                          <img src={img} className="w-full aspect-[4/3] object-cover cursor-zoom-in" alt="" onClick={() => setLightboxIndex(idx)} />
+                          {idx === 0 && (
+                            <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#3182F6] text-white text-[10px] font-black rounded-full shadow-md pointer-events-none">
+                              대표 사진
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {isUploading && (
+                  <div className="w-full h-32 mt-3 bg-[#E5E8EB] animate-pulse rounded-2xl flex flex-col items-center justify-center text-[#8B95A1] gap-2">
+                    <ImageIcon className="w-6 h-6 animate-bounce" />
+                    <span className="text-[13px] font-bold">업로드 중...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 소속 및 상세 정보: 교회 이름/주소 · 기본 정보 · 시설 및 장비 · 가이드라인 정보 */}
+              <div className="w-full bg-white rounded-[28px] border border-[#E5E8EB] shadow-sm p-6 md:p-10">
+                <div className="mb-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="px-4 py-1.5 bg-[#E8F3FF] text-[#3182F6] rounded-full text-[13px] font-black">{editedVenue.denomination}</span>
+                    <span className="text-[14px] font-bold text-[#8B95A1]">신청자: {editedVenue.applicantName}</span>
+                  </div>
+
+                  {isEditMode ? (
+                    <input name="venueName" value={editedVenue.venueName || ""} onChange={handleEditChange} className="text-[28px] font-black w-full bg-[#F2F4F6] rounded-2xl p-4 border border-[#E5E8EB] outline-none focus:border-[#3182F6] text-[#191F28]" />
+                  ) : (
+                    <h2 className="text-[36px] font-black text-[#191F28] leading-tight mb-2">{editedVenue.venueName}</h2>
+                  )}
+
+                  <div className="flex items-center gap-1.5 text-[#4E5968] text-[15px] font-bold mt-3">
+                    <MapPin className="w-4 h-4 text-[#3182F6]" /> {editedVenue.location}
+                  </div>
+
+                  <div className="p-5 bg-[#FAFAFB] rounded-[24px] border border-[#F2F4F6] mt-6">
+                    <p className="text-[12px] font-black text-[#8B95A1] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-[#3182F6]" /> 장소 부여 뱃지 관리
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {AVAILABLE_BADGES.map((badge) => {
+                        const isTargetActive = (editedVenue.badges || []).includes(badge.id);
+                        const IconComponent = badge.icon;
+                        return (
+                          <button
+                            key={badge.id}
+                            disabled={!isEditMode}
+                            onClick={() => handleToggleBadge(badge.id)}
+                            style={{
+                              borderColor: isTargetActive ? badge.color : "#E5E8EB",
+                              backgroundColor: isTargetActive ? badge.bg : "#FFFFFF",
+                              color: isTargetActive ? badge.color : "#6B7684"
+                            }}
+                            className={`px-4 py-2.5 rounded-full text-[13px] font-bold border flex items-center gap-2 transition-all ${isEditMode ? "cursor-pointer active:scale-95" : "cursor-default opacity-80"
+                              }`}
+                          >
+                            <IconComponent className="w-4 h-4 shrink-0" />
+                            {badge.label}
+                            {isEditMode && isTargetActive && <Check className="w-3.5 h-3.5 ml-0.5" strokeWidth={3} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-[#FAFAFB] rounded-[24px] border border-[#F2F4F6] mt-4">
+                    <p className="text-[12px] font-black text-[#8B95A1] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-[#3182F6]" /> 장소 태그 키워드
+                    </p>
+                    <TagEditor
+                      tags={editedVenue.tags || []}
+                      onChange={(tags) => setEditedVenue({ ...editedVenue, tags })}
+                      readOnly={!isEditMode}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <section className="space-y-4">
+                    <h3 className="text-[16px] font-black text-[#191F28] flex items-center gap-2 px-1">
+                      <Info className="w-4 h-4 text-[#3182F6]" /> 기본 정보
+                    </h3>
+                    <div className="bg-[#FAFAFB] rounded-3xl p-3 border border-[#F2F4F6] grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow icon={Users} label="수용 인원" name="capacity" value={editedVenue.capacity} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Utensils} label="식당 인원" name="cafeteriaCapacity" value={editedVenue.cafeteriaCapacity} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={CreditCard} label="기본 1박 요금" name="price" value={editedVenue.price} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Maximize2} label="주강당 면적" name="hallSize" value={editedVenue.hallSize} isEdit={isEditMode} onChange={handleEditChange} />
+                    </div>
+                  </section>
+
+                  <section className="space-y-4">
+                    <h3 className="text-[16px] font-black text-[#191F28] flex items-center gap-2 px-1">
+                      <Music className="w-4 h-4 text-[#3182F6]" /> 시설 및 장비
+                    </h3>
+                    <div className="bg-[#FAFAFB] rounded-3xl p-3 border border-[#F2F4F6] grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow icon={Music} label="보유 악기" name="instruments" value={editedVenue.instruments} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Mic2} label="음향 시스템" name="soundSystem" value={editedVenue.soundSystem} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Video} label="영상 장비" name="projector" value={editedVenue.projector} isEdit={isEditMode} onChange={handleEditChange} />
+
+                      {/* 에어컨 시설: Firestore에 boolean으로 저장되므로 텍스트가 아닌 있음/없음 토글로 편집 */}
+                      <div className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-[#F2F4F6]">
+                        <div className="mt-0.5 p-2.5 bg-white border border-gray-100 rounded-xl shrink-0 shadow-sm">
+                          <Wind className="w-4 h-4 text-[#ADB5BD]" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[11px] font-black text-[#8B95A1] uppercase tracking-widest mb-1">에어컨 시설</p>
+                          {isEditMode ? (
+                            <div className="flex gap-2">
+                              {['있음', '없음'].map((opt) => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => setEditedVenue({ ...editedVenue, airConditioner: opt === '있음' })}
+                                  className={`flex-1 py-2.5 text-[13px] font-bold rounded-xl border transition-all ${(editedVenue.airConditioner ?? false) === (opt === '있음')
+                                    ? 'border-[#3182F6] bg-[#E8F3FF] text-[#3182F6]'
+                                    : 'border-[#E5E8EB] bg-white text-[#8B95A1]'
+                                    }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[16px] font-black text-[#3182F6] leading-snug">{editedVenue.airConditioner ? '설치됨' : '없음'}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <InfoRow icon={Car} label="주차 정보" name="parkingCapacity" value={editedVenue.parkingCapacity} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Volume2} label="야간 소음 제한" name="nightEventLimit" value={editedVenue.nightEventLimit} isEdit={isEditMode} onChange={handleEditChange} />
+                    </div>
+                  </section>
+                </div>
+
+                <div className="mt-10">
+                  <section className="space-y-4">
+                    <h3 className="text-[16px] font-black text-[#191F28] flex items-center gap-2 px-1">
+                      <Utensils className="w-4 h-4 text-[#3182F6]" /> 가이드라인 정보
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="p-5 bg-[#FAFAFB] border border-[#F2F4F6] rounded-[24px]">
+                        <p className="text-[12px] font-black text-[#8B95A1] mb-2 uppercase tracking-wider">식사 안내</p>
+                        {isEditMode ? (
+                          <textarea name="mealNote" value={editedVenue.mealNote || ""} onChange={handleEditChange} placeholder="식사 정보를 기술하세요." className="w-full p-4 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-medium min-h-[250px] outline-none focus:border-[#3182F6] transition-all" />
+                        ) : (
+                          <p className="text-[15px] font-bold text-[#4E5968] whitespace-pre-wrap">{editedVenue.mealNote || "정보가 비어있습니다."}</p>
+                        )}
+                      </div>
+
+                      <div className="p-5 bg-[#FAFAFB] border border-[#F2F4F6] rounded-[24px]">
+                        <p className="text-[12px] font-black text-[#8B95A1] mb-2 uppercase tracking-wider">장소 상세 소개</p>
+                        {isEditMode ? (
+                          <textarea name="description" value={editedVenue.description || ""} onChange={handleEditChange} placeholder="상세 정보를 기술하세요." className="w-full p-4 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-medium min-h-[1000px] outline-none focus:border-[#3182F6] transition-all" />
+                        ) : (
+                          <p className="text-[15px] font-bold text-[#4E5968] leading-relaxed whitespace-pre-wrap">{editedVenue.description || "정보가 비어있습니다."}</p>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              {/* 예약금/요금 정책: 정밀 정산 및 정책 패널 */}
+              <div className="w-full bg-white rounded-[28px] border border-[#E5E8EB] shadow-sm p-5 md:p-10">
+                <div className="space-y-8">
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  {/* 블록 1: 장소 예약금 설정 정밀 필드 */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-[#3182F6]" />
+                      <h3 className="text-[18px] font-black text-[#191F28]">장소 예약금 설정</h3>
+                    </div>
+                    <p className="text-[13px] text-[#6B7684] leading-relaxed font-medium">
+                      플랫폼에서 유저가 예약 요청을 보낼 때 선결제 처리할 <span className="text-[#3182F6] font-bold">확정 예약금 비율 혹은 금액</span>을 설정합니다.
+                    </p>
+
+                    {/* 선택 방식 스위치 탭 */}
+                    <div className="flex p-1 bg-[#F2F4F6] rounded-xl border border-[#E5E8EB]">
+                      <button
+                        type="button"
+                        disabled={!isEditMode}
+                        onClick={() => setDepositType("percent")}
+                        className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-all ${depositType === "percent" ? "bg-white text-[#3182F6] shadow-sm" : "text-[#8B95A1]"}`}
+                      >
+                        퍼센트(%) 기준
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isEditMode}
+                        onClick={() => setDepositType("amount")}
+                        className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-all ${depositType === "amount" ? "bg-white text-[#3182F6] shadow-sm" : "text-[#8B95A1]"}`}
+                      >
+                        직접 금액 명시
+                      </button>
+                    </div>
+
+                    {/* 정산 액션 바디 */}
+                    <div className="p-5 bg-[#FAFAFB] border border-[#F2F4F6] rounded-2xl space-y-4">
+                      {depositType === "percent" ? (
+                        <div className="space-y-3">
+                          <label className="text-[11px] font-black text-[#8B95A1] uppercase tracking-wider">예약금 비율 선점</label>
+                          <div className="flex gap-2">
+                            {[10, 20, 30].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                disabled={!isEditMode}
+                                onClick={() => setEditedVenue({ ...editedVenue, depositPercent: pct, depositAmount: "" })}
+                                className={`flex-1 py-3 text-[14px] font-bold rounded-xl border transition-all ${(editedVenue.depositPercent === pct || (!editedVenue.depositPercent && pct === 10))
+                                  ? "border-[#3182F6] bg-[#E8F3FF] text-[#3182F6]"
+                                  : "border-[#E5E8EB] bg-white text-[#6B7684]"
+                                  }`}
+                              >
+                                {pct}%
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* 실시간 시뮬레이터 안내 피드백 */}
+                          <div className="pt-2 border-t border-[#E5E8EB] flex justify-between text-[13px] font-bold">
+                            <span className="text-[#6B7684]">현재 기준 예약금액:</span>
+                            <span className="text-[#191F28]">
+                              {formatNumber(Math.floor((Number(editedVenue.price || 0) * (editedVenue.depositPercent || 10)) / 100))} 원
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-black text-[#8B95A1] uppercase tracking-wider">확정 예약 금액 입력</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              disabled={!isEditMode}
+                              placeholder="예: 400,000"
+                              value={formatNumber(editedVenue.depositAmount)}
+                              onChange={(e) => setEditedVenue({ ...editedVenue, depositAmount: unformatNumber(e.target.value), depositPercent: 0 })}
+                              className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-bold outline-none focus:border-[#3182F6] text-[#191F28]"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-[#8B95A1]">원</span>
+                          </div>
+                          {Number(editedVenue.depositAmount) > Number(editedVenue.price) && (
+                            <p className="text-[11px] text-[#F04452] font-semibold mt-1">⚠️ 총 금액보다 예약금이 더 큽니다.</p>
+                          )}
+
+                          {Number(editedVenue.depositAmount) <= Number(editedVenue.price) && (
+                            <div className="pt-3 mt-1 border-t border-[#E5E8EB] flex flex-col gap-1 text-[13px] font-bold">
+                              <div className="flex justify-between">
+                                <span className="text-[#6B7684]">현장 결제 잔금:</span>
+                                <span className="text-[#3182F6]">
+                                  {formatNumber(Number(editedVenue.price || 0) - Number(editedVenue.depositAmount || 0))} 원
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 블록 2: 시즌별 요금 연간 반복 커스텀 제어 */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[#3182F6]" />
+                        <h3 className="text-[18px] font-black text-[#191F28]">시즌별 요금 관리</h3>
+                      </div>
+
+                      {/* 스위치 컴포넌트 */}
+                      {/* <button
+                        type="button"
+                        disabled={!isEditMode}
+                        onClick={() => setEditedVenue({ ...editedVenue, useSeasonalPrice: !editedVenue.useSeasonalPrice })}
+                        className={`w-12 h-7 rounded-full transition-colors relative outline-none border border-transparent ${editedVenue.useSeasonalPrice ? "bg-[#3182F6]" : "bg-[#D1D6DB]"
+                          }`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${editedVenue.useSeasonalPrice ? "translate-x-5" : "translate-x-0"
+                          }`} />
+                      </button> */}
+                      <button
+                        type="button"
+                        disabled={!isEditMode}
+                        onClick={() => setEditedVenue({
+                          ...editedVenue,
+                          useSeasonalPrice: !editedVenue.useSeasonalPrice,
+                          useTimeSlotPrice: editedVenue.useSeasonalPrice ? editedVenue.useTimeSlotPrice : false // 시즌을 켜면 시간대별은 강제 OFF
+                        })}
+                        className={`w-12 h-7 rounded-full transition-colors relative outline-none border border-transparent ${editedVenue.useSeasonalPrice ? "bg-[#3182F6]" : "bg-[#D1D6DB]"}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${editedVenue.useSeasonalPrice ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+                    <p className="text-[13px] text-[#6B7684] leading-relaxed font-medium">
+                      연도 스케일 없이 <span className="text-[#191F28] font-bold">월-일 정보만 매핑</span>하여 매년 돌아오는 특정 기간의 요금을 자동 체인징 빌드합니다.
+                    </p>
+
+                    {/* 시즌 설정 폼 동적 락킹 */}
+                    <div className={`space-y-3 transition-opacity ${editedVenue.useSeasonalPrice ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
+                      {(editedVenue.seasonPrices || []).map((season: any, idx: number) => {
+                        const formatToDateValue = (dateStr: string) => {
+                          if (!dateStr) return "";
+                          if (dateStr.split("-").length === 3) return dateStr; // 이미 YYYY-MM-DD 인 경우
+                          const currentYear = new Date().getFullYear(); // 기본적으로 현재 연도 기준 (2026)
+                          return `${currentYear}-${dateStr}`;
+                        };
+
+                        return (
+                          <div key={idx} className="p-4 bg-[#FAFAFB] border border-[#E5E8EB] rounded-2xl space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[14px] font-black text-[#3182F6]">{season.label} 요금</span>
+                              <span className="text-[11px] text-[#8B95A1] font-bold">시즌별 날짜 지정</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-[#8B95A1] block mb-1">시작일</label>
+                                <div className="relative">
+                                  {/* 고정되어 있던 `2026-` 하드코딩을 제거하고 동적 날짜값 바인딩 */}
+                                  <input
+                                    type="date"
+                                    disabled={!isEditMode}
+                                    value={formatToDateValue(season.start)}
+                                    onChange={(e) => handleSeasonPriceChange(idx, "start", e.target.value)}
+                                    className="w-full px-3 py-2 text-[13px] font-bold bg-white border border-[#E5E8EB] rounded-xl text-center outline-none focus:border-[#3182F6] transition-all"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-[#8B95A1] block mb-1">종료일</label>
+                                <div className="relative">
+                                  {/* 고정되어 있던 `2026-` 하드코딩을 제거하고 동적 날짜값 바인딩 */}
+                                  <input
+                                    type="date"
+                                    disabled={!isEditMode}
+                                    value={formatToDateValue(season.end)}
+                                    onChange={(e) => handleSeasonPriceChange(idx, "end", e.target.value)}
+                                    className="w-full px-3 py-2 text-[13px] font-bold bg-white border border-[#E5E8EB] rounded-xl text-center outline-none focus:border-[#3182F6] transition-all"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="해당 시즌 적용 요금"
+                                disabled={!isEditMode}
+                                value={formatNumber(season.price)}
+                                onChange={(e) => handleSeasonPriceChange(idx, "price", e.target.value)}
+                                className="w-full pl-4 pr-10 py-2.5 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]"
+                              />
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#8B95A1]">원</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                  <div className="mt-10 pt-8 border-t border-[#E5E8EB] space-y-8">
+                    {/* 기존 운영 옵션 설정 유지 및 수정 */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-[#3182F6]" />
+                        <h3 className="text-[18px] font-black text-[#191F28]">운영 옵션 설정</h3>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!isEditMode}
+                        onClick={() => setEditedVenue({
+                          ...editedVenue,
+                          useTimeSlotPrice: !editedVenue.useTimeSlotPrice,
+                          useSeasonalPrice: !editedVenue.useTimeSlotPrice ? false : editedVenue.useSeasonalPrice
+                        })}
+                        className={`w-12 h-7 rounded-full transition-colors relative outline-none border border-transparent ${editedVenue.useTimeSlotPrice ? "bg-[#3182F6]" : "bg-[#D1D6DB]"}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${editedVenue.useTimeSlotPrice ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+
+                    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 transition-opacity ${editedVenue.useTimeSlotPrice ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
+                      {(editedVenue.timeSlotOptions || Array.from({ length: 8 }).map(() => ({ days: [], start: "", end: "", price: "" }))).map((option: any, i: number) => (
+                        <div key={i} className="p-5 bg-[#FAFAFB] border border-[#E5E8EB] rounded-2xl space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[13px] font-black text-[#4E5968]">운영 옵션 {i + 1}</span>
+                          </div>
+                          
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#8B95A1]">옵션 명칭 (예: 데이권, 올인원)</label>
+                            <input 
+                              type="text" 
+                              placeholder="예: 주간권" 
+                              value={option.label || ""} 
+                              onChange={(e) => handleTimeSlotChange(i, "label", e.target.value)} 
+                              className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#E5E8EB] rounded-xl text-[14px] font-bold outline-none focus:border-[#3182F6] transition-all" 
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#8B95A1]">운영 요일</label>
+                            <div className="flex gap-1.5">
+                              {['일', '월', '화', '수', '목', '금', '토'].map((day, dIdx) => {
+                                const currentDays = Array.isArray(option.days) ? option.days : [];
+                                const isSelected = currentDays.includes(dIdx);
+                                return (
+                                  <button key={day} type="button" onClick={() => {
+                                    const newDays = isSelected ? currentDays.filter((d: number) => d !== dIdx) : [...currentDays, dIdx].sort((a, b) => a - b);
+                                    handleTimeSlotChange(i, "days", newDays);
+                                  }} className={`flex-1 py-2.5 text-[12px] font-black border rounded-xl transition-all ${isSelected ? "bg-[#3182F6] text-white border-[#3182F6]" : "bg-[#F9FAFB] border-[#E5E8EB] text-[#8B95A1]"}`}>
+                                    {day}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-[#8B95A1]">시작 시간</label>
+                              <input type="time" value={option.start || ""} onChange={(e) => handleTimeSlotChange(i, "start", e.target.value)} className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#3182F6]" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-[#8B95A1]">종료 시간</label>
+                              <input type="time" value={option.end || ""} onChange={(e) => handleTimeSlotChange(i, "end", e.target.value)} className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#3182F6]" />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-[#8B95A1]">대여 금액</label>
+                            <div className="relative">
+                              <input type="text" value={option.price ? formatNumber(option.price) : ""} onChange={(e) => handleTimeSlotChange(i, "price", e.target.value.replace(/[^0-9]/g, ''))} className="w-full pl-10 pr-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]" />
+                              <span className="absolute left-4 top-3.5 text-[14px] font-bold text-[#4E5968]">₩</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 transition-opacity ${editedVenue.useTimeSlotPrice ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
+                      {/* 인당 추가 금액 옵션 */}
+                      {/* <div className="bg-white p-5 border border-[#E5E8EB] rounded-2xl space-y-3">
+                        <h4 className="text-[14px] font-black text-[#191F28] flex items-center gap-2">인당 추가 금액 설정</h4>
+                        <div className="relative">
+                          <input type="text" value={editedVenue.perPersonPrice ? formatNumber(editedVenue.perPersonPrice) : ""} onChange={(e) => setEditedVenue({ ...editedVenue, perPersonPrice: e.target.value.replace(/[^0-9]/g, '') })} className="w-full pl-10 pr-4 py-3 bg-[#FAFAFB] border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]" />
+                          <span className="absolute left-4 top-3.5 text-[14px] font-bold text-[#4E5968]">₩</span>
+                        </div>
+                      </div> */}
+
+                      <div className="bg-white p-5 border border-[#E5E8EB] rounded-2xl space-y-3">
+                        <h4 className="text-[14px] font-black text-[#191F28] flex items-center gap-2">
+                          기본 인원 설정 🔴
+                        </h4>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            value={editedVenue.baseCapacity || ""} 
+                            onChange={(e) => setEditedVenue({ ...editedVenue, baseCapacity: Number(e.target.value) })} 
+                            className="w-full px-4 py-3 bg-[#FAFAFB] border border-[#E5E8EB] rounded-xl text-[14px] font-bold outline-none focus:border-[#3182F6]"
+                            placeholder="예: 4"
+                          />
+                          <span className="absolute right-4 top-3.5 text-[14px] font-bold text-[#8B95A1]">명</span>
+                        </div>
+                        <p className="text-[12px] text-[#8B95A1] font-medium">기본 인원 초과 시 아래 설정한 추가 금액이 적용됩니다.</p>
+                      </div>
+
+                      <div className="bg-white p-5 border border-[#E5E8EB] rounded-2xl space-y-3">
+                        <h4 className="text-[14px] font-black text-[#191F28] flex items-center gap-2">인당 추가 금액 설정 🔴</h4>
+                        <div className="relative">
+                          <input type="text" value={editedVenue.perPersonPrice ? formatNumber(editedVenue.perPersonPrice) : ""} onChange={(e) => setEditedVenue({ ...editedVenue, perPersonPrice: e.target.value.replace(/[^0-9]/g, '') })} className="w-full pl-10 pr-4 py-3 bg-[#FAFAFB] border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]" />
+                          <span className="absolute left-4 top-3.5 text-[14px] font-bold text-[#4E5968]">₩</span>
+                        </div>
+                      </div>
+
+                      {/* 유상 옵션 항목 설정 (1~5) */}
+                      <div className="lg:col-span-2 bg-white p-5 border border-[#E5E8EB] rounded-2xl space-y-6">
+                        <h4 className="text-[14px] font-black text-[#191F28] flex items-center gap-2">
+                          추가 유상 옵션 설정 🔴
+                        </h4>
+
+                        {Array.from({ length: 5 }).map((_, idx) => {
+                          // 여기서 각 항목의 기본값을 안전하게 가져옵니다.
+                          const opt = (editedVenue.extraOptions && editedVenue.extraOptions[idx]) || { name: "", price: "" };
+
+                          return (
+                            <div key={idx} className="space-y-3 pb-4 border-b border-[#F2F4F6] last:border-0 last:pb-0">
+                              <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-[#8B95A1]">유상 옵션 항목명 {idx + 1}</label>
+                                <input
+                                  type="text"
+                                  placeholder={`항목명 ${idx + 1}`}
+                                  value={opt.name || ""}
+                                  onChange={(e) => {
+                                    const newOpts = editedVenue.extraOptions ? [...editedVenue.extraOptions] : Array.from({ length: 5 }).map(() => ({ name: "", price: "" }));
+                                    newOpts[idx] = { ...newOpts[idx], name: e.target.value };
+                                    setEditedVenue({ ...editedVenue, extraOptions: newOpts });
+                                  }}
+                                  className="w-full px-4 py-3 bg-[#FAFAFB] border border-[#E5E8EB] rounded-xl text-[14px] font-bold outline-none focus:border-[#3182F6]"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-[#8B95A1]">유상 옵션 항목 금액 {idx + 1}</label>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="0"
+                                    value={opt.price ? formatNumber(opt.price) : ""}
+                                    onChange={(e) => {
+                                      const newOpts = editedVenue.extraOptions ? [...editedVenue.extraOptions] : Array.from({ length: 5 }).map(() => ({ name: "", price: "" }));
+                                      newOpts[idx] = { ...newOpts[idx], price: e.target.value.replace(/[^0-9]/g, '') };
+                                      setEditedVenue({ ...editedVenue, extraOptions: newOpts });
+                                    }}
+                                    className="w-full pl-10 pr-4 py-3 bg-[#FAFAFB] border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]"
+                                  />
+                                  <span className="absolute left-4 top-3.5 text-[14px] font-bold text-[#4E5968]">₩</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 하단 제어 결합 인터랙션 버튼 바 */}
+                <div className="pt-8 border-t border-[#F2F4F6] flex gap-3 mt-8">
+                  {isEditMode ? (
+                    <>
+                      <button onClick={() => setIsEditMode(false)} className="flex-1 py-4.5 bg-[#F2F4F6] text-[#6B7684] rounded-2xl font-bold text-[16px] transition-all active:scale-95">취소</button>
+                      <button onClick={handleUpdate} className="flex-[2] py-4.5 bg-[#3182F6] text-white rounded-2xl font-bold text-[16px] transition-all active:scale-95 shadow-md shadow-[#3182F6]/10">설정 저장</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => openEditModal(selectedVenue)} className="flex-1 py-4.5 bg-[#E8F3FF] text-[#3182F6] rounded-2xl font-bold text-[16px] transition-all active:scale-95">정보 및 정산 수정</button>
+                      <button onClick={() => setSelectedVenue(null)} className="flex-1 py-4.5 bg-[#F2F4F6] text-[#4E5968] rounded-2xl font-bold text-[16px] transition-all active:scale-95">닫기</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </main>
+
+      {/* 사진 확대보기(라이트박스): 전체화면으로 크게 보고, 좌우 화살표/방향키로 다른 사진도 넘겨볼 수 있다 */}
+      <AnimatePresence>
+        {lightboxIndex !== null && editedVenue?.images?.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 md:p-10"
+            onClick={() => setLightboxIndex(null)}
+          >
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="absolute top-5 right-5 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <span className="absolute top-6 left-6 text-white/70 text-[14px] font-bold">
+              {lightboxIndex + 1} / {editedVenue.images.length}
+            </span>
+
+            {editedVenue.images.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex((i: number | null) => ((i ?? 0) - 1 + editedVenue.images.length) % editedVenue.images.length); }}
+                className="absolute left-3 md:left-8 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            <motion.img
+              key={lightboxIndex}
+              initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+              src={editedVenue.images[lightboxIndex]}
+              className="max-w-full max-h-full object-contain rounded-xl"
+              onClick={(e) => e.stopPropagation()}
+              alt=""
+            />
+
+            {editedVenue.images.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex((i: number | null) => ((i ?? 0) + 1) % editedVenue.images.length); }}
+                className="absolute right-3 md:right-8 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {scheduleVenue && (
+        <VenueScheduleModal
+          venue={scheduleVenue}
+          onToggleDate={(dateStr, isCurrentlyBlocked) => handleToggleBlockedDate(scheduleVenue.id, dateStr, isCurrentlyBlocked)}
+          onClose={() => setScheduleVenueId(null)}
+        />
+      )}
+
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+    </AdminSidebarLayout>
+  );
+}
