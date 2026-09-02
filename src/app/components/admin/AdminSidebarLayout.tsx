@@ -1,5 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 
 export interface AdminNavItem {
@@ -41,6 +43,11 @@ export function AdminSidebarLayout({
   adminEmail = "admin@stayon.com",
   children,
 }: AdminSidebarLayoutProps) {
+  // 모바일에서 사이드바를 항상 펼쳐두면(240px 고정폭) 남는 공간이 너무 좁아서 콘텐츠가
+  // 다 깨져 보였다. md 미만에서는 사이드바를 감추고, 상단 바의 햄버거 버튼으로 여닫는
+  // 슬라이드 드로어로 바꿨다 — 공개 사이트 Header.tsx의 모바일 메뉴와 같은 패턴.
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const renderNavItem = (item: AdminNavItem, onNavigate?: () => void) => {
     const isActive = item.id === activeId;
     const Icon = item.icon;
@@ -126,15 +133,51 @@ export function AdminSidebarLayout({
     </>
   );
 
-  // 사이드바는 화면 크기와 상관없이 항상 전체가 펼쳐진 상태로 보인다.
-  // 클릭해야 나타나는 햄버거 메뉴/드로어 방식은 쓰지 않는다.
   return (
     <div className="min-h-screen bg-[#F2F4F6] font-sans antialiased text-[#191F28] flex">
-      <aside className="flex w-[240px] sm:w-[272px] shrink-0 flex-col justify-between bg-white border-r border-[#F2F4F6] sticky top-0 h-screen overflow-y-auto">
+      {/* 데스크톱: 항상 펼쳐진 사이드바 (기존 그대로) */}
+      <aside className="hidden md:flex w-[240px] sm:w-[272px] shrink-0 flex-col justify-between bg-white border-r border-[#F2F4F6] sticky top-0 h-screen overflow-y-auto">
         {sidebarBody()}
       </aside>
 
-      <div className="flex-1 min-w-0">{children}</div>
+      {/* 모바일: 항상 옆으로 나란히 두는 flex-row 구조라, 상단 바+콘텐츠를 세로로 쌓을
+          별도 flex-col 컨테이너로 감싼다 (안 그러면 상단 바가 콘텐츠 옆에 나란히 붙어버림). */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="md:hidden sticky top-0 z-[150] flex items-center justify-between px-4 py-3 bg-white border-b border-[#F2F4F6] shrink-0 w-full h-14">
+          <Link to={backHref} className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-[#3182F6] flex items-center justify-center text-white font-black text-[13px] shrink-0">S</div>
+            <p className="text-[14px] font-black text-[#191F28] truncate">{brandTitle}</p>
+          </Link>
+          <button onClick={() => setMobileMenuOpen(true)} className="p-2 -mr-2 text-[#4E5968] shrink-0">
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+
+        {children}
+      </div>
+
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-[200]">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute inset-0 bg-[#191F28]/50 backdrop-blur-[2px]"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "tween", duration: 0.25 }}
+              className="absolute left-0 top-0 h-full w-[280px] max-w-[82vw] bg-white flex flex-col justify-between shadow-2xl"
+            >
+              <div className="flex items-center justify-end px-4 pt-3">
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-[#8B95A1]"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="flex-1 min-h-0 flex flex-col justify-between -mt-2">
+                {sidebarBody(() => setMobileMenuOpen(false))}
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

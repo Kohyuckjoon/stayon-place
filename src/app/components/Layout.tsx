@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom"; // useLocation 추가
 // import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
+import { BoardSwitcher } from "./BoardSwitcher";
 
 export function Layout() {
   const location = useLocation(); // 현재 경로 감지
@@ -12,6 +13,7 @@ export function Layout() {
       <Header />
       {/* Outlet 자리에 Home, VenueList 같은 실제 페이지가 들어옵니다 */}
       <main className="flex-1">
+        <BoardSwitcher />
         <Outlet />
 
         <a

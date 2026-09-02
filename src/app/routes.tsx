@@ -49,6 +49,8 @@ import ProgramHub from "./pages/ProgramHub";
 import StayOnRescue from "./pages/StayOnRescue";
 import ReviewList from "./pages/ReviewList";
 import ReviewWrite from "./pages/ReviewWrite";
+import FreeBoardList from "./pages/FreeBoardList";
+import FreeBoardWrite from "./pages/FreeBoardWrite";
 import PartnerGuide from "./pages/PartnerGuide";
 // import BookingProcess from "./pages/BookingGuide";
 import BookingGuide from "./pages/BookingGuide";
@@ -230,10 +232,16 @@ export const router = createBrowserRouter([
         element: <Privacy />,
       },
       { path: "reviews",
-        element: <ReviewList /> 
+        element: <ReviewList />
       },
-      { path: "review/write", 
-        element: <ReviewWrite /> 
+      { path: "review/write",
+        element: <ReviewWrite />
+      },
+      { path: "freeboard",
+        element: <FreeBoardList />
+      },
+      { path: "freeboard/write",
+        element: <FreeBoardWrite />
       },
     ],
   },

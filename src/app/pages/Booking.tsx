@@ -683,7 +683,11 @@ export function Booking() {
             </h3>
 
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 relative">
+              {/* 모바일에서는 두 칸이 나란히 있으면 각 칸 폭이 반토막 나서, 그 위에 뜨는
+                  달력 팝업(mobile 기준 w-full)까지 같이 좁아져 숫자가 다닥다닥 붙어
+                  제대로 선택하기 어려웠다. 모바일에서는 한 줄씩 쌓고, sm 이상에서만
+                  기존처럼 두 칸으로 나란히 보여준다. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
                 <MaterialCalendar
                   label="행사 시작일"
                   value={formData.startDate}
@@ -1081,13 +1085,16 @@ export function Booking() {
               </div>
 
               {/* 하단 안내 가이드 문구: 가독성을 위해 투명도를 낮추고 깔끔한 레이아웃 유지 */}
-              <div className="mt-6 pt-5 border-t border-white/[0.04] flex items-center gap-2 justify-center text-[#8B95A1] text-[13px] font-medium">
-                <Shield className="w-4 h-4 text-[#3182F6] shrink-0" />
-                <p className="leading-relaxed">
-                  {isInspection
-                    ? "답사 신청 후 담당자가 확인하여 신속하게 연락을 드립니다."
-                    : "신청 완료 후 담당자 확인 과정을 거쳐 예약이 최종 확정됩니다."}
-                </p>
+              <div className="mt-6 pt-5 border-t border-white/[0.04] text-center text-[#8B95A1] text-[13px] font-medium space-y-1.5">
+                <div className="flex items-center gap-2 justify-center">
+                  <Shield className="w-4 h-4 text-[#3182F6] shrink-0" />
+                  <p className="leading-relaxed">
+                    {isInspection
+                      ? "답사 신청 후 담당자가 확인하여 신속하게 연락을 드립니다."
+                      : "신청 완료 후 담당자 확인 과정을 거쳐 예약이 최종 확정됩니다."}
+                  </p>
+                </div>
+                <p className="leading-relaxed">예약금은 사전답사 이후 최종 확정단계에서 진행하게 됩니다.</p>
               </div>
             </div>
           </div>

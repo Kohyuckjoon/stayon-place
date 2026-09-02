@@ -1,12 +1,12 @@
 import { useAuth } from "../lib/AuthContext";
 import { useFeatureFlag } from "../lib/featureFlags";
-import { loginWithGoogle, logOut, deleteUserAccount } from "../lib/auth";
+import { loginWithGoogle, logOut } from "../lib/auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
-  PlusSquare, LayoutDashboard, RefreshCcw, UserMinus, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, Store, MapPin, ExternalLink, Mic2, Music
+  PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,7 +44,6 @@ export function Header() {
   const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isToastOpen, setIsToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -237,11 +236,6 @@ export function Header() {
     setIsLogoutModalOpen(true);
   };
 
-  const openDeleteModal = () => {
-    setIsUserMenuOpen(false);
-    setIsDeleteModalOpen(true);
-  };
-
   const handleLogout = async () => {
     try {
       await logOut();
@@ -259,37 +253,8 @@ export function Header() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-    try {
-      const plannerRef = collection(db, "planner");
-      const q = query(plannerRef, where("userId", "==", user.uid));
-      const querySnapshot = await getDocs(q);
-      const deletePromises = querySnapshot.docs.map((document) =>
-        deleteDoc(doc(db, "planner", document.id))
-      );
-      await Promise.all(deletePromises);
-      await deleteDoc(doc(db, "users", user.uid));
-      await deleteUserAccount();
-      setIsDeleteModalOpen(false);
-      setMobileMenuOpen(false);
-
-      // 탈퇴 성공 후 혹시 남아있을지 모를 폼 데이터와 로컬 상태 초기화
-      resetAuthForm();
-      setLoginStep('select');
-
-      setToastMessage("모든 데이터가 삭제되었습니다");
-      setIsToastOpen(true);
-      setTimeout(() => {
-        setIsToastOpen(false);
-        navigate("/");
-      }, 1500);
-    } catch (error) {
-      console.error("Delete account failed:", error);
-      setIsDeleteModalOpen(false);
-      alert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다.");
-    }
-  };
+  // 회원 탈퇴 로직은 여기서 뺐다 — 헤더 드롭다운/모바일 메뉴에 두면 실수로 누르기 쉬워서
+  // 이탈률을 낮추려고 /settings/profile(정보 수정 페이지) 맨 아래로 옮겼다 (ProfileSettings.tsx 참고).
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -346,6 +311,7 @@ export function Header() {
   const boardItems = [
     { name: "장소 후기", desc: "실제 이용 후기 보기", path: "/reviews", icon: <MessageSquare className="w-5 h-5 text-[#3182F6]" /> },
     { name: "교회 프로그램", desc: "레크리에이션 아이디어 얻기", path: "/programs", icon: <BookOpen className="w-5 h-5 text-[#3182F6]" /> },
+    { name: "자유게시판", desc: "자유롭게 이야기 나누기", path: "/freeboard", icon: <MessagesSquare className="w-5 h-5 text-[#3182F6]" /> },
   ];
 
   return (
@@ -366,32 +332,37 @@ export function Header() {
               </div>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-1">
-              <div className="relative" onMouseEnter={() => setIsAboutOpen(true)} onMouseLeave={() => setIsAboutOpen(false)}>
+            <nav className="hidden md:flex items-center gap-1 min-w-0">
+              {/* 화면이 좁아지면(노트북 창 절반 크기 등) 메뉴 글자가 중간에서 끊겨 보이던 문제 —
+                  항상 한 줄(whitespace-nowrap)로 유지하고 줄어들지 않게(shrink-0) 했다.
+                  (overflow-x-auto로 이 구간만 가로 스크롤시키는 방식도 시도했었지만, 그러면
+                  overflow-x가 overflow-y까지 auto로 바꿔버려서 마우스 오버 시 아래로 펼쳐지는
+                  하위 메뉴가 스크롤 영역에 잘려 안 보이는 부작용이 있어 뺐다.) */}
+              <div className="relative shrink-0" onMouseEnter={() => setIsAboutOpen(true)} onMouseLeave={() => setIsAboutOpen(false)}>
                 {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/story") || isActive("/about") || isActive("/safety") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl transition-all ${isActive("/story") || isActive("/about") || isActive("/safety") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/story") || isActive("/about") || isActive("/safety") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   STAYON 정책
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isAboutOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
                   {isAboutOpen && (
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-2 w-[320px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[290px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
-                      <Link to="/story" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF] transition-colors"><BookOpen className="w-5 h-5 text-[#3182F6]" /></div>
+                      <Link to="/story" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF] transition-colors"><BookOpen className="w-5 h-5 text-[#3182F6]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">STAYON 스토리</div><div className="text-[12px] text-[#8B95A1] font-bold">우리의 가치와 철학</div></div>
                       </Link>
-                      <Link to="/about" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED] transition-colors"><ShieldCheck className="w-5 h-5 text-[#2DCA72]" /></div>
+                      <Link to="/about" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED] transition-colors"><ShieldCheck className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">검증 시스템</div><div className="text-[12px] text-[#8B95A1] font-bold">안전한 장소 예약</div></div>
                       </Link>
-                      <Link to="/partner" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#E5E7EB] transition-colors"><Store className="w-5 h-5 text-[#4E5968]" /></div>
+                      <Link to="/partner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#E5E7EB] transition-colors"><Store className="w-5 h-5 text-[#4E5968]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">플랫폼 수수료</div><div className="text-[12px] text-[#8B95A1] font-bold">장소 등록자 안내</div></div>
                       </Link>
-                      <Link to="/safety" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#FFF8F2] rounded-xl flex items-center justify-center group-hover:bg-[#FFEFDE] transition-colors"><CreditCard className="w-5 h-5 text-[#FF8E21]" /></div>
+                      <Link to="/safety" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#FFF8F2] rounded-xl flex items-center justify-center group-hover:bg-[#FFEFDE] transition-colors"><CreditCard className="w-5 h-5 text-[#FF8E21]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">환불 정책</div><div className="text-[12px] text-[#8B95A1] font-bold">투명한 취소 안내</div></div>
                       </Link>
                     </motion.div>
@@ -399,37 +370,37 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
-              <div className="relative" onMouseEnter={() => setIsVenueMenuOpen(true)} onMouseLeave={() => setIsVenueMenuOpen(false)}>
+              <div className="relative shrink-0" onMouseEnter={() => setIsVenueMenuOpen(true)} onMouseLeave={() => setIsVenueMenuOpen(false)}>
                 {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/venues") || isActive("/booking-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl transition-all ${isActive("/venues") || isActive("/teams") || isActive("/booking-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/venues") || isActive("/teams") || isActive("/booking-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   장소 찾기
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isVenueMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
                   {isVenueMenuOpen && (
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-2 w-[280px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[260px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
-                      <Link to="/venues" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><MapPin className="w-5 h-5 text-[#3182F6]" /></div>
+                      <Link to="/venues" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><MapPin className="w-5 h-5 text-[#3182F6]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">장소 검색</div><div className="text-[12px] text-[#8B95A1] font-bold">인원과 목적에 맞는 곳</div></div>
                       </Link>
-                      <Link to="/teams?category=bandroom" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
+                      <Link to="/teams?category=bandroom" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">합주실·연습실 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">연습·합주 공간 대여</div></div>
                       </Link>
-                      <Link to="/teams" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
+                      <Link to="/teams" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">외부 사역팀 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">찬양팀/찬양사역자 섭외</div></div>
                       </Link>
                       {churchDirectoryEnabled && (
-                        <Link to="/churches" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                          <div className="w-10 h-10 bg-[#ECFDF5] rounded-xl flex items-center justify-center group-hover:bg-[#D1FAE5]"><Church className="w-5 h-5 text-[#10B981]" /></div>
+                        <Link to="/churches" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#ECFDF5] rounded-xl flex items-center justify-center group-hover:bg-[#D1FAE5]"><Church className="w-5 h-5 text-[#10B981]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">전국 교회 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">지역별로 우리 교회 알아보기</div></div>
                         </Link>
                       )}
-                      <Link to="/booking-guide" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><CheckCircle2 className="w-5 h-5 text-[#2DCA72]" /></div>
+                      <Link to="/booking-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><CheckCircle2 className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">예약 절차 가이드</div><div className="text-[12px] text-[#8B95A1] font-bold">안전하고 쉬운 예약법</div></div>
                       </Link>
                     </motion.div>
@@ -437,23 +408,23 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
-              <div className="relative" onMouseEnter={() => setIsPlannerMenuOpen(true)} onMouseLeave={() => setIsPlannerMenuOpen(false)}>
+              <div className="relative shrink-0" onMouseEnter={() => setIsPlannerMenuOpen(true)} onMouseLeave={() => setIsPlannerMenuOpen(false)}>
                 {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/planner") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl transition-all ${isActive("/planner") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/planner") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   최저가 비교
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isPlannerMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
                   {isPlannerMenuOpen && (
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-2 w-[240px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
-                      <Link to="/planner" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><LayoutDashboard className="w-5 h-5 text-[#3182F6]" /></div>
+                      <Link to="/planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><LayoutDashboard className="w-5 h-5 text-[#3182F6]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">스마트 플래너</div></div>
                       </Link>
-                      <Link to="/smart-planner-guide" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><Info className="w-5 h-5 text-[#2DCA72]" /></div>
+                      <Link to="/smart-planner-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><Info className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">사용법 안내</div></div>
                       </Link>
                     </motion.div>
@@ -461,23 +432,23 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
-              <div className="relative" onMouseEnter={() => setIsScheduleMenuOpen(true)} onMouseLeave={() => setIsScheduleMenuOpen(false)}>
+              <div className="relative shrink-0" onMouseEnter={() => setIsScheduleMenuOpen(true)} onMouseLeave={() => setIsScheduleMenuOpen(false)}>
                 {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/smart-planner") || isActive("/schedule-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl transition-all ${isActive("/smart-planner") || isActive("/schedule-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/smart-planner") || isActive("/schedule-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   일정표
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isScheduleMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
                   {isScheduleMenuOpen && (
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-2 w-[240px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
-                      <Link to="/smart-planner" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><BookOpen className="w-5 h-5 text-[#3182F6]" /></div>
+                      <Link to="/smart-planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><BookOpen className="w-5 h-5 text-[#3182F6]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">일정표 만들기</div></div>
                       </Link>
-                      <Link to="/schedule-guide" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[22px] transition-colors group">
-                        <div className="w-10 h-10 bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><Info className="w-5 h-5 text-[#2DCA72]" /></div>
+                      <Link to="/schedule-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><Info className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">일정표 가이드</div></div>
                       </Link>
                     </motion.div>
@@ -485,20 +456,20 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
-              <div className="relative" onMouseEnter={() => setIsBoardOpen(true)} onMouseLeave={() => setIsBoardOpen(false)}>
+              <div className="relative shrink-0" onMouseEnter={() => setIsBoardOpen(true)} onMouseLeave={() => setIsBoardOpen(false)}>
                 {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/reviews") || isActive("/programs") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl transition-all ${isActive("/reviews") || isActive("/programs") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/reviews") || isActive("/programs") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   게시판
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isBoardOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
                   {isBoardOpen && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                      className="absolute top-full left-0 mt-2 w-[240px] bg-white rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
                       {boardItems.map((item) => (
-                        <Link key={item.path} to={item.path} className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[20px] transition-colors">
-                          <div className="w-10 h-10 bg-[#F2F8FF] rounded-xl flex items-center justify-center">{item.icon}</div>
+                        <Link key={item.path} to={item.path} className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors">
+                          <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center">{item.icon}</div>
                           <div className="text-[15px] font-black text-[#191F28]">{item.name}</div>
                         </Link>
                       ))}
@@ -511,22 +482,21 @@ export function Header() {
                 href="https://bulletin.stayon-platform.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
               >
                 <span>온라인 주보</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </a>
 
-              <div className="w-[1px] h-4 bg-[#E5E8EB] mx-2" />
-              <div className="w-[1px] h-4 bg-[#E5E8EB] mx-2" />
+              <div className="w-[1px] h-4 bg-[#E5E8EB] mx-2 shrink-0" />
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <div
-                  className="relative hidden lg:block"
+                  className="relative hidden lg:block shrink-0"
                   onMouseEnter={() => setIsRegisterMenuOpen(true)}
                   onMouseLeave={() => setIsRegisterMenuOpen(false)}
                 >
-                  <button className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF] transition-all active:scale-95 group">
+                  <button className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF] transition-all active:scale-95 group whitespace-nowrap">
                     <PlusSquare className="w-4 h-4 transition-transform group-hover:rotate-90" />
                     <span className="font-black text-[12.5px]">장소 등록 문의</span>
                     <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-300 ${isRegisterMenuOpen ? "rotate-180" : ""}`} />
@@ -534,23 +504,23 @@ export function Header() {
                   <AnimatePresence>
                     {isRegisterMenuOpen && (
                       <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute top-full right-0 mt-2 w-[260px] bg-white rounded-[24px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                        className="absolute top-full right-0 mt-2 w-[240px] bg-white rounded-[24px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                       >
-                        <Link to="/register" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[20px] transition-colors group">
-                          <div className="w-10 h-10 bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><PlusSquare className="w-5 h-5 text-[#3182F6]" /></div>
+                        <Link to="/register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><PlusSquare className="w-5 h-5 text-[#3182F6]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">장소 등록 문의</div><div className="text-[12px] text-[#8B95A1] font-bold">수양관/예배당 등록</div></div>
                         </Link>
-                        <Link to="/team-register" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[20px] transition-colors group">
-                          <div className="w-10 h-10 bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
+                        <Link to="/team-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">외부 사역팀 등록 문의</div><div className="text-[12px] text-[#8B95A1] font-bold">찬양팀/찬양사역자 섭외 등록</div></div>
                         </Link>
-                        <Link to="/band-room-register" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[20px] transition-colors group">
-                          <div className="w-10 h-10 bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
+                        <Link to="/band-room-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">합주실·연습실 등록 문의</div><div className="text-[12px] text-[#8B95A1] font-bold">외부사역 합주실/연습·녹음실</div></div>
                         </Link>
                         {churchDirectoryEnabled && (
-                          <Link to="/church-register" className="flex items-center gap-4 p-4 hover:bg-[#F9FAFB] rounded-[20px] transition-colors group">
-                            <div className="w-10 h-10 bg-[#ECFDF5] rounded-xl flex items-center justify-center group-hover:bg-[#D1FAE5]"><Church className="w-5 h-5 text-[#10B981]" /></div>
+                          <Link to="/church-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                            <div className="w-[34px] h-[34px] bg-[#ECFDF5] rounded-xl flex items-center justify-center group-hover:bg-[#D1FAE5]"><Church className="w-5 h-5 text-[#10B981]" /></div>
                             <div><div className="text-[15px] font-black text-[#191F28]">전국 교회 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">우리 교회 알리기</div></div>
                           </Link>
                         )}
@@ -559,28 +529,27 @@ export function Header() {
                   </AnimatePresence>
                 </div>
 
-                <div className="relative" ref={userMenuRef}>
+                <div className="relative shrink-0" ref={userMenuRef}>
                   {/* <button onClick={isLoggedIn ? () => setIsUserMenuOpen(!isUserMenuOpen) : () => setIsLoginModalOpen(true)} */}
                   <button onClick={isLoggedIn ? () => setIsUserMenuOpen(!isUserMenuOpen) : () => setIsLoginModalOpen(true)}
-                    className={`flex items-center gap-2.5 px-6 py-3 rounded-full transition-all duration-300 active:scale-95 ${isLoggedIn ? "bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB]" : "bg-[#191F28] text-white shadow-[0_8px_16px_rgba(25,31,40,0.2)]"}`}>
+                    className={`flex items-center gap-2.5 px-6 py-3 rounded-full whitespace-nowrap transition-all duration-300 active:scale-95 ${isLoggedIn ? "bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB]" : "bg-[#191F28] text-white shadow-[0_8px_16px_rgba(25,31,40,0.2)]"}`}>
                     <User className={`w-4 h-4 ${isLoggedIn ? "text-[#8B95A1]" : "text-white"}`} />
-                    <span className="font-black text-[15px]">{isLoggedIn ? `${user?.displayName?.slice(0, 3)}님` : "시작하기"}</span>
+                    <span className="font-black text-[15px] whitespace-nowrap">{isLoggedIn ? `${user?.displayName?.slice(0, 3)}님` : "시작하기"}</span>
                     {isLoggedIn && <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />}
                   </button>
 
                   <AnimatePresence>
                     {isLoggedIn && isUserMenuOpen && (
                       <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute top-full right-0 mt-3 w-56 bg-white rounded-[24px] shadow-[0_20px_48px_rgba(0,0,0,0.1)] border border-[#F2F4F6] p-2"
+                        className="absolute top-full right-0 mt-3 w-48 bg-white rounded-[20px] shadow-[0_20px_48px_rgba(0,0,0,0.1)] border border-[#F2F4F6] p-2"
                       >
-                        <Link to="/mypage" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-3 p-4 hover:bg-[#F9FAFB] rounded-[18px] transition-colors group">
+                        {/* 회원 탈퇴는 여기서 뺐다 — 실수로 누르기 쉬운 자리에 있으면 이탈률만 높인다는
+                            판단으로, /settings/profile(정보 수정 페이지) 맨 아래로 옮겼다. */}
+                        <Link to="/mypage" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-2.5 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
                           <Settings className="w-4 h-4 text-[#ADB5BD] group-hover:text-[#3182F6]" /><span className="text-[14px] font-bold text-[#4E5968]">마이페이지</span>
                         </Link>
-                        <button onClick={openLogoutModal} className="w-full flex items-center gap-3 p-4 hover:bg-[#F9FAFB] rounded-[18px] transition-colors group text-left border-b border-[#F2F4F6] mb-1">
+                        <button onClick={openLogoutModal} className="w-full flex items-center gap-2.5 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group text-left">
                           <LogOut className="w-4 h-4 text-[#ADB5BD] group-hover:text-[#191F28]" /><span className="text-[14px] font-bold text-[#4E5968]">로그아웃</span>
-                        </button>
-                        <button onClick={openDeleteModal} className="w-full flex items-center gap-3 p-4 hover:bg-[#FFF0F0] rounded-[18px] transition-colors group text-left">
-                          <UserMinus className="w-4 h-4 text-[#ADB5BD] group-hover:text-[#F04452]" /><span className="text-[13px] font-bold text-[#ADB5BD] group-hover:text-[#F04452]">회원 탈퇴</span>
                         </button>
                       </motion.div>
                     )}
@@ -600,8 +569,10 @@ export function Header() {
           {mobileMenuOpen && (
             <motion.nav initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-white border-t border-[#F2F4F6] overflow-hidden">
               <div className="px-4 py-4 flex flex-col gap-2.5">
-                {/* 둘러보기: 장소/외부 사역팀/합주실/교회 찾기 - 등록 문의보다 방문자가 먼저 찾는 동작이라 최상단에 배치 */}
-                <div className="grid grid-cols-2 gap-2">
+                {/* 둘러보기: 장소/외부 사역팀/합주실/교회 찾기 - 등록 문의보다 방문자가 먼저 찾는 동작이라 최상단에 배치.
+                    교회 찾기가 꺼져있으면(churchDirectoryEnabled=false) 항목이 3개라 2열로는 마지막 줄에
+                    빈 칸이 하나 남아 어색해 보여서, 그때는 3열로 한 줄에 꽉 채운다. */}
+                <div className={`grid gap-2 ${churchDirectoryEnabled ? "grid-cols-2" : "grid-cols-3"}`}>
                   <Link to="/venues" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F8FF] rounded-xl text-center active:scale-95 transition-all">
                     <MapPin className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight">장소 찾기</span>
@@ -659,10 +630,8 @@ export function Header() {
                       <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm text-[#3182F6] font-black text-[15px]">{user?.displayName?.slice(0, 1)}</div>
                       <div className="text-[15px] font-black text-[#191F28]">{user?.displayName}님 반가워요!</div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={openLogoutModal} className="flex-1 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#4E5968] border border-[#E5E8EB] active:scale-95 transition-all">로그아웃</button>
-                      <button onClick={openDeleteModal} className="flex-1 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#F04452] border border-[#FFE0E0] active:scale-95 transition-all">탈퇴하기</button>
-                    </div>
+                    {/* 회원 탈퇴는 여기서 뺐다 — /settings/profile(정보 수정 페이지) 맨 아래로 옮겼다. */}
+                    <button onClick={openLogoutModal} className="w-full py-2.5 bg-white rounded-xl text-[13px] font-black text-[#4E5968] border border-[#E5E8EB] active:scale-95 transition-all">로그아웃</button>
                   </div>
                 )}
 
@@ -931,28 +900,6 @@ export function Header() {
               <div className="flex flex-col gap-3">
                 <button onClick={handleLogout} className="w-full py-5 bg-[#191F28] text-white rounded-[20px] font-black text-[17px] active:scale-[0.98] transition-all">로그아웃</button>
                 <button onClick={() => setIsLogoutModalOpen(false)} className="w-full py-4 text-[#8B95A1] font-bold text-[16px]">취소</button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Account Modal - 기존 디자인 유지 */}
-      <AnimatePresence>
-        {isDeleteModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsDeleteModalOpen(false)} className="absolute inset-0 bg-[#191F28]/70 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-[360px] bg-white rounded-[38px] p-10 shadow-[0_32px_64px_rgba(0,0,0,0.2)] text-center"
-            >
-              <div className="w-20 h-20 bg-[#FFF0F0] rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle className="w-10 h-10 text-[#F04452]" /></div>
-              <h3 className="text-[22px] font-black text-[#191F28] mb-3 tracking-tight">정말 탈퇴하시겠어요?</h3>
-              <p className="text-[16px] font-bold text-[#8B95A1] mb-10 leading-relaxed break-keep">
-                탈퇴 시 스마트 플래너의 모든 장소가 <br /><span className="text-[#F04452]">즉시 초기화</span>되며 복구할 수 없어요.
-              </p>
-              <div className="flex flex-col gap-3">
-                <button onClick={handleDeleteAccount} className="w-full py-5 bg-[#F04452] text-white rounded-[20px] font-black text-[17px] active:scale-[0.98] transition-all shadow-[0_8px_16px_rgba(240,68,82,0.2)]">탈퇴하기</button>
-                <button onClick={() => setIsDeleteModalOpen(false)} className="w-full py-4 text-[#8B95A1] font-bold text-[16px]">취소</button>
               </div>
             </motion.div>
           </div>

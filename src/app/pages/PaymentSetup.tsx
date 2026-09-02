@@ -142,56 +142,55 @@ const PaymentSetup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F4F6] p-6 md:p-10 font-sans antialiased text-[#191F28]">
+    <div className="min-h-screen bg-[#F2F4F6] p-4 py-5 md:p-10 font-sans antialiased text-[#191F28]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8"
+        className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8"
       >
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
           {/* 스타일 메시지 카드 */}
-          <div className="bg-white rounded-[32px] p-8 md:p-12 shadow-sm border border-gray-100 transition-all">
-            <div className="mb-8">
-              <span className="inline-flex items-center px-3 py-1 bg-blue-50 text-[#3182F6] rounded-full text-[13px] font-bold mb-4">
+          <div className="bg-white rounded-[22px] md:rounded-[32px] p-5 md:p-12 shadow-sm border border-gray-100 transition-all">
+            <div className="mb-5 md:mb-8">
+              <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-[#3182F6] rounded-full text-[11px] md:text-[13px] font-bold mb-3 md:mb-4">
                 마지막 단계
               </span>
-              <h1 className="text-3xl md:text-4xl font-black leading-tight mb-4 tracking-tight">
+              <h1 className="text-[20px] md:text-4xl font-black leading-tight mb-3 md:mb-4 tracking-tight break-keep">
                 {bookingDetail.venueName}<br />
                 <span className="text-[#3182F6]">결제 구조</span>를 확인해 주세요
               </h1>
             </div>
 
             {/* 직관적인 결제 프로세스 안내 UI */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-5 p-6 bg-[#F9FAFB] rounded-2xl border border-gray-50">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-100">
-                  <CreditCard className="w-6 h-6 text-white" />
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex items-center gap-3 md:gap-5 p-3.5 md:p-6 bg-[#F9FAFB] rounded-xl md:rounded-2xl border border-gray-50">
+                <div className="w-9 h-9 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-100">
+                  <CreditCard className="w-4 h-4 md:w-6 md:h-6 text-white" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-[#8B95A1] mb-1">지금 즉시 결제</p>
-                  <h3 className="text-xl font-black text-[#191F28]">
-                    장소 예약금 {deposit.toLocaleString()}원 
-                    {/* <span className="text-blue-600">(10%)</span> */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] md:text-sm font-bold text-[#8B95A1] mb-0.5 md:mb-1">지금 즉시 결제</p>
+                  <h3 className="text-[15px] md:text-xl font-black text-[#191F28] break-keep">
+                    장소 예약금 {deposit.toLocaleString()}원
                   </h3>
                 </div>
-                <div className="hidden md:block">
+                <div className="hidden md:block shrink-0">
                   <Check className="w-6 h-6 text-[#3182F6]" />
                 </div>
               </div>
 
-              <div className="flex items-center gap-5 p-6 bg-[#F9FAFB] rounded-2xl border border-gray-50">
-                <div className="w-12 h-12 bg-white border-2 border-[#E5E8EB] rounded-full flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-6 h-6 text-[#4E5968]" />
+              <div className="flex items-center gap-3 md:gap-5 p-3.5 md:p-6 bg-[#F9FAFB] rounded-xl md:rounded-2xl border border-gray-50">
+                <div className="w-9 h-9 md:w-12 md:h-12 bg-white border-2 border-[#E5E8EB] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4 md:w-6 md:h-6 text-[#4E5968]" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-[#8B95A1] mb-1">{formattedBalanceDate} 오전 9:00</p>
-                  <h3 className="text-xl font-black text-[#191F28]">
-                    잔금 {balance.toLocaleString()}원 
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] md:text-sm font-bold text-[#8B95A1] mb-0.5 md:mb-1 break-keep">{formattedBalanceDate} 오전 9:00</p>
+                  <h3 className="text-[15px] md:text-xl font-black text-[#191F28] break-keep">
+                    잔금 {balance.toLocaleString()}원{" "}
                     <span className="text-[#4E5968]">(잔금 현장결제)</span>
                   </h3>
                 </div>
-                <div className="hidden md:block">
+                <div className="hidden md:block shrink-0">
                   <div className="px-3 py-1 bg-gray-200 rounded-lg text-[11px] font-black text-white tracking-widest uppercase">AUTO</div>
                 </div>
               </div>
@@ -206,27 +205,26 @@ const PaymentSetup: React.FC = () => {
           />
         </div>
 
-        <div className="lg:col-span-1 sticky top-10 h-fit">
-          <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
+        <div className="lg:col-span-1 lg:sticky lg:top-10 h-fit">
+          <div className="bg-white rounded-[22px] md:rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
             <PaymentForm
               onSuccess={handlePaymentSuccess}
               isLoading={isProcessing}
-              totalPrice={bookingDetail.totalPrice} 
-              deposit={deposit} 
+              totalPrice={bookingDetail.totalPrice}
+              deposit={deposit}
               balance={balance}
               bookingDetail={bookingDetail}
               venueId={bookingDetail.venueId || ""}
             />
           </div>
 
-          <div className="mt-8 px-4">
-            <div className="flex items-start gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+          <div className="mt-5 md:mt-8 px-0 md:px-4">
+            <div className="flex items-start gap-2.5 md:gap-3 p-3.5 md:p-4 bg-blue-50/50 rounded-xl md:rounded-2xl border border-blue-100/50">
               <div className="w-5 h-5 mt-0.5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-[10px] font-bold">!</span>
               </div>
-              <p className="text-[13px] text-[#4E5968] font-medium leading-relaxed">
-                잔금 결제 전일, 카카오톡을 통해 <br />
-                잔금 결제 안내를 미리 드립니다.
+              <p className="text-[12px] md:text-[13px] text-[#4E5968] font-medium leading-relaxed break-keep">
+                잔금 결제 전일, 카카오톡을 통해 잔금 결제 안내를 미리 드립니다.
               </p>
             </div>
           </div>
