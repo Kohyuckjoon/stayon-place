@@ -303,7 +303,7 @@ export default function TeamRegistrationForm() {
         <form onSubmit={handleSubmit} className="space-y-2">
           {/* 대표자 정보 */}
           <section className="mb-4">
-            <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">팀 대표자 정보</h3>
+            <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">대표자 정보</h3>
             <CustomInput label="대표자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" autoFocus />
             <CustomInput
               label="연락처" required

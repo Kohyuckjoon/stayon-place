@@ -31,6 +31,13 @@ export const teamDetailPreview = onRequest(
           undefined :
           (teamData?.churchName as string | undefined);
         const teamSize = teamData?.teamSize as string | undefined;
+        const posterImage = teamData?.posterImage as string | undefined;
+
+        // 팀이 등록한 대표 이미지가 있으면 카카오톡 등 미리보기 이미지를 그걸로 바꾼다.
+        // 없으면 index.html의 기본 스테이온 배너 이미지가 그대로 유지된다.
+        if (posterImage) {
+          meta.image = posterImage;
+        }
 
         if (teamName) {
           meta.title = `${teamName} 외부사역·예배 반주·음향 | 외부사역 문의는 STAYON에서`;

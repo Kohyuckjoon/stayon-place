@@ -137,6 +137,14 @@ export function ChurchDetail() {
     fetchChurch();
   }, [id, navigate]);
 
+  // 교회 정보를 불러온 뒤 탭 제목을 이 교회 이름으로 구체화한다.
+  // (Layout.tsx가 라우트 진입 시 넣어둔 일반 제목을 덮어쓴다.)
+  useEffect(() => {
+    if (church?.churchName) {
+      document.title = `${church.churchName} 교회 소개 | 스테이온`;
+    }
+  }, [church?.churchName]);
+
   if (!churchDirectoryEnabled) return <FeatureDisabledScreen />;
 
   if (loading) return (

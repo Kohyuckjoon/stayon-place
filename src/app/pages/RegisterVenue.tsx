@@ -16,7 +16,7 @@ import { DENOMINATION_GROUPS } from "../lib/denominations";
 /**
  * [Input Component] - 스타일의 깔끔한 입력창
  */
-const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffix = "", error = "", autoFocus = false }: any) => {
+const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffix = "", error = "", autoFocus = false, multiline = false }: any) => {
   // const displayValue = (type === "number" && value !== 0) ? value.toLocaleString() : value;
   const getDisplayValue = () => {
     if (type === "number" && value !== null && value !== undefined && value !== "") {
@@ -32,28 +32,43 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffi
         {label}
       </label>
       <div className="relative flex items-center">
-        <input
-          type="text"
-          autoFocus={autoFocus}
-          // value={displayValue || ""}
-          value={getDisplayValue()}
-          onChange={(e) => {
+        {multiline ? (
+          // 보유 악기/음향 시스템/영상 장비/주차 시설/샤워실 화장실처럼 항목을 여러 개
+          // 나열해야 하는 칸은 한 줄 input이 아니라 textarea로, 엔터로 직접 줄바꿈해서
+          // 입력할 수 있게 한다. 기본 2줄 높이로 보이고 필요하면 아래로 더 늘릴 수 있다.
+          <textarea
+            autoFocus={autoFocus}
+            rows={2}
+            value={getDisplayValue()}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className={`w-full text-[20px] font-bold py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] resize-y leading-snug ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
+              }`}
+          />
+        ) : (
+          <input
+            type="text"
+            autoFocus={autoFocus}
+            // value={displayValue || ""}
+            value={getDisplayValue()}
+            onChange={(e) => {
 
-            if (type === "number") {
-              // 숫자 외 문자 제거 후 부모 상태 업데이트 (Firebase 저장용 raw value)
-              const rawValue = e.target.value.replace(/[^0-9]/g, "");
-              onChange(rawValue);
-            } else {
-              onChange(e.target.value);
-            }
+              if (type === "number") {
+                // 숫자 외 문자 제거 후 부모 상태 업데이트 (Firebase 저장용 raw value)
+                const rawValue = e.target.value.replace(/[^0-9]/g, "");
+                onChange(rawValue);
+              } else {
+                onChange(e.target.value);
+              }
 
-            // const rawValue = e.target.value.replace(/,/g, "");
-            // onChange(rawValue);
-          }}
-          placeholder={placeholder}
-          className={`w-full text-[20px] font-bold py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
-            }`}
-        />
+              // const rawValue = e.target.value.replace(/,/g, "");
+              // onChange(rawValue);
+            }}
+            placeholder={placeholder}
+            className={`w-full text-[20px] font-bold py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
+              }`}
+          />
+        )}
         {suffix && (value?.toString().length > 0 || value !== 0) && (
           <span className="absolute right-2 text-[18px] font-bold text-[#191f28]">{suffix}</span>
         )}
@@ -106,6 +121,7 @@ export function RegisterVenue() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [isMealGuideOpen, setIsMealGuideOpen] = useState(false); // "식사 제공 가이드" 안내 툴팁
   const [isDenoOpen, setIsDenoOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -896,8 +912,8 @@ export function RegisterVenue() {
                   </div>
 
                   <div className="space-y-4 pt-4">
-                    <CustomInput label="주차 시설 정보" value={formData.parkingCapacity} onChange={(v: any) => setFormData({ ...formData, parkingCapacity: v })} placeholder="예: 소형 20대, 대형버스 2대 진입 가능" />
-                    <CustomInput label="샤워실 / 화장실 구성" value={formData.showerBathroom} onChange={(v: any) => setFormData({ ...formData, showerBathroom: v })} placeholder="예: 남녀 화장실 분리, 공용 샤워장 완비" />
+                    <CustomInput label="주차 시설 정보" value={formData.parkingCapacity} onChange={(v: any) => setFormData({ ...formData, parkingCapacity: v })} placeholder={"예: 소형 20대\n대형버스 2대 진입 가능"} multiline />
+                    <CustomInput label="샤워실 / 화장실 구성" value={formData.showerBathroom} onChange={(v: any) => setFormData({ ...formData, showerBathroom: v })} placeholder={"예: 남녀 화장실 분리\n공용 샤워장 완비"} multiline />
                     <div className="group relative">
                       <label className="block text-[13px] font-bold text-[#f04452] mb-2 ml-1 flex items-center gap-2"><Volume2 className="w-4 h-4" /> 야간 소음 / 민원 주의사항</label>
                       <input className="w-full text-[18px] font-bold py-3 px-1 border-b-2 border-[#f2f4f6] focus:border-[#f04452] outline-none bg-transparent transition-all" placeholder="예: 밤 11시 이후 앰프 사용 금지" value={formData.nightEventLimit} onChange={(e) => setFormData({ ...formData, nightEventLimit: e.target.value })} />
@@ -939,47 +955,88 @@ export function RegisterVenue() {
                       label="보유 악기"
                       value={formData.instruments}
                       onChange={(v: any) => setFormData({ ...formData, instruments: v })}
-                      placeholder="신디, 드럼, 앰프 등 보유 품목"
+                      placeholder={"신디\n드럼, 앰프 등 보유 품목"}
+                      multiline
                     />
 
                     <CustomInput
                       label="음향 시스템"
                       value={formData.soundSystem}
                       onChange={(v: any) => setFormData({ ...formData, soundSystem: v })}
-                      placeholder="디지털 믹서, 스피커 모델 등"
+                      placeholder={"디지털 믹서\n스피커 모델 등"}
+                      multiline
                     />
 
                     <CustomInput
                       label="영상 장비"
                       value={formData.projector}
                       onChange={(v: any) => setFormData({ ...formData, projector: v })}
-                      placeholder="4K 프로젝터, LED 스크린 사양 등"
+                      placeholder={"4K 프로젝터\nLED 스크린 사양 등"}
+                      multiline
                     />
                   </div>
                 </section>
 
-                <section className="space-y-8">
-                  <div className="flex items-center justify-between px-1">
-                    <h3 className="text-[13px] font-bold text-[#6b7684] uppercase tracking-wider">식사 제공 가이드</h3>
+                <section className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-1.5 px-1">
+                    <h3 className="text-[12px] md:text-[13px] font-bold text-[#6b7684] uppercase tracking-wider">식사 제공 가이드</h3>
+                    <div
+                      className="relative"
+                      onMouseEnter={() => setIsMealGuideOpen(true)}
+                      onMouseLeave={() => setIsMealGuideOpen(false)}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setIsMealGuideOpen((v) => !v)}
+                        className="w-4 h-4 rounded-full bg-[#e5e8eb] text-[#6b7684] hover:bg-[#3182f6] hover:text-white flex items-center justify-center transition-colors"
+                        aria-label="식사 제공 가이드 자세히 보기"
+                      >
+                        <Info className="w-2.5 h-2.5" strokeWidth={3} />
+                      </button>
+                      <AnimatePresence>
+                        {isMealGuideOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute z-20 top-full left-0 mt-2 w-[260px] md:w-[300px] bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#f2f4f6] p-4 space-y-3"
+                          >
+                            <div>
+                              <p className="text-[12px] font-black text-[#191f28] mb-0.5">1. 장소측에서 식사 제공이 가능한 경우</p>
+                              <p className="text-[11px] text-[#8b95a1] font-medium leading-relaxed break-keep">해당 장소의 경우 장소측에서 식사를 만들어주실수 있어요. 단, 1인당 식비가 발생할 수 있어요</p>
+                            </div>
+                            <div>
+                              <p className="text-[12px] font-black text-[#191f28] mb-0.5">2. 직접 취사 가능 / 외부 음식 반입이 가능한 경우</p>
+                              <p className="text-[11px] text-[#8b95a1] font-medium leading-relaxed break-keep">주방의 모든 시설을 자유롭게 이용하실 수 있어서 직접 조리가 가능해요.</p>
+                            </div>
+                            <div>
+                              <p className="text-[12px] font-black text-[#191f28] mb-0.5">3. 식사를 할 수 있는 장소가 없어요</p>
+                              <p className="text-[11px] text-[#8b95a1] font-medium leading-relaxed break-keep">식당 공간이 따로 없는곳이거나, 분리되어 있지 않아요.</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
 
-                  <div className="grid gap-3">
+                  <div className="grid gap-2.5 md:gap-3">
                     {[
-                      { id: 'provided', label: '장소 측 식사 제공 가능', desc: '직접 조리하여 배식해주실 수 있는 경우', icon: <UtensilsCrossed className="w-5 h-5" /> },
-                      { id: 'self', label: '취사 가능 / 외부 음식 반입', desc: '주방 시설 이용 및 도시락 반입 가능', icon: <ExternalLink className="w-5 h-5" /> },
-                      { id: 'none', label: '식사 불가', desc: '식당 공간이 없거나 사용이 불가능한 경우', icon: <X className="w-5 h-5" /> },
+                      { id: 'provided', label: '장소 측에서 식사 제공이 가능해요', desc: '직접 조리하여 제공해주실수 있는 경우', icon: <UtensilsCrossed className="w-4 h-4 md:w-5 md:h-5" /> },
+                      { id: 'self', label: '직접 취사 가능 / 외부 음식 반입이 가능해요', desc: '주방 시설 이용 및 배달 / 도시락 등 자유롭게 가능', icon: <ExternalLink className="w-4 h-4 md:w-5 md:h-5" /> },
+                      { id: 'none', label: '식사할 수 있는 장소가 없어요', desc: '식당 공간이 없거나 사용이 불가능한 경우(장소 선정률이 저조할 수 있어요)', icon: <X className="w-4 h-4 md:w-5 md:h-5" /> },
                     ].map((opt) => {
                       const isSelected = formData.mealOption.includes(opt.id as any);
                       return (
-                        <div key={opt.id} onClick={() => toggleMealOption(opt.id as any)} className={`p-6 rounded-[24px] cursor-pointer border-2 flex gap-4 transition-all duration-300 ${isSelected ? 'bg-[#f2f8ff] border-[#3182f6] shadow-sm' : 'bg-[#f9fafb] border-transparent hover:border-[#e5e8eb]'}`}>
+                        <div key={opt.id} onClick={() => toggleMealOption(opt.id as any)} className={`p-4 md:p-6 rounded-[18px] md:rounded-[24px] cursor-pointer border-2 flex gap-3 md:gap-4 transition-all duration-300 ${isSelected ? 'bg-[#f2f8ff] border-[#3182f6] shadow-sm' : 'bg-[#f9fafb] border-transparent hover:border-[#e5e8eb]'}`}>
                           <div className={`mt-1 ${isSelected ? 'text-[#3182f6]' : 'text-[#adb5bd]'}`}>{opt.icon}</div>
                           <div className="flex-1">
-                            <p className={`font-bold text-[17px] ${isSelected ? 'text-[#191f28]' : 'text-[#4e5968]'}`}>{opt.label}</p>
-                            <p className="text-[13px] text-[#8b95a1] mt-1 font-medium leading-relaxed tracking-tight">{opt.desc}</p>
+                            <p className={`font-bold text-[14px] md:text-[17px] break-keep ${isSelected ? 'text-[#191f28]' : 'text-[#4e5968]'}`}>{opt.label}</p>
+                            <p className="text-[11.5px] md:text-[13px] text-[#8b95a1] mt-1 font-medium leading-relaxed tracking-tight break-keep">{opt.desc}</p>
                           </div>
                           <div className="flex items-center">
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={4} />}
+                            <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${isSelected ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
+                              {isSelected && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={4} />}
                             </div>
                           </div>
                         </div>
@@ -1049,7 +1106,7 @@ export function RegisterVenue() {
 
                 <div className="p-4 bg-[#f2f8ff] rounded-2xl border border-[#3182f6]/10">
                   <p className="text-[13px] text-[#3182f6] font-bold leading-relaxed text-center">
-                    입력하신 이메일로 장소 승인 결과가 안내됩니다.<br />신청 후 정식 등록까지는 최대 1일~2일 정도 소요됩니다.
+                    입력하신 이메일로 장소 승인 결과가 안내됩니다.<br />신청 후 정식 등록까지는 최대 7일~10일 정도 소요됩니다.
                   </p>
                 </div>
                 <StepButtons />

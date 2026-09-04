@@ -9,7 +9,7 @@ import {
   Car, Wind, Volume2, Info, Check,
   Square, Layout as LayoutIcon, Calendar, Monitor,
   Home, Coffee, Utensils, Lock, ChefHat, ShoppingBag, Ban, AlertCircle, X,
-  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus
+  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { loginWithGoogle } from "../lib/auth";
@@ -114,6 +114,15 @@ export function VenueDetail() {
     fetchVenue();
     window.scrollTo(0, 0);
   }, [id, navigate]);
+
+  // 장소 정보를 불러온 뒤 탭 제목을 이 장소 이름으로 구체화한다.
+  // (Layout.tsx가 라우트 진입 시 넣어둔 일반 제목을 덮어쓴다. 카카오톡 미리보기용
+  // functions/src/venuePreview.ts와 문구를 통일했다.)
+  useEffect(() => {
+    if (venue?.venueName) {
+      document.title = `${venue.venueName} 수련회 장소 소개 | 스테이온(STAYON PLACE)`;
+    }
+  }, [venue?.venueName]);
 
   // 3. 이 장소의 리뷰 가져오기 (venueId 기준으로 정확히 연결된 리뷰만)
   const fetchVenueReviews = async () => {
@@ -530,6 +539,7 @@ export function VenueDetail() {
                 <InfoRow icon={<Square className="w-4 h-4" />} label="강당 크기" value={venue.hallSize ? `${venue.hallSize}평` : '-'} />
                 <InfoRow icon={<LayoutIcon className="w-4 h-4" />} label="음향/조명" value={venue.soundSystem || '-'} />
                 <InfoRow icon={<Info className="w-4 h-4" />} label="보유 악기" value={venue.instruments || '-'} />
+                <InfoRow icon={<Bath className="w-4 h-4" />} label="샤워실/화장실" value={venue.showerBathroom || '-'} />
                 <InfoRow icon={<Home className="w-4 h-4" />} label="남녀 숙소" value={`남 ${venue.maleRooms || 0} / 여 ${venue.femaleRooms || 0}`} />
                 <InfoRow icon={<Coffee className="w-4 h-4" />} label="식당 인원" value={venue.cafeteriaCapacity ? `${venue.cafeteriaCapacity}명` : '-'} last />
               </div>
@@ -780,7 +790,7 @@ function CheckItem({ icon, label, value }: any) {
         </div>
         <span className="text-[#8b95a1] font-bold text-[13px]">{label}</span>
       </div>
-      <div className="text-[#191f28] font-black text-[15px] leading-relaxed">
+      <div className="text-[#191f28] font-black text-[15px] leading-relaxed whitespace-pre-wrap break-keep">
         {value}
       </div>
     </div>
@@ -800,6 +810,23 @@ function CheckItem({ icon, label, value }: any) {
 // }
 
 function InfoRow({ icon, label, value, last }: any) {
+  // 값에 줄바꿈이 들어있으면(악기/음향/영상/주차/샤워실처럼 여러 줄로 입력한 항목)
+  // 라벨-값을 한 줄에 나란히 우측 정렬하던 기존 레이아웃 대신, 라벨을 위로 올리고
+  // 값은 아래에 왼쪽 정렬 + 줄바꿈 그대로 보여주는 세로 배치로 전환한다.
+  const isMultiline = typeof value === "string" && value.includes("\n");
+
+  if (isMultiline) {
+    return (
+      <div className={`px-5 py-3.5 ${!last ? 'border-b border-[#f2f4f6]' : ''}`}>
+        <div className="text-[#8b95a1] font-bold text-[14px] flex items-center gap-2.5 mb-1.5">
+          <div className="opacity-70 shrink-0">{icon}</div>
+          <span className="whitespace-nowrap">{label}</span>
+        </div>
+        <p className="text-[#191f28] font-black text-[14px] leading-relaxed whitespace-pre-wrap break-keep">{value}</p>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex items-start justify-between gap-3 px-5 py-3.5 ${!last ? 'border-b border-[#f2f4f6]' : ''}`}>
       <div className="text-[#8b95a1] font-bold text-[14px] flex items-center gap-2.5 shrink-0 pt-0.5">

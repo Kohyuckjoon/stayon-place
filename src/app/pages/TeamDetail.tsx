@@ -99,9 +99,25 @@ function getThreadsHandle(url: string): string | null {
   }
 }
 
-function SocialLinkCard({ platform, url }: { platform: "instagram" | "threads"; url: string }) {
+// 유튜브 "채널" 링크(등록 폼에서 안내하는 형태 그대로 /@handle, /channel/UC..., /c/이름 등)에서
+// 사람이 읽을 수 있는 핸들만 뽑는다. /@handle 형태만 바로 보여줄 수 있고, /channel/UC...처럼
+// 의미 없는 ID인 경우엔 null을 반환해서 "채널 바로가기"로 대체 표시한다.
+function getYoutubeChannelHandle(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("youtube.com") && !u.hostname.includes("youtu.be")) return null;
+    const seg = u.pathname.split("/").filter(Boolean)[0];
+    if (!seg || !seg.startsWith("@")) return null;
+    return seg;
+  } catch {
+    return null;
+  }
+}
+
+function SocialLinkCard({ platform, url }: { platform: "instagram" | "threads" | "youtube"; url: string }) {
   const isInstagram = platform === "instagram";
-  const handle = isInstagram ? getInstagramHandle(url) : getThreadsHandle(url);
+  const isYoutube = platform === "youtube";
+  const handle = isInstagram ? getInstagramHandle(url) : isYoutube ? getYoutubeChannelHandle(url) : getThreadsHandle(url);
   return (
     <a
       href={url}
@@ -109,15 +125,17 @@ function SocialLinkCard({ platform, url }: { platform: "instagram" | "threads"; 
       rel="noopener noreferrer"
       className={`flex items-center gap-3 p-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] ${isInstagram
         ? "bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45]"
-        : "bg-[#191f28]"
+        : isYoutube
+          ? "bg-[#FF0000]"
+          : "bg-[#191f28]"
         }`}
     >
       <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-        {isInstagram ? <Camera className="w-5 h-5 text-white" /> : <AtSign className="w-5 h-5 text-white" />}
+        {isInstagram ? <Camera className="w-5 h-5 text-white" /> : isYoutube ? <PlaySquare className="w-5 h-5 text-white" /> : <AtSign className="w-5 h-5 text-white" />}
       </div>
       <div className="min-w-0">
-        <p className="text-[13px] font-black text-white">{isInstagram ? "Instagram" : "Threads"}</p>
-        <p className="text-[12px] font-bold text-white/80 truncate">{handle || "바로가기"}</p>
+        <p className="text-[13px] font-black text-white">{isInstagram ? "Instagram" : isYoutube ? "YouTube" : "Threads"}</p>
+        <p className="text-[12px] font-bold text-white/80 truncate">{handle || (isYoutube ? "채널 바로가기" : "바로가기")}</p>
       </div>
     </a>
   );
@@ -163,6 +181,15 @@ export function TeamDetail() {
     fetchTeam();
   }, [id, navigate]);
 
+  // 팀 정보를 불러온 뒤 탭 제목을 이 팀 이름으로 구체화한다.
+  // (Layout.tsx가 라우트 진입 시 넣어둔 일반 제목을 덮어쓴다. 카카오톡 미리보기용
+  // functions/src/teamDetailPreview.ts와 문구를 통일했다.)
+  useEffect(() => {
+    if (team?.teamName) {
+      document.title = `${team.teamName} 외부사역·예배 반주·음향 | 외부사역 문의는 STAYON에서`;
+    }
+  }, [team?.teamName]);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -181,8 +208,11 @@ export function TeamDetail() {
   const sessionLabel = team.sessionPart === "직접 입력" ? team.sessionPartCustom : team.sessionPart;
   const individualBadge = team.isIndividual ? getIndividualBadgeLabel(team.category, sessionLabel, team.categoryCustom) : null;
   const isInstructorCategory = INSTRUCTOR_CATEGORIES.includes(team.category);
-  // 대표 링크(youtubeUrl)를 항상 먼저, 그 뒤로 활동 이력 링크들을 이어 붙인다.
-  const allVideoUrls: string[] = [team.youtubeUrl, ...(team.activityVideoUrls || [])].filter(Boolean);
+  // youtubeUrl은 등록 폼에서부터 "유튜브 채널 링크"로 안내하는 채널 주소라 영상
+  // 하나를 가리키는 링크가 아니다 — 영상 썸네일/제목을 가져오는 VideoCard에 섞어 넣으면
+  // 썸네일을 못 구해서 항상 빈 검은 박스로 보인다. 실제 영상 링크인 activityVideoUrls만
+  // 영상 카드 목록에 넣고, youtubeUrl은 아래 SNS 바로가기 카드로 따로 보여준다.
+  const allVideoUrls: string[] = [...(team.activityVideoUrls || [])].filter(Boolean);
   const VIDEOS_PER_PAGE = 4;
   const videoTotalPages = Math.max(1, Math.ceil(allVideoUrls.length / VIDEOS_PER_PAGE));
   const currentVideoPage = Math.min(videoPage, videoTotalPages - 1);
@@ -445,7 +475,7 @@ export function TeamDetail() {
           </section>
 
           {/* 활동 영상 / SNS */}
-          {(allVideoUrls.length > 0 || team.instagramUrl || team.threadsUrl) && (
+          {(allVideoUrls.length > 0 || team.youtubeUrl || team.instagramUrl || team.threadsUrl) && (
             <section className="lg:col-span-2 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h3 className="text-[16px] font-black text-[#191f28] flex items-center gap-2.5">
@@ -463,8 +493,9 @@ export function TeamDetail() {
                 )}
               </div>
 
-              {(team.instagramUrl || team.threadsUrl) && (
+              {(team.youtubeUrl || team.instagramUrl || team.threadsUrl) && (
                 <div className="flex flex-wrap gap-3 mb-4">
+                  {team.youtubeUrl && <SocialLinkCard platform="youtube" url={team.youtubeUrl} />}
                   {team.instagramUrl && <SocialLinkCard platform="instagram" url={team.instagramUrl} />}
                   {team.threadsUrl && <SocialLinkCard platform="threads" url={team.threadsUrl} />}
                 </div>

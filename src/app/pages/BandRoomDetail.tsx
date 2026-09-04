@@ -62,6 +62,14 @@ export function BandRoomDetail() {
     fetchRoom();
   }, [id, navigate]);
 
+  // 공간 정보를 불러온 뒤 탭 제목을 이 공간 이름으로 구체화한다.
+  // (Layout.tsx가 라우트 진입 시 넣어둔 일반 제목을 덮어쓴다.)
+  useEffect(() => {
+    if (room?.roomName) {
+      document.title = `${room.roomName} 합주실·연습실 소개 | 스테이온`;
+    }
+  }, [room?.roomName]);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}

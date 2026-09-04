@@ -96,7 +96,7 @@ export default function ReviewList() {
                                 <span className="px-2 py-0.5 bg-white text-[#3182F6] rounded-full text-[9px] md:text-[10px] font-black shrink-0">혜택</span>
                             </div>
                             <p className="text-[11.5px] md:text-[13px] font-bold text-white/90 leading-relaxed break-keep">
-                                스테이온에서 제공한 장소로 수련회를 다녀오셨다면, 후기 작성만으로 커피 쿠폰을 100% 드려요!
+                                스테이온 장소와 무관하게, 후기 작성만으로 커피 쿠폰을 100% 드려요!
                             </p>
                         </div>
                     </div>

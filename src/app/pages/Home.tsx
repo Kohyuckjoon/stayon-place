@@ -119,6 +119,84 @@ const familyServices = [
   },
 ];
 
+// "다른 서비스도 이용해보세요" 모바일 전용 티커 — /teams 화면의 TeamTicker와 동일한 구조
+// (목록을 두 번 이어붙여 -50%만큼 이동시키는 방식의 무한 가로 마퀴)를 그대로 가져오되,
+// familyServices엔 사진이 없어서 카드 안쪽만 아이콘 중심으로 새로 구성했다. PC는 기존
+// 3D 코스플로우 슬라이더를 그대로 쓰고, 모바일에서만 이 티커로 바뀐다.
+function FamilyServiceTicker({ services, navigate }: { services: typeof familyServices; navigate: (path: string) => void }) {
+  const [isPaused, setIsPaused] = useState(false);
+  if (services.length < 2) return null;
+  const MIN_TRACK_ITEMS = 10;
+  const repeatCount = Math.max(1, Math.ceil(MIN_TRACK_ITEMS / services.length));
+  const baseList = Array.from({ length: repeatCount }, () => services).flat();
+  const items = [...baseList, ...baseList];
+  const duration = baseList.length * 4;
+
+  const handleClick = (service: (typeof familyServices)[number]) => {
+    if (!service.isReady) return;
+    if (service.link.startsWith("http://") || service.link.startsWith("https://")) {
+      window.open(service.link, "_blank");
+    } else {
+      navigate(service.link);
+    }
+  };
+
+  return (
+    // 티커 전용 배경 패널. 이게 없으면 섹션 전체 배경(bg-slate-50/50) 위에 카드가
+    // 바로 얹혀서 카드 그림자만으로 입체감을 내야 했는데, 카드보다 위아래로 여백이
+    // 확실히 넓은 진한 회색 패널을 따로 깔아서 "박스 여러 개가 트레이 위에 놓인" 느낌을 낸다.
+    <div className="relative rounded-[28px] bg-[#F2F4F6] py-6 overflow-hidden">
+      <div
+        className="relative w-full overflow-hidden"
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
+      >
+        <style>{`
+          @keyframes family-ticker-scroll-x {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+        `}</style>
+        <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-[#F2F4F6] to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-[#F2F4F6] to-transparent z-10 pointer-events-none" />
+        <div
+          className="flex items-stretch gap-3 w-max px-4"
+          style={{
+            animation: `family-ticker-scroll-x ${duration}s linear infinite`,
+            animationPlayState: isPaused ? "paused" : "running",
+          }}
+        >
+          {items.map((service, i) => (
+            <div
+              key={`${service.id}-${i}`}
+              onClick={() => handleClick(service)}
+              className={`relative w-[176px] p-4 rounded-[20px] shrink-0 bg-white border border-slate-200/80 shadow-[0_6px_18px_rgba(15,23,42,0.09)] ${service.isReady ? "cursor-pointer active:scale-95 active:shadow-[0_2px_8px_rgba(15,23,42,0.08)]" : "opacity-90"} transition-all`}
+            >
+              {!service.isReady && (
+                <div className="absolute top-2.5 right-2.5 w-5 h-5 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-sm">
+                  <Lock className="w-2.5 h-2.5" />
+                </div>
+              )}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2.5 bg-blue-50 text-blue-600 ring-1 ring-blue-100 [&_svg]:w-5 [&_svg]:h-5">
+                {service.icon}
+              </div>
+              <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black mb-1.5 ${service.tagColor}`}>
+                {service.tag}
+              </span>
+              <p className="text-[14px] font-black text-gray-900 leading-snug break-keep line-clamp-2 mb-2.5">
+                {service.title}
+              </p>
+              <div className={`flex items-center gap-0.5 text-[11px] font-black ${service.isReady ? "text-blue-600" : "text-slate-300"}`}>
+                {service.isReady ? "바로가기" : "준비 중"} <ChevronRight className="w-3 h-3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Home() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -1158,8 +1236,14 @@ export function Home() {
             </p>
           </div>
 
+          {/* 모바일 전용: /teams "지금 주목받는 사역팀"과 같은 가로 자동 스크롤 티커 */}
+          <div className="md:hidden">
+            <FamilyServiceTicker services={familyServices} navigate={navigate} />
+          </div>
+
+          {/* PC 전용: 기존 3D 코스플로우(가운데 카드 + 좌우 겹침) 슬라이더 */}
           <div
-            className="relative h-[420px] md:h-[600px] flex justify-center items-center overflow-visible"
+            className="hidden md:flex relative h-[600px] justify-center items-center overflow-visible"
             onMouseEnter={() => setIsFamilyHovered(true)}
             onMouseLeave={() => setIsFamilyHovered(false)}
           >

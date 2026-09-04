@@ -30,6 +30,9 @@ export interface MetaPatch {
   title: string;
   description?: string;
   keywords?: string;
+  // 지정 시 og:image/twitter:image를 이 URL로 바꾼다(예: 팀 대표 이미지).
+  // 미지정 시 index.html의 기본 스테이온 배너 이미지가 그대로 유지된다.
+  image?: string;
 }
 
 /**
@@ -66,6 +69,26 @@ export function patchMeta(html: string, meta: MetaPatch): string {
     const escapedKeywords = escapeHtml(meta.keywords);
     const keywordsRe = /(<meta name="keywords" content=")[^"]*(")/g;
     patched = patched.replace(keywordsRe, `$1${escapedKeywords}$2`);
+  }
+
+  if (meta.image) {
+    const escapedImage = escapeHtml(meta.image);
+    const ogImageRe = /(<meta property="og:image" content=")[^"]*(")/g;
+    const twitterImageRe = /(<meta name="twitter:image" content=")[^"]*(")/g;
+    patched = patched
+      .replace(ogImageRe, `$1${escapedImage}$2`)
+      .replace(twitterImageRe, `$1${escapedImage}$2`);
+
+    // og:image:width/height는 기본 배너(1200x630 고정 비율) 기준 힌트라, 팀이 올린
+    // 이미지처럼 비율을 모르는 사진으로 바꿀 땐 통째로 빼버린다 — 잘못된 비율값을
+    // 남겨두면 카카오톡 등에서 이미지가 눌리거나 늘어나 보일 수 있다.
+    const ogImageWidthRe =
+      /\s*<meta property="og:image:width" content="[^"]*"\s*\/>\n?/;
+    const ogImageHeightRe =
+      /\s*<meta property="og:image:height" content="[^"]*"\s*\/>\n?/;
+    patched = patched
+      .replace(ogImageWidthRe, "\n")
+      .replace(ogImageHeightRe, "\n");
   }
 
   return patched;

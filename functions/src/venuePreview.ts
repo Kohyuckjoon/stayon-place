@@ -26,6 +26,13 @@ export const venuePreview = onRequest(
         const venueName = venueData?.venueName as string | undefined;
         const tags = (venueData?.tags as string[] | undefined) ?? [];
         const capacity = venueData?.capacity as number | undefined;
+        const images = venueData?.images as string[] | undefined;
+
+        // 장소가 등록한 첫 번째 사진이 있으면 카카오톡 등 미리보기 이미지를 그걸로
+        // 바꾼다. 없으면 index.html의 기본 스테이온 배너 이미지가 그대로 유지된다.
+        if (images && images.length > 0) {
+          meta.image = images[0];
+        }
 
         if (venueName) {
           meta.title = `${venueName} 수련회 장소 소개 | 스테이온(STAYON PLACE)`;

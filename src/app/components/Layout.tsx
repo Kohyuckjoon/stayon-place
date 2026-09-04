@@ -1,12 +1,22 @@
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom"; // useLocation 추가
 // import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { BoardSwitcher } from "./BoardSwitcher";
+import { getPageTitle } from "../lib/pageTitles";
 
 export function Layout() {
   const location = useLocation(); // 현재 경로 감지
   const isVenuesPage = location.pathname === "/venues"; // 장소 목록 페이지 여부
+
+  // 라우트가 바뀔 때마다 탭 제목을 갱신한다. 링크로 들어온 최초 페이지 제목이
+  // 이후 다른 화면으로 이동해도 안 바뀌고 그대로 남아있던 문제 수정.
+  // 이름이 있는 상세 페이지(장소/팀/합주실/교회)는 여기서 일반 제목을 먼저 넣고,
+  // 각 상세 페이지가 데이터를 불러온 뒤 더 구체적인 제목으로 한 번 더 덮어쓴다.
+  useEffect(() => {
+    document.title = getPageTitle(location.pathname);
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen">

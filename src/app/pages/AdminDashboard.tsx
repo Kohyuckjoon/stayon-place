@@ -9,7 +9,7 @@ import {
   Maximize2, Video, Utensils, Plus, Image as ImageIcon,
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
-  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone
+  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath
 } from "lucide-react";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import { db, storage } from "../lib/firebase";
@@ -49,7 +49,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, onClick, isActive }: a
 );
 
 // 상세 정보 라벨 컴포넌트
-const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "text" }: any) => {
+const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "text", multiline = false }: any) => {
   const displayValue = name === "price" ? formatNumber(value) : value;
 
   return (
@@ -61,20 +61,30 @@ const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "tex
         <p className="text-[11px] font-black text-[#8B95A1] uppercase tracking-widest mb-1">{label}</p>
         {isEdit ? (
           <div className="relative">
-            <input
-              type={type}
-              name={name}
-              value={displayValue || ""}
-              onChange={onChange}
-              placeholder={name === "price" ? "0" : ""}
-              className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-black focus:border-[#3182F6] focus:ring-4 ring-[#3182F6]/5 outline-none transition-all"
-            />
+            {multiline ? (
+              <textarea
+                name={name}
+                rows={2}
+                value={displayValue || ""}
+                onChange={onChange}
+                className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-black focus:border-[#3182F6] focus:ring-4 ring-[#3182F6]/5 outline-none transition-all resize-y leading-snug"
+              />
+            ) : (
+              <input
+                type={type}
+                name={name}
+                value={displayValue || ""}
+                onChange={onChange}
+                placeholder={name === "price" ? "0" : ""}
+                className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-black focus:border-[#3182F6] focus:ring-4 ring-[#3182F6]/5 outline-none transition-all"
+              />
+            )}
             {name === "price" && displayValue && (
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-[#8B95A1]">원</span>
             )}
           </div>
         ) : (
-          <p className="text-[16px] font-black text-[#3182F6] leading-snug">
+          <p className={`text-[16px] font-black text-[#3182F6] leading-snug ${multiline ? "whitespace-pre-wrap" : ""}`}>
             {name === "price" && value ? `${formatNumber(value)}원` : (value || "-")}
           </p>
         )}
@@ -979,9 +989,9 @@ export function AdminDashboard() {
                       <Music className="w-4 h-4 text-[#3182F6]" /> 시설 및 장비
                     </h3>
                     <div className="bg-[#FAFAFB] rounded-3xl p-3 border border-[#F2F4F6] grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <InfoRow icon={Music} label="보유 악기" name="instruments" value={editedVenue.instruments} isEdit={isEditMode} onChange={handleEditChange} />
-                      <InfoRow icon={Mic2} label="음향 시스템" name="soundSystem" value={editedVenue.soundSystem} isEdit={isEditMode} onChange={handleEditChange} />
-                      <InfoRow icon={Video} label="영상 장비" name="projector" value={editedVenue.projector} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Music} label="보유 악기" name="instruments" value={editedVenue.instruments} isEdit={isEditMode} onChange={handleEditChange} multiline />
+                      <InfoRow icon={Mic2} label="음향 시스템" name="soundSystem" value={editedVenue.soundSystem} isEdit={isEditMode} onChange={handleEditChange} multiline />
+                      <InfoRow icon={Video} label="영상 장비" name="projector" value={editedVenue.projector} isEdit={isEditMode} onChange={handleEditChange} multiline />
 
                       {/* 에어컨 시설: Firestore에 boolean으로 저장되므로 텍스트가 아닌 있음/없음 토글로 편집 */}
                       <div className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-[#F2F4F6]">
@@ -1012,7 +1022,8 @@ export function AdminDashboard() {
                         </div>
                       </div>
 
-                      <InfoRow icon={Car} label="주차 정보" name="parkingCapacity" value={editedVenue.parkingCapacity} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Car} label="주차 정보" name="parkingCapacity" value={editedVenue.parkingCapacity} isEdit={isEditMode} onChange={handleEditChange} multiline />
+                      <InfoRow icon={Bath} label="샤워실 / 화장실 구성" name="showerBathroom" value={editedVenue.showerBathroom} isEdit={isEditMode} onChange={handleEditChange} multiline />
                       <InfoRow icon={Volume2} label="야간 소음 제한" name="nightEventLimit" value={editedVenue.nightEventLimit} isEdit={isEditMode} onChange={handleEditChange} />
                     </div>
                   </section>
