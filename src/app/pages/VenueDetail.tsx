@@ -9,8 +9,9 @@ import {
   Car, Wind, Volume2, Info, Check,
   Square, Layout as LayoutIcon, Calendar, Monitor,
   Home, Coffee, Utensils, Lock, ChefHat, ShoppingBag, Ban, AlertCircle, X,
-  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath
+  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera
 } from "lucide-react";
+import { VENUE_IMAGE_CATEGORIES, toDisplayImagesByCategory } from "../lib/venueImageCategories";
 import { motion, AnimatePresence } from "framer-motion";
 import { loginWithGoogle } from "../lib/auth";
 import AvailabilityCalendar from '../pages/AvailabilityCalendar';
@@ -35,12 +36,14 @@ export function VenueDetail() {
   // 컴포넌트 내부 상단에 ref 선언
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
 
-  // 상단 탭("장소 상세 정보" / "장소 리뷰 보기") 제어용 상태 및 스크롤 대상
-  const [activeInfoTab, setActiveInfoTab] = useState<"info" | "reviews">("info");
+  // 상단 탭("장소 상세 정보" / "사진" / "장소 리뷰 보기") 제어용 상태 및 스크롤 대상.
+  // "사진" 탭은 스크롤 이동 없이 히어로 갤러리 영역 자체를 카테고리별 사진 보기로
+  // 즉시 바꿔치기하는 용도라 별도 스크롤 대상 섹션이 없다 - "정보"/"리뷰"만 실제로 스크롤한다.
+  const [activeInfoTab, setActiveInfoTab] = useState<"info" | "photos" | "reviews">("info");
   const reviewSectionRef = useRef<HTMLDivElement>(null);
   const [venueReviews, setVenueReviews] = useState<any[]>([]);
 
-  const goToTab = (tab: "info" | "reviews") => {
+  const goToTab = (tab: "info" | "photos" | "reviews") => {
     setActiveInfoTab(tab);
     if (tab === "reviews") {
       reviewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -50,12 +53,16 @@ export function VenueDetail() {
   };
 
   // 사용자가 버튼 클릭 없이 직접 스크롤해서 위/아래로 이동해도, 현재 보고 있는
-  // 위치에 맞춰 탭 활성 상태가 자동으로 따라가도록 스크롤 위치를 감시
+  // 위치에 맞춰 탭 활성 상태가 자동으로 따라가도록 스크롤 위치를 감시.
+  // "사진" 탭은 스크롤과 무관한 상태라, 리뷰 섹션에 도달하기 전까지는 건드리지 않는다
+  // (그렇지 않으면 스크롤 1px만 움직여도 카테고리 보기가 원래 갤러리로 되돌아가버린다).
   useEffect(() => {
     const handleScroll = () => {
-      if (!reviewSectionRef.current) return;
-      const top = reviewSectionRef.current.getBoundingClientRect().top;
-      setActiveInfoTab(top <= 140 ? "reviews" : "info");
+      if (reviewSectionRef.current && reviewSectionRef.current.getBoundingClientRect().top <= 140) {
+        setActiveInfoTab("reviews");
+      } else {
+        setActiveInfoTab((prev) => (prev === "photos" ? "photos" : "info"));
+      }
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -309,6 +316,14 @@ export function VenueDetail() {
             장소 상세 정보
           </button>
           <button
+            onClick={() => goToTab("photos")}
+            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeInfoTab === "photos" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+              }`}
+          >
+            <Camera className="w-4 h-4" />
+            사진
+          </button>
+          <button
             onClick={() => goToTab("reviews")}
             className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeInfoTab === "reviews" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
               }`}
@@ -320,8 +335,72 @@ export function VenueDetail() {
 
         {/* [배치 개편] 데스크탑: 이미지-정보 2단 히어로, 예약현황/CTA/상세정보는 전체 폭으로 펼침. 모바일: 순서대로 세로 스택 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 items-start">
-          {/* 이미지 갤러리 + 썸네일 (좌측 상단) */}
+          {/* 이미지 갤러리 + 썸네일 (좌측 상단) - "사진" 탭을 누르면 스크롤 이동 없이
+              이 영역만 카테고리별 사진 보기로 즉시 바뀐다. 예약 캘린더/CTA/상세정보/리뷰는
+              그대로 유지되고, "정보" 탭을 다시 누르면 원래 갤러리로 돌아온다. */}
           <div className="lg:col-start-1 lg:row-start-1">
+            {/* 순수 디졸브(투명도만 크로스페이드, 슬라이드나 높이 애니메이션 없음)로만
+                전환한다 - 높이까지 같이 애니메이션하려던 이전 시도들이 오히려 더
+                버벅이는 원인이었다. 높이는 그냥 즉시 바뀌고, 그 위의 내용만 부드럽게
+                겹쳐서 사라지고/나타난다. */}
+            <AnimatePresence mode="popLayout" initial={false}>
+            {activeInfoTab === "photos" ? (() => {
+              const displayByCategory = toDisplayImagesByCategory(venue);
+              const categoriesWithPhotos = VENUE_IMAGE_CATEGORIES.filter(
+                (c) => (displayByCategory[c.key]?.length || 0) > 0
+              );
+              let runningOffset = 0;
+              return (
+                <motion.div
+                  key="photos"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="bg-white rounded-[32px] border border-[#f2f4f6] shadow-inner p-5 max-h-[520px] overflow-y-auto">
+                  {categoriesWithPhotos.length === 0 ? (
+                    <p className="text-[13px] text-[#8b95a1] font-bold text-center py-16">등록된 사진이 없어요</p>
+                  ) : (
+                    <div className="space-y-5">
+                      {categoriesWithPhotos.map((category) => {
+                        const photos = displayByCategory[category.key] || [];
+                        const offset = runningOffset;
+                        runningOffset += photos.length;
+                        return (
+                          <div key={category.key}>
+                            <p className="text-[13px] font-bold text-[#6b7684] mb-2.5">
+                              {category.label} <span className="text-[#adb5bd] font-bold">{photos.length}</span>
+                            </p>
+                            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                              {photos.map((img, idx) => (
+                                <button
+                                  key={img}
+                                  type="button"
+                                  onClick={() => {
+                                    setCurrentImgIdx(offset + idx);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="shrink-0 w-[104px] h-[80px] rounded-xl overflow-hidden border-2 border-transparent hover:border-[#3182f6] transition-all"
+                                >
+                                  <img src={img} className="w-full h-full object-cover" alt={category.label} />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })() : (
+              <motion.div
+                key="gallery"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
             {/* [UI 수정] 메인 슬라이더 부분: 직관적인 Pagination 추가 및 여백 조정 */}
             <section className="relative mb-3">
               <div
@@ -446,6 +525,9 @@ export function VenueDetail() {
                 </div>
               </div>
             )}
+              </motion.div>
+            )}
+            </AnimatePresence>
           </div>
 
           {/* 타이틀/뱃지/정보 카드 - 우측 컬럼 1번째 (중첩 카드 없이 한 겹) */}
@@ -498,8 +580,12 @@ export function VenueDetail() {
             </div>
           </section>
 
-          {/* 🗓 실시간 예약 달력 - 좌측 컬럼 2번째, 우측의 상세 시설/식사 정보 카드와 높이를 맞춤 */}
-          <section className="lg:col-start-1 lg:row-start-2 lg:self-stretch bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] flex flex-col">
+          {/* 🗓 실시간 예약 달력 - 좌측 컬럼 2번째. 예전엔 옆 "상세 시설 정보" 카드와
+              lg:self-stretch로 높이를 맞췄는데, 그 카드 내용이 (다중 줄 입력 필드들이
+              추가되며) 훨씬 길어져서 이 캘린더 카드까지 억지로 늘어나 가운데 빈 공간이
+              커 보이는 문제가 생겼다. self-start로 바꿔서 이 카드는 자기 내용만큼의
+              자연스러운 높이로만 표시되게 했다. */}
+          <section className="lg:col-start-1 lg:row-start-2 lg:self-start bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-[16px] font-black text-[#191f28] tracking-tight">
@@ -513,8 +599,7 @@ export function VenueDetail() {
               </div>
             </div>
 
-            {/* 남는 높이를 캘린더가 자연스럽게 가운데에서 채우도록 */}
-            <div className="flex-1 flex flex-col justify-center gap-4">
+            <div className="flex flex-col gap-4">
               <AvailabilityCalendar
                 venueId={id as string}
                 bookings={realBookings}

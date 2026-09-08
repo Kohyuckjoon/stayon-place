@@ -24,6 +24,7 @@ interface BandRoomFormData {
   capacity: string;
   equipmentChecklist: string[];
   micCount: string;
+  micType: string; // "유선" | "무선" - 체크리스트에서 "싱어 마이크"를 선택했을 때만 입력받음
   hasSoundproof: boolean;
   hasParking: boolean;
   parkingInfo: string;
@@ -57,6 +58,7 @@ export default function BandRoomRegistrationForm() {
     capacity: "",
     equipmentChecklist: [],
     micCount: "",
+    micType: "",
     hasSoundproof: false,
     hasParking: false,
     parkingInfo: "",
@@ -348,7 +350,16 @@ export default function BandRoomRegistrationForm() {
           <section className="mb-4">
             <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">보유 장비</h3>
             <MultiPillSelector label="보유 장비 체크리스트" options={EQUIPMENT_CHECKLIST_OPTIONS} value={formData.equipmentChecklist} onChange={(v) => setFormData({ ...formData, equipmentChecklist: v })} columns={3} />
-            <CustomInput label="마이크 개수" value={formData.micCount} onChange={(v) => setFormData({ ...formData, micCount: v })} placeholder="예: 4개" />
+
+            {/* "싱어 마이크"를 체크리스트에서 선택했을 때만 개수/유선·무선 여부를 물어본다. */}
+            <AnimatePresence>
+              {formData.equipmentChecklist.includes("싱어 마이크") && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  <CustomInput label="싱어 마이크 개수" value={formData.micCount} onChange={(v) => setFormData({ ...formData, micCount: v.replace(/[^0-9]/g, "") })} placeholder="예: 4" />
+                  <PillSelector label="싱어 마이크 유선/무선" options={["유선", "무선"]} value={formData.micType} onChange={(v) => setFormData({ ...formData, micType: v })} columns={2} />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div
               onClick={() => setFormData({ ...formData, hasSoundproof: !formData.hasSoundproof })}

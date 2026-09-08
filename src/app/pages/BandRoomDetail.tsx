@@ -200,7 +200,10 @@ export function BandRoomDetail() {
                 <CheckItem icon={<Speaker className="w-5 h-5" />} label="보유 장비" value={room.equipmentChecklist.join(", ")} />
               )}
               {room.micCount && (
-                <CheckItem icon={<Speaker className="w-5 h-5" />} label="마이크 개수" value={room.micCount} />
+                <CheckItem icon={<Speaker className="w-5 h-5" />} label="싱어 마이크 개수" value={room.micCount} />
+              )}
+              {room.micType && (
+                <CheckItem icon={<Speaker className="w-5 h-5" />} label="싱어 마이크 유선/무선" value={room.micType} />
               )}
               <CheckItem icon={<Check className="w-5 h-5" />} label="방음시설" value={room.hasSoundproof ? "있음" : "없음"} />
               <CheckItem icon={<MapPin className="w-5 h-5" />} label="주차" value={room.hasParking ? (room.parkingInfo || "가능") : "불가능"} />

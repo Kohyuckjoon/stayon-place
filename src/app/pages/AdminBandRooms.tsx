@@ -4,6 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Music, Users, Speaker, MapPin,
   Phone, Mail, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus, Tag, BarChart3, Megaphone, Zap,
+  ChevronLeft, ChevronRight, GripVertical,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, serverTimestamp } from "firebase/firestore";
@@ -173,6 +174,10 @@ export function AdminBandRooms() {
   const [editedRoom, setEditedRoom] = useState<any>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  // 사진 드래그 순서 변경용 - 그리드에 줄바꿈이 있어도(여러 줄) 정상 동작하도록
+  // framer-motion Reorder 대신 순수 HTML5 드래그 앤 드롭을 쓴다(장소 관리 화면과 동일 방식).
+  const [draggedPhotoIndex, setDraggedPhotoIndex] = useState<number | null>(null);
+  const [overPhotoIndex, setOverPhotoIndex] = useState<number | null>(null);
 
   const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -192,6 +197,26 @@ export function AdminBandRooms() {
 
   const removePhoto = (url: string) => {
     setEditedRoom((prev: any) => ({ ...prev, photos: (prev.photos || []).filter((p: string) => p !== url) }));
+  };
+
+  // 사진 순서 변경 - photos[0]이 목록 카드/상세 화면의 대표 이미지로 그대로 쓰인다.
+  const movePhoto = (index: number, direction: -1 | 1) => {
+    setEditedRoom((prev: any) => {
+      const photos = [...(prev.photos || [])];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= photos.length) return prev;
+      [photos[index], photos[targetIndex]] = [photos[targetIndex], photos[index]];
+      return { ...prev, photos };
+    });
+  };
+
+  const reorderPhoto = (fromIndex: number, toIndex: number) => {
+    setEditedRoom((prev: any) => {
+      const photos = [...(prev.photos || [])];
+      const [moved] = photos.splice(fromIndex, 1);
+      photos.splice(toIndex, 0, moved);
+      return { ...prev, photos };
+    });
   };
 
   const openRoomModal = (room: any) => {
@@ -534,18 +559,70 @@ export function AdminBandRooms() {
                   )}
                   <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoFileChange} />
                 </div>
+                {/* photos[0]이 목록 카드/상세 화면의 대표 이미지로 그대로 쓰인다.
+                    편집 모드에서는 카드를 드래그해서 순서를 바꿀 수 있고(그리드 줄바꿈과
+                    무관하게 동작하는 HTML5 드래그 앤 드롭), 모바일처럼 드래그가 안 되는
+                    환경을 위해 이전/다음 화살표 버튼도 같이 둔다. */}
                 <div className="grid grid-cols-3 gap-2">
-                  {(isEditMode ? editedRoom.photos : selectedRoom.photos)?.map((url: string) => (
-                    <div key={url} className="relative aspect-video rounded-xl overflow-hidden bg-[#F2F4F6]">
-                      <img src={url} className="w-full h-full object-cover" />
+                  {(isEditMode ? editedRoom.photos : selectedRoom.photos)?.map((url: string, idx: number) => (
+                    <div
+                      key={url}
+                      draggable={isEditMode}
+                      onDragStart={() => setDraggedPhotoIndex(idx)}
+                      onDragEnter={() => isEditMode && setOverPhotoIndex(idx)}
+                      onDragOver={(e) => isEditMode && e.preventDefault()}
+                      onDrop={(e) => {
+                        if (!isEditMode) return;
+                        e.preventDefault();
+                        if (draggedPhotoIndex !== null && draggedPhotoIndex !== idx) reorderPhoto(draggedPhotoIndex, idx);
+                        setDraggedPhotoIndex(null);
+                        setOverPhotoIndex(null);
+                      }}
+                      onDragEnd={() => { setDraggedPhotoIndex(null); setOverPhotoIndex(null); }}
+                      className={`relative aspect-video rounded-xl overflow-hidden bg-[#F2F4F6] transition-all ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""} ${overPhotoIndex === idx && draggedPhotoIndex !== null && draggedPhotoIndex !== idx ? "ring-2 ring-[#0EA5E9] ring-offset-2" : ""
+                        } ${draggedPhotoIndex === idx ? "opacity-40" : ""}`}
+                    >
+                      <img src={url} className="w-full h-full object-cover" draggable={false} />
+
+                      {idx === 0 && (
+                        <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-[#0EA5E9] text-white text-[9px] font-black rounded-full shadow-md pointer-events-none">
+                          대표 사진
+                        </span>
+                      )}
+
                       {isEditMode && (
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(url)}
-                          className="absolute top-1.5 right-1.5 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                        <>
+                          <div className="absolute bottom-1.5 left-1.5 p-1 bg-white/90 text-[#4E5968] rounded-full shadow-md" title="드래그해서 순서 변경">
+                            <GripVertical className="w-2.5 h-2.5" />
+                          </div>
+                          <div className="absolute bottom-1.5 right-1.5 flex gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => movePhoto(idx, -1)}
+                              disabled={idx === 0}
+                              className="p-1 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="이전으로 이동"
+                            >
+                              <ChevronLeft className="w-2.5 h-2.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => movePhoto(idx, 1)}
+                              disabled={idx === editedRoom.photos.length - 1}
+                              className="p-1 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="다음으로 이동"
+                            >
+                              <ChevronRight className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(url)}
+                            className="absolute top-1.5 right-1.5 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
                       )}
                     </div>
                   ))}
@@ -582,7 +659,8 @@ export function AdminBandRooms() {
                     isEdit={isEditMode}
                     onChange={(v: string[]) => setEditedRoom({ ...editedRoom, equipmentChecklist: v })}
                   />
-                  <InfoRow icon={Speaker} label="마이크 개수" name="micCount" value={editedRoom.micCount} isEdit={isEditMode} onChange={handleEditChange} />
+                  <InfoRow icon={Speaker} label="싱어 마이크 개수" name="micCount" value={editedRoom.micCount} isEdit={isEditMode} onChange={handleEditChange} />
+                  <InfoRow icon={Speaker} label="싱어 마이크 유선/무선" name="micType" value={editedRoom.micType} isEdit={isEditMode} onChange={handleEditChange} />
                   <ToggleRow icon={Speaker} label="방음시설 여부" value={editedRoom.hasSoundproof} isEdit={isEditMode} onChange={(v: boolean) => setEditedRoom({ ...editedRoom, hasSoundproof: v })} trueLabel="있음" falseLabel="없음" />
                   <ToggleRow icon={MapPinned} label="주차 가능 여부" value={editedRoom.hasParking} isEdit={isEditMode} onChange={(v: boolean) => setEditedRoom({ ...editedRoom, hasParking: v })} trueLabel="가능" falseLabel="불가능" />
                   {(isEditMode ? editedRoom.hasParking : selectedRoom.hasParking) && (

@@ -9,9 +9,9 @@ import {
   Maximize2, Video, Utensils, Plus, Image as ImageIcon,
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
-  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath
+  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone
 } from "lucide-react";
-import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { db, storage } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayUnion, arrayRemove, Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -19,6 +19,10 @@ import { getAuth } from "firebase/auth";
 import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
 import { VenueScheduleModal } from "../components/admin/VenueScheduleModal";
 import { TagEditor } from "../components/TagEditor";
+import {
+  VENUE_IMAGE_CATEGORIES, VENUE_IMAGE_TOTAL_MAX, VenueImageCategoryKey, emptyVenueImagesByCategory,
+  flattenVenueImages, toDisplayImagesByCategory,
+} from "../lib/venueImageCategories";
 
 // [유틸리티] 숫자 콤마 포맷팅
 const formatNumber = (val: any) => {
@@ -93,80 +97,156 @@ const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "tex
   );
 };
 
-// 장소 사진 순서 변경 항목: 드래그 핸들 + 위/아래 버튼을 함께 제공한다.
-// images[0]이 공개 페이지(목록/상세)의 대표 사진으로 그대로 쓰이기 때문에 첫 항목에 라벨을 표시한다.
-const SortableVenueImage = ({
-  img, idx, total, onRemove, onMoveUp, onMoveDown, onImageClick,
-}: {
-  img: string;
+// 드래그 중인 사진 하나를 가리킨다 — 어느 칸의 몇 번째 사진인지. 다른 카테고리
+// 그리드로 드롭하는 걸 지원하려면(예: "전체" → "예배당 전체") 여러 CategoryImageGrid가
+// 이 드래그 상태를 공유해야 해서, 부모(AdminDashboard) 쪽 state로 끌어올려뒀다.
+// "pending"은 카테고리 미분류 "전체" 보관함을 가리키는 특수 키다.
+type VenueImageSlotKey = VenueImageCategoryKey | "pending";
+interface DraggedVenueImage {
+  categoryKey: VenueImageSlotKey;
   idx: number;
-  total: number;
-  onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onImageClick: () => void;
+}
+
+// 장소 사진 카테고리 하나(예: "예배당 / 입구")를 편집하는 그리드.
+// 예전엔 framer-motion의 Reorder를 여러 줄로 감싸지는 CSS 그리드에 그대로 써서
+// (Reorder는 원래 한 줄짜리 리스트 전용이라) 드래그가 세로로만 되거나 사진이
+// 사라지는 것처럼 보이는 버그가 있었다. 그리드 줄바꿈과 무관하게 동작하는 순수
+// HTML5 드래그 앤 드롭(draggable/dragover/drop)으로 바꿔서 그 버그 자체를 없앴고,
+// 같은 매커니즘으로 다른 카테고리 그리드까지 드롭 대상으로 받아서 카테고리 간
+// 사진 이동도 지원한다. (참고: HTML5 드래그 앤 드롭은 데스크톱 브라우저 전용이라
+// 모바일에선 드래그가 안 먹는다 — 그 경우엔 아래 이전/다음 화살표 버튼을 쓰면 된다.)
+const CategoryImageGrid = ({
+  categoryKey, label, max, images, isRepresentative, draggedImage, onDragStartImage, onDragEndImage, onDropAt,
+  onAdd, onRemove, onMove, onImageClick, isUploading,
+}: {
+  categoryKey: VenueImageSlotKey;
+  label: string;
+  max: number | null; // null = "전체" 보관함처럼 정해진 상한이 없는 칸
+  images: string[];
+  isRepresentative: boolean; // 전체 카테고리를 순서대로 이어붙였을 때 대표 사진(첫 장)을 포함하는 카테고리인지
+  draggedImage: DraggedVenueImage | null;
+  onDragStartImage: (idx: number) => void;
+  onDragEndImage: () => void; // 어디에도 드롭되지 않고 드래그가 끝났을 때 공유 상태를 정리
+  onDropAt: (targetIdx: number | null) => void; // null = 맨 끝(또는 빈 카테고리)에 놓기
+  onAdd: (files: FileList) => void;
+  onRemove: (idx: number) => void;
+  onMove: (idx: number, direction: -1 | 1) => void;
+  onImageClick: (idx: number) => void;
+  isUploading: boolean;
 }) => {
-  const dragControls = useDragControls();
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const [isSectionOver, setIsSectionOver] = useState(false);
+  const isFull = max !== null && images.length >= max;
+  const isDraggingFromHere = draggedImage?.categoryKey === categoryKey;
+  // 다른 카테고리에서 사진을 끌고 온 상태로 이 섹션 위에 있는지 — 드롭 가능한 대상임을 알려준다.
+  const isDropTargetFromOtherCategory = !!draggedImage && !isDraggingFromHere;
 
   return (
-    <Reorder.Item
-      value={img}
-      dragListener={false}
-      dragControls={dragControls}
-      className="relative group rounded-2xl overflow-hidden border border-[#E5E8EB] bg-white"
+    <div
+      onDragEnter={() => { if (isDropTargetFromOtherCategory) setIsSectionOver(true); }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsSectionOver(false);
+      }}
+      onDragOver={(e) => { if (draggedImage) e.preventDefault(); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsSectionOver(false);
+        onDropAt(null); // 그리드 빈 공간(또는 카드 사이가 아닌 곳)에 놓으면 맨 끝에 추가
+      }}
+      className={`rounded-2xl transition-all ${isSectionOver ? "ring-2 ring-[#3182F6] ring-offset-2 bg-[#F2F8FF]/60 -m-2 p-2" : ""}`}
     >
-      <img
-        src={img}
-        className="w-full aspect-[4/3] object-cover cursor-zoom-in"
-        alt=""
-        draggable={false}
-        onClick={onImageClick}
-      />
-
-      {idx === 0 && (
-        <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#3182F6] text-white text-[10px] font-black rounded-full shadow-md pointer-events-none">
-          대표 사진
-        </span>
-      )}
-
-      <button
-        type="button"
-        onPointerDown={(e) => dragControls.start(e)}
-        className="absolute bottom-2 left-2 p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all cursor-grab active:cursor-grabbing touch-none"
-        title="드래그해서 순서 변경"
-      >
-        <GripVertical className="w-3 h-3" />
-      </button>
-
-      <div className="absolute bottom-2 right-2 flex gap-1">
-        <button
-          type="button"
-          onClick={onMoveUp}
-          disabled={idx === 0}
-          className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-          title="이전으로 이동"
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[13px] font-black text-[#4E5968]">
+          {label} <span className="text-[#ADB5BD] font-bold">{max !== null ? `${images.length}/${max}` : `${images.length}장`}</span>
+        </p>
+        <label
+          className={`cursor-pointer bg-[#3182F6] text-white px-3 py-1.5 rounded-xl hover:bg-[#1B64DA] transition-all flex items-center gap-1 text-[12px] font-bold shadow-sm ${isFull || isUploading ? "opacity-40 pointer-events-none" : ""
+            }`}
         >
-          <ChevronLeft className="w-3 h-3" />
-        </button>
-        <button
-          type="button"
-          onClick={onMoveDown}
-          disabled={idx === total - 1}
-          className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-          title="다음으로 이동"
-        >
-          <ChevronRight className="w-3 h-3" />
-        </button>
+          <Plus className="w-3.5 h-3.5" /> 추가
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            disabled={isFull || isUploading}
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) onAdd(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
       </div>
+      {images.length === 0 ? (
+        <div className={`py-6 rounded-2xl border border-dashed text-center text-[12px] font-bold transition-colors ${isSectionOver ? "border-[#3182F6] text-[#3182F6]" : "border-[#E5E8EB] text-[#ADB5BD]"
+          }`}>
+          {isDropTargetFromOtherCategory ? "여기에 놓으면 이 카테고리로 옮겨져요" : "등록된 사진이 없어요"}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {images.map((img, idx) => (
+            <div
+              key={img}
+              draggable
+              onDragStart={() => onDragStartImage(idx)}
+              onDragEnter={(e) => { e.stopPropagation(); setOverIdx(idx); }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={(e) => { e.stopPropagation(); setIsSectionOver(false); onDropAt(idx); }}
+              onDragEnd={() => { setOverIdx(null); onDragEndImage(); }}
+              className={`relative group rounded-2xl overflow-hidden border bg-white transition-all cursor-grab active:cursor-grabbing ${overIdx === idx && draggedImage && !(isDraggingFromHere && draggedImage.idx === idx) ? "border-[#3182F6] ring-2 ring-[#3182F6]/30" : "border-[#E5E8EB]"
+                } ${isDraggingFromHere && draggedImage.idx === idx ? "opacity-40" : ""}`}
+            >
+              <img
+                src={img}
+                className="w-full aspect-[4/3] object-cover cursor-zoom-in"
+                alt=""
+                draggable={false}
+                onClick={() => onImageClick(idx)}
+              />
 
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute top-2 right-2 p-1.5 bg-[#F04452] text-white rounded-full shadow-md hover:bg-red-600 transition-all border border-white"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </Reorder.Item>
+              {isRepresentative && idx === 0 && (
+                <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#3182F6] text-white text-[10px] font-black rounded-full shadow-md pointer-events-none">
+                  대표 사진
+                </span>
+              )}
+
+              <div className="absolute bottom-2 left-2 p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md" title="드래그해서 순서/카테고리 변경">
+                <GripVertical className="w-3 h-3" />
+              </div>
+
+              <div className="absolute bottom-2 right-2 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => onMove(idx, -1)}
+                  disabled={idx === 0}
+                  className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="이전으로 이동"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onMove(idx, 1)}
+                  disabled={idx === images.length - 1}
+                  className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="다음으로 이동"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                className="absolute top-2 right-2 p-1.5 bg-[#F04452] text-white rounded-full shadow-md hover:bg-red-600 transition-all border border-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -193,6 +273,9 @@ export function AdminDashboard() {
   const [editedVenue, setEditedVenue] = useState<any>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  // 카테고리(또는 "전체" 미분류 보관함) 사진 그리드 사이에서 드래그 중인 항목 —
+  // 다른 칸으로 드롭하면 이동시킨다.
+  const [draggedVenueImage, setDraggedVenueImage] = useState<DraggedVenueImage | null>(null);
 
   // 로컬 추가 UI 상태 (구조 파괴 방지용 로컬 state 결합)
   const [depositType, setDepositType] = useState<"percent" | "amount">("percent");
@@ -215,40 +298,159 @@ export function AdminDashboard() {
     setEditedVenue({ ...editedVenue, badges: updatedBadges });
   };
 
-  const handleRemoveImage = (index: number) => {
-    const updatedImages = [...editedVenue.images];
-    updatedImages.splice(index, 1);
-    setEditedVenue({ ...editedVenue, images: updatedImages });
+  // 8개 카테고리 + "전체"(pending) 미분류 보관함, 총 9개 칸을 같은 방식으로 다루기
+  // 위한 헬퍼들. 드래그 이동/삭제/순서변경이 소스가 카테고리든 "전체"든 동일하게
+  // 동작하게 한다.
+  const getSlotImages = (venue: any, key: VenueImageSlotKey): string[] =>
+    key === "pending" ? (venue.pendingImages || []) : (venue.imagesByCategory?.[key] || []);
+  const getSlotMax = (key: VenueImageSlotKey): number | null =>
+    key === "pending" ? null : (VENUE_IMAGE_CATEGORIES.find((c) => c.key === key)?.max ?? null);
+  const getSlotLabel = (key: VenueImageSlotKey): string =>
+    key === "pending" ? "전체" : (VENUE_IMAGE_CATEGORIES.find((c) => c.key === key)?.label ?? key);
+
+  // 카테고리 하나(또는 "전체" 보관함) 의 사진 배열이 바뀔 때마다, 기존 화면들(장소
+  // 카드·카카오톡 미리보기 등)이 계속 쓰는 평평한 images 배열도 다시 이어붙여
+  // 함께 갱신해둔다("전체" 보관함 사진은 맨 뒤에 붙인다). 이렇게 해두면 저장
+  // (handleUpdate)이 editedVenue를 그대로 스프레드해서 저장할 때 images가 항상
+  // imagesByCategory/pendingImages와 일치한 상태로 저장된다.
+  const updateSlotImages = (key: VenueImageSlotKey, newImages: string[]) => {
+    setEditedVenue((prev: any) => {
+      const imagesByCategory = key === "pending"
+        ? (prev.imagesByCategory || emptyVenueImagesByCategory())
+        : { ...(prev.imagesByCategory || emptyVenueImagesByCategory()), [key]: newImages };
+      const pendingImages = key === "pending" ? newImages : (prev.pendingImages || []);
+      return {
+        ...prev,
+        imagesByCategory,
+        pendingImages,
+        images: [...flattenVenueImages(imagesByCategory), ...pendingImages],
+      };
+    });
   };
 
-  const handleReorderImages = (newOrder: string[]) => {
-    setEditedVenue({ ...editedVenue, images: newOrder });
+  const handleRemoveImage = (key: VenueImageSlotKey, index: number) => {
+    const current = [...getSlotImages(editedVenue, key)];
+    current.splice(index, 1);
+    updateSlotImages(key, current);
   };
 
-  const handleMoveImage = (index: number, direction: -1 | 1) => {
-    const images = [...(editedVenue.images || [])];
+  const handleMoveImage = (key: VenueImageSlotKey, index: number, direction: -1 | 1) => {
+    const current = [...getSlotImages(editedVenue, key)];
     const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= images.length) return;
-    [images[index], images[targetIndex]] = [images[targetIndex], images[index]];
-    setEditedVenue({ ...editedVenue, images });
+    if (targetIndex < 0 || targetIndex >= current.length) return;
+    [current[index], current[targetIndex]] = [current[targetIndex], current[index]];
+    updateSlotImages(key, current);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // 카테고리(또는 "전체" 보관함) 그리드에 사진을 드롭했을 때 처리 — 같은 칸이면
+  // 순서만 바꾸고, 다른 칸이면 그리로 옮긴다(대상이 카테고리이고 이미 꽉 찼으면
+  // 옮기지 않음 — "전체" 보관함은 상한이 없어 항상 받을 수 있다).
+  const handleImageDrop = (targetKey: VenueImageSlotKey, targetIdx: number | null) => {
+    if (!draggedVenueImage) return;
+    const { categoryKey: sourceKey, idx: sourceIdx } = draggedVenueImage;
+    setDraggedVenueImage(null);
+
+    const sourceImages = getSlotImages(editedVenue, sourceKey);
+    const moved = sourceImages[sourceIdx];
+    if (!moved) return;
+
+    if (sourceKey === targetKey) {
+      if (targetIdx === null || targetIdx === sourceIdx) return;
+      const next = [...sourceImages];
+      next.splice(sourceIdx, 1);
+      next.splice(targetIdx, 0, moved);
+      updateSlotImages(sourceKey, next);
+      return;
+    }
+
+    const targetImages = getSlotImages(editedVenue, targetKey);
+    const targetMax = getSlotMax(targetKey);
+    if (targetMax !== null && targetImages.length >= targetMax) {
+      alert(`"${getSlotLabel(targetKey)}"은(는) 이미 최대 ${targetMax}장이 등록되어 있어 옮길 수 없어요.`);
+      return;
+    }
+
+    const newSourceImages = [...sourceImages];
+    newSourceImages.splice(sourceIdx, 1);
+    const newTargetImages = [...targetImages];
+    newTargetImages.splice(targetIdx === null ? newTargetImages.length : targetIdx, 0, moved);
+
+    setEditedVenue((prev: any) => {
+      let imagesByCategory = prev.imagesByCategory || emptyVenueImagesByCategory();
+      let pendingImages = prev.pendingImages || [];
+      if (sourceKey === "pending") pendingImages = newSourceImages;
+      else imagesByCategory = { ...imagesByCategory, [sourceKey]: newSourceImages };
+      if (targetKey === "pending") pendingImages = newTargetImages;
+      else imagesByCategory = { ...imagesByCategory, [targetKey]: newTargetImages };
+      return {
+        ...prev,
+        imagesByCategory,
+        pendingImages,
+        images: [...flattenVenueImages(imagesByCategory), ...pendingImages],
+      };
+    });
+  };
+
+  const handleImageUpload = async (key: VenueImageCategoryKey, fileList: FileList) => {
+    // FileList를 그대로 들고 있으면 안 된다 - 이 함수가 비동기라 파일 업로드 도중에
+    // (첫 파일 올리는 동안 대기하는 사이) 호출한 쪽에서 input.value를 초기화하면,
+    // 그 순간 이 FileList까지 같이 비워져서 반복문이 첫 번째 파일만 처리하고 멈춰버린다
+    // (여러 장 선택해도 한 장만 올라가던 버그의 원인). 그래서 넘겨받자마자 제일 먼저
+    // 독립된 배열로 복사해둔다.
+    const files = Array.from(fileList);
+    const category = VENUE_IMAGE_CATEGORIES.find((c) => c.key === key)!;
+    const current = editedVenue.imagesByCategory?.[key] || [];
+    if (current.length + files.length > category.max) {
+      alert(`"${category.label}"은(는) 최대 ${category.max}장까지 등록 가능합니다.`);
+      return;
+    }
 
     setIsUploading(true);
-    const newImageUrls = [...(editedVenue.images || [])];
+    const newImageUrls = [...current];
 
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const storageRef = ref(storage, `venues/${editedVenue.venueName || 'unnamed'}_${Date.now()}_${i}`);
+        const storageRef = ref(storage, `venues/${editedVenue.venueName || 'unnamed'}_${key}_${Date.now()}_${i}`);
         const snapshot = await uploadBytes(storageRef, file);
         const url = await getDownloadURL(snapshot.ref);
         newImageUrls.push(url);
       }
-      setEditedVenue({ ...editedVenue, images: newImageUrls });
+      updateSlotImages(key, newImageUrls);
+    } catch (error) {
+      console.error("이미지 업로드 실패:", error);
+      alert("이미지 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // "전체" 일괄 업로드 - 카테고리를 미리 고르지 않고 여러 장을 한 번에 올린다.
+  // 자동으로 어느 카테고리에 분류하지 않고, 전부 "전체" 미분류 보관함(pendingImages)에
+  // 그대로 쌓아둔다 — 관리자가 여기서 직접 드래그해서 원하는 카테고리로 옮기면 된다.
+  const handleBulkImageUpload = async (fileList: FileList) => {
+    // handleImageUpload와 같은 이유로, FileList를 그대로 들고 있지 않고 바로 배열로
+    // 복사해둔다 - 안 그러면 첫 파일 업로드 중에 input이 초기화되면서 나머지가
+    // 통째로 사라져 한 장만 올라가는 버그가 생긴다.
+    const files = Array.from(fileList);
+    const totalCurrent = (editedVenue.images || []).length;
+    const remaining = VENUE_IMAGE_TOTAL_MAX - totalCurrent;
+    if (files.length > remaining) {
+      alert(`전체 사진은 최대 ${VENUE_IMAGE_TOTAL_MAX}장까지 등록 가능해요. 지금은 ${remaining}장 더 올릴 수 있어요.`);
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const storageRef = ref(storage, `venues/${editedVenue.venueName || 'unnamed'}_bulk_${Date.now()}_${i}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snapshot.ref);
+        uploadedUrls.push(url);
+      }
+      updateSlotImages("pending", [...(editedVenue.pendingImages || []), ...uploadedUrls]);
     } catch (error) {
       console.error("이미지 업로드 실패:", error);
       alert("이미지 업로드 중 오류가 발생했습니다.");
@@ -373,9 +575,17 @@ export function AdminDashboard() {
 
   const openEditModal = (venue: any) => {
     const initialDepositType = venue.depositType || (venue.depositAmount ? "amount" : "percent");
+    // 카테고리 구분 없이 등록됐던 기존 장소는 사진이 전부 "기타"로 들어간 것처럼 보여준다
+    // (실제 DB엔 저장하지 않고 화면에서만 이렇게 채워서 보여줌 — 저장을 눌러야 반영됨).
+    const initialImagesByCategory = {
+      ...emptyVenueImagesByCategory(),
+      ...toDisplayImagesByCategory(venue),
+    };
 
     setEditedVenue({
       ...venue,
+      imagesByCategory: initialImagesByCategory,
+      pendingImages: venue.pendingImages ?? [], // "전체" 미분류 보관함
       tags: venue.tags ?? [],
       useSeasonalPrice: venue.useSeasonalPrice ?? false,
       depositType: initialDepositType,
@@ -713,6 +923,12 @@ export function AdminDashboard() {
                             </div>
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <span className="text-[12px] font-bold text-[#8B95A1]">{venue.applicantName || "익명"}</span>
+                              {venue.applicantContact && (
+                                <>
+                                  <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
+                                  <span className="text-[12px] font-bold text-[#8B95A1]">{venue.applicantContact}</span>
+                                </>
+                              )}
                               <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
                               <span className="text-[12px] font-bold text-[#3182F6]">{venue.denomination}</span>
                             </div>
@@ -851,55 +1067,131 @@ export function AdminDashboard() {
                 )}
               </div>
 
-              {/* 사진: 가독성을 위해 세로로 긴 목록 대신 카드형 그리드로 배치. 각 카드를 클릭하면
-                  라이트박스로 확대해서 볼 수 있고, 대표사진/삭제/순서이동 아이콘은 항상 보인다. */}
+              {/* 사진: 카테고리(예배당/입구, 예배당 전체, 예배 셋팅 ... 기타)별로 나눠서 관리한다.
+                  각 카드를 클릭하면 라이트박스로 확대해서 볼 수 있고, 대표사진/삭제/순서이동은
+                  카테고리를 순서대로 이어붙였을 때의 맨 첫 사진 기준으로 계산된다. */}
               <div className="bg-white rounded-[28px] border border-[#E5E8EB] shadow-sm p-5 md:p-8">
                 <div className="flex items-center justify-between mb-5">
-                  <p className="text-[14px] font-black text-[#8B95A1] uppercase tracking-wider">현장 사진 {editedVenue.images?.length || 0}</p>
-                  {isEditMode && (
-                    <label className="cursor-pointer bg-[#3182F6] text-white px-3 py-1.5 rounded-xl hover:bg-[#1B64DA] transition-all flex items-center gap-1 text-[12px] font-bold shadow-sm">
-                      <Plus className="w-3.5 h-3.5" /> 사진 추가
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
-                    </label>
-                  )}
+                  <p className="text-[14px] font-black text-[#8B95A1] uppercase tracking-wider">
+                    현장 사진 {editedVenue.images?.length || 0}
+                  </p>
                 </div>
 
-                {/* 가독성을 위해 사진 영역은 3줄까지만 보이고, 그 이상은 이 안에서만 스크롤된다
-                    (스크롤바를 숨기지 않아 사진이 더 있다는 걸 바로 알 수 있게 한다). */}
-                <div className="max-h-[420px] lg:max-h-[560px] overflow-y-auto pr-1">
+                {/* 가독성을 위해 사진 영역은 일정 높이까지만 보이고, 그 이상은 이 안에서만
+                    스크롤된다(스크롤바를 숨기지 않아 사진이 더 있다는 걸 바로 알 수 있게 한다). */}
+                <div className="max-h-[560px] lg:max-h-[720px] overflow-y-auto pr-1 space-y-8">
                   {isEditMode ? (
-                    <Reorder.Group
-                      axis="y"
-                      values={editedVenue.images || []}
-                      onReorder={handleReorderImages}
-                      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-                    >
-                      {(editedVenue.images || []).map((img: string, idx: number) => (
-                        <SortableVenueImage
-                          key={img}
-                          img={img}
-                          idx={idx}
-                          total={(editedVenue.images || []).length}
-                          onRemove={() => handleRemoveImage(idx)}
-                          onMoveUp={() => handleMoveImage(idx, -1)}
-                          onMoveDown={() => handleMoveImage(idx, 1)}
-                          onImageClick={() => setLightboxIndex(idx)}
+                    <>
+                    {VENUE_IMAGE_CATEGORIES.map((category) => {
+                      const categoryImages = editedVenue.imagesByCategory?.[category.key] || [];
+                      const isRepresentative = VENUE_IMAGE_CATEGORIES.find(
+                        (c) => (editedVenue.imagesByCategory?.[c.key]?.length || 0) > 0
+                      )?.key === category.key;
+                      // 라이트박스는 여전히 평평한 images 배열 인덱스를 쓰므로, 이 카테고리 앞에
+                      // 몇 장이 이어붙여져 있는지 계산해서 클릭한 사진의 실제 전체 인덱스를 구한다.
+                      const offset = VENUE_IMAGE_CATEGORIES
+                        .slice(0, VENUE_IMAGE_CATEGORIES.indexOf(category))
+                        .reduce((sum, c) => sum + (editedVenue.imagesByCategory?.[c.key]?.length || 0), 0);
+                      return (
+                        <CategoryImageGrid
+                          key={category.key}
+                          categoryKey={category.key}
+                          label={category.label}
+                          max={category.max}
+                          images={categoryImages}
+                          isRepresentative={isRepresentative}
+                          isUploading={isUploading}
+                          draggedImage={draggedVenueImage}
+                          onDragStartImage={(idx) => setDraggedVenueImage({ categoryKey: category.key, idx })}
+                          onDragEndImage={() => setDraggedVenueImage(null)}
+                          onDropAt={(targetIdx) => handleImageDrop(category.key, targetIdx)}
+                          onAdd={(files) => handleImageUpload(category.key, files)}
+                          onRemove={(idx) => handleRemoveImage(category.key, idx)}
+                          onMove={(idx, direction) => handleMoveImage(category.key, idx, direction)}
+                          onImageClick={(idx) => setLightboxIndex(offset + idx)}
                         />
-                      ))}
-                    </Reorder.Group>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {(editedVenue.images || []).map((img: string, idx: number) => (
-                        <div key={idx} className="relative rounded-2xl overflow-hidden border border-[#E5E8EB]">
-                          <img src={img} className="w-full aspect-[4/3] object-cover cursor-zoom-in" alt="" onClick={() => setLightboxIndex(idx)} />
-                          {idx === 0 && (
-                            <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#3182F6] text-white text-[10px] font-black rounded-full shadow-md pointer-events-none">
-                              대표 사진
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                      );
+                    })}
+
+                    {/* 전체 - 카테고리를 미리 고르지 않고 여러 장을 한 번에 올리는 일괄 업로드.
+                        올린 사진은 그대로 이 칸에 쌓이고(자동으로 다른 카테고리에 흩어지지
+                        않음), 위 카드들처럼 드래그해서 원하는 카테고리로 옮기면 된다. */}
+                    <div className="pt-6 border-t border-dashed border-[#E5E8EB]">
+                      <CategoryImageGrid
+                        categoryKey="pending"
+                        label="전체"
+                        max={null}
+                        images={editedVenue.pendingImages || []}
+                        isRepresentative={false}
+                        isUploading={isUploading}
+                        draggedImage={draggedVenueImage}
+                        onDragStartImage={(idx) => setDraggedVenueImage({ categoryKey: "pending", idx })}
+                        onDragEndImage={() => setDraggedVenueImage(null)}
+                        onDropAt={(targetIdx) => handleImageDrop("pending", targetIdx)}
+                        onAdd={(files) => handleBulkImageUpload(files)}
+                        onRemove={(idx) => handleRemoveImage("pending", idx)}
+                        onMove={(idx, direction) => handleMoveImage("pending", idx, direction)}
+                        onImageClick={(idx) => {
+                          const pendingOffset = flattenVenueImages(editedVenue.imagesByCategory).length;
+                          setLightboxIndex(pendingOffset + idx);
+                        }}
+                      />
+                      <p className="text-[11px] font-bold text-[#ADB5BD] mt-2">
+                        카테고리 상관없이 여러 장을 한 번에 올려요. 올라온 사진 카드를 위 카테고리로 드래그해서 옮길 수 있어요.
+                      </p>
                     </div>
+                    </>
+                  ) : (
+                    (() => {
+                      const displayByCategory = toDisplayImagesByCategory(editedVenue);
+                      let runningOffset = 0;
+                      const categorySections = VENUE_IMAGE_CATEGORIES.map((category) => {
+                        const categoryImages = displayByCategory[category.key] || [];
+                        if (categoryImages.length === 0) return null;
+                        const offset = runningOffset;
+                        runningOffset += categoryImages.length;
+                        return (
+                          <div key={category.key}>
+                            <p className="text-[13px] font-black text-[#4E5968] mb-3">
+                              {category.label} <span className="text-[#ADB5BD] font-bold">{categoryImages.length}</span>
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                              {categoryImages.map((img: string, idx: number) => (
+                                <div key={idx} className="relative rounded-2xl overflow-hidden border border-[#E5E8EB]">
+                                  <img src={img} className="w-full aspect-[4/3] object-cover cursor-zoom-in" alt="" onClick={() => setLightboxIndex(offset + idx)} />
+                                  {offset + idx === 0 && (
+                                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#3182F6] text-white text-[10px] font-black rounded-full shadow-md pointer-events-none">
+                                      대표 사진
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      });
+                      const pendingImages: string[] = editedVenue.pendingImages || [];
+                      const pendingOffset = runningOffset;
+                      return (
+                        <>
+                          {categorySections}
+                          {pendingImages.length > 0 && (
+                            <div>
+                              <p className="text-[13px] font-black text-[#4E5968] mb-3">
+                                전체 (미분류) <span className="text-[#ADB5BD] font-bold">{pendingImages.length}</span>
+                              </p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                {pendingImages.map((img: string, idx: number) => (
+                                  <div key={idx} className="relative rounded-2xl overflow-hidden border border-[#E5E8EB]">
+                                    <img src={img} className="w-full aspect-[4/3] object-cover cursor-zoom-in" alt="" onClick={() => setLightboxIndex(pendingOffset + idx)} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()
                   )}
                 </div>
 
@@ -917,6 +1209,14 @@ export function AdminDashboard() {
                   <div className="flex items-center gap-3 mb-4">
                     <span className="px-4 py-1.5 bg-[#E8F3FF] text-[#3182F6] rounded-full text-[13px] font-black">{editedVenue.denomination}</span>
                     <span className="text-[14px] font-bold text-[#8B95A1]">신청자: {editedVenue.applicantName}</span>
+                    {editedVenue.applicantContact && (
+                      <a
+                        href={`tel:${editedVenue.applicantContact}`}
+                        className="flex items-center gap-1 text-[14px] font-black text-[#3182F6] hover:underline"
+                      >
+                        <Phone className="w-3.5 h-3.5" /> {editedVenue.applicantContact}
+                      </a>
+                    )}
                   </div>
 
                   {isEditMode ? (

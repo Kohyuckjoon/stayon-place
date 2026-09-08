@@ -4,7 +4,7 @@
 export const ROOM_TYPE_OPTIONS = ["연습실", "합주실", "겸용"] as const;
 
 export const EQUIPMENT_CHECKLIST_OPTIONS = [
-  "드럼", "기타앰프", "베이스앰프", "건반", "PA", "모니터스피커",
+  "메인피아노", "세컨 피아노", "드럼(리얼)", "드럼(전자)", "기타 엠프(베이스)", "기타 엠프(일렉)", "싱어 마이크",
 ] as const;
 
 export const MAX_TAGS = 10;

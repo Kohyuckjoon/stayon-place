@@ -12,6 +12,9 @@ import { uploadVenueImage } from "../lib/storage";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { TagEditor } from "../components/TagEditor";
 import { DENOMINATION_GROUPS } from "../lib/denominations";
+import {
+  VENUE_IMAGE_CATEGORIES, VENUE_IMAGE_TOTAL_MAX, VenueImageCategoryKey, emptyVenueImagesByCategory, flattenVenueImages,
+} from "../lib/venueImageCategories";
 
 /**
  * [Input Component] - 스타일의 깔끔한 입력창
@@ -118,7 +121,6 @@ interface VenueFormData {
 export function RegisterVenue() {
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isMealGuideOpen, setIsMealGuideOpen] = useState(false); // "식사 제공 가이드" 안내 툴팁
@@ -129,8 +131,11 @@ export function RegisterVenue() {
   const [isCustomDeno, setIsCustomDeno] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  // 사진을 카테고리(예배당/입구, 예배당 전체, 예배 셋팅 ... 기타)별로 나눠서 받는다.
+  // 전체 최대 장수(VENUE_IMAGE_TOTAL_MAX)는 카테고리별 한도 합계라, 카테고리별
+  // 한도만 지키면 전체 한도도 자동으로 지켜져서 따로 검사하지 않아도 된다.
+  const [categoryFiles, setCategoryFiles] = useState<Record<VenueImageCategoryKey, File[]>>(emptyVenueImagesByCategory() as any);
+  const [categoryPreviewUrls, setCategoryPreviewUrls] = useState<Record<VenueImageCategoryKey, string[]>>(emptyVenueImagesByCategory() as any);
   const [isPhoneRequestOpen, setIsPhoneRequestOpen] = useState(false); // 전화 상담 요청 모달 오픈 여부
   const [phoneRequest, setPhoneRequest] = useState({ name: "", phone: "", time: "" }); // 신청자 이름, 연락처, 희망 연락 시간
 
@@ -179,8 +184,8 @@ export function RegisterVenue() {
   const [errors, setErrors] = useState({ contact: "", price: "", mealPrice: "", email: "" });
 
   useEffect(() => {
-    return () => previewUrls.forEach(url => URL.revokeObjectURL(url));
-  }, [previewUrls]);
+    return () => Object.values(categoryPreviewUrls).forEach(urls => urls.forEach(url => URL.revokeObjectURL(url)));
+  }, [categoryPreviewUrls]);
 
   const formatPhoneNumber = (value: string) => {
     const number = value.replace(/[^\d]/g, "");
@@ -226,10 +231,11 @@ export function RegisterVenue() {
       );
     }
     if (currentStep === 2) {
-      return selectedFiles.length > 0 && formData.mealOption.length > 0;
+      const totalPhotoCount = Object.values(categoryFiles).reduce((sum, files) => sum + files.length, 0);
+      return totalPhotoCount > 0 && formData.mealOption.length > 0;
     }
     return true;
-  }, [currentStep, formData, errors, selectedFiles, isCustomDeno]);
+  }, [currentStep, formData, errors, categoryFiles, isCustomDeno]);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -246,22 +252,25 @@ export function RegisterVenue() {
     }).open();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCategoryFileChange = (key: VenueImageCategoryKey, e: React.ChangeEvent<HTMLInputElement>) => {
+    const category = VENUE_IMAGE_CATEGORIES.find(c => c.key === key)!;
     const files = Array.from(e.target.files || []);
-    if (files.length + selectedFiles.length > 40) {
-      alert("이미지는 최대 40장까지만 등록 가능합니다.");
+    e.target.value = ""; // 같은 파일을 다시 선택할 수 있도록 초기화
+    if (files.length === 0) return;
+    if (files.length + categoryFiles[key].length > category.max) {
+      alert(`"${category.label}"은(는) 최대 ${category.max}장까지 등록 가능합니다.`);
       return;
     }
-    setSelectedFiles(prev => [...prev, ...files]);
+    setCategoryFiles(prev => ({ ...prev, [key]: [...prev[key], ...files] }));
     const newUrls = files.map(file => URL.createObjectURL(file));
-    setPreviewUrls(prev => [...prev, ...newUrls]);
+    setCategoryPreviewUrls(prev => ({ ...prev, [key]: [...prev[key], ...newUrls] }));
   };
 
-  const removeImage = (e: React.MouseEvent, index: number) => {
+  const removeCategoryImage = (e: React.MouseEvent, key: VenueImageCategoryKey, index: number) => {
     e.stopPropagation();
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    URL.revokeObjectURL(previewUrls[index]);
-    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    setCategoryFiles(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
+    URL.revokeObjectURL(categoryPreviewUrls[key][index]);
+    setCategoryPreviewUrls(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
   };
 
   const toggleMealOption = (option: 'provided' | 'self' | 'none') => {
@@ -297,12 +306,22 @@ export function RegisterVenue() {
     if (isSubmitting || !isStepValid) return;
     try {
       setIsSubmitting(true);
-      const imageUrls = await Promise.all(selectedFiles.map(file => compressAndUpload(file)));
+      const imagesByCategory: Record<string, string[]> = {};
+      for (const category of VENUE_IMAGE_CATEGORIES) {
+        const files = categoryFiles[category.key];
+        imagesByCategory[category.key] = files.length > 0
+          ? await Promise.all(files.map(file => compressAndUpload(file)))
+          : [];
+      }
+      // 기존 화면들(장소 카드, 카카오톡 링크 미리보기 등)이 계속 쓸 수 있도록
+      // 카테고리 순서대로 이어붙인 평평한 배열도 함께 저장한다.
+      const imageUrls = flattenVenueImages(imagesByCategory);
 
       // 1. 파이어베이스 저장
       await addDoc(collection(db, "venues"), {
         ...formData,
         images: imageUrls,
+        imagesByCategory,
         status: "pending",
         createdAt: serverTimestamp(),
       });
@@ -866,21 +885,37 @@ export function RegisterVenue() {
 
             {currentStep === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-12">
-                {/* 이미지 업로드 섹션 디자인 개선 */}
+                {/* 이미지 업로드 섹션 - 카테고리별로 나눠서 등록 */}
                 <section>
-                  <div className="flex justify-between items-end mb-4 px-1">
-                    <label className="text-[13px] font-bold text-[#6b7684] uppercase tracking-wider">공간 사진 ({selectedFiles.length}/40)</label>
+                  <div className="flex justify-between items-end mb-1.5 px-1">
+                    <label className="text-[13px] font-bold text-[#6b7684] uppercase tracking-wider">
+                      공간 사진 (전체 {Object.values(categoryFiles).reduce((sum, files) => sum + files.length, 0)}/{VENUE_IMAGE_TOTAL_MAX})
+                    </label>
                     <span className="text-[11px] font-bold text-[#3182f6] bg-[#f2f8ff] px-2 py-1 rounded-md">다중 선택 가능</span>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square bg-[#f9fafb] border-2 border-dashed border-[#e5e8eb] rounded-[24px] flex flex-col items-center justify-center gap-2 text-[#adb5bd] hover:bg-[#f2f4f6] hover:border-[#3182f6]/30 transition-all group">
-                      <Camera className="w-6 h-6 group-hover:text-[#3182f6]" /> <span className="text-[11px] font-bold group-hover:text-[#3182f6]">이미지 추가</span>
-                    </button>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
-                    {previewUrls.map((url, index) => (
-                      <div key={url} className="relative aspect-square group">
-                        <img src={url} onClick={() => setSelectedImageUrl(url)} className="w-full h-full object-cover rounded-[24px] cursor-pointer shadow-sm group-hover:shadow-md transition-shadow" />
-                        <button type="button" onClick={(e) => removeImage(e, index)} className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-[#191f28] text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"><X className="w-4 h-4" /></button>
+                  <p className="text-[12.5px] text-[#8b95a1] font-medium mb-6 px-1">카테고리별로 나눠서 올려주시면 사역팀이 장소를 더 정확히 파악할 수 있어요.</p>
+
+                  <div className="space-y-9">
+                    {VENUE_IMAGE_CATEGORIES.map((category) => (
+                      <div key={category.key}>
+                        <div className="flex justify-between items-end mb-3 px-1">
+                          <label className="text-[13.5px] font-bold text-[#4e5968]">{category.label}</label>
+                          <span className="text-[11px] font-bold text-[#adb5bd]">{categoryFiles[category.key].length}/{category.max}</span>
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                          {categoryFiles[category.key].length < category.max && (
+                            <label className="aspect-square bg-[#f9fafb] border-2 border-dashed border-[#e5e8eb] rounded-[24px] flex flex-col items-center justify-center gap-2 text-[#adb5bd] hover:bg-[#f2f4f6] hover:border-[#3182f6]/30 transition-all group cursor-pointer">
+                              <Camera className="w-6 h-6 group-hover:text-[#3182f6]" /> <span className="text-[11px] font-bold group-hover:text-[#3182f6]">이미지 추가</span>
+                              <input type="file" onChange={(e) => handleCategoryFileChange(category.key, e)} multiple accept="image/*" className="hidden" />
+                            </label>
+                          )}
+                          {categoryPreviewUrls[category.key].map((url, index) => (
+                            <div key={url} className="relative aspect-square group">
+                              <img src={url} onClick={() => setSelectedImageUrl(url)} className="w-full h-full object-cover rounded-[24px] cursor-pointer shadow-sm group-hover:shadow-md transition-shadow" />
+                              <button type="button" onClick={(e) => removeCategoryImage(e, category.key, index)} className="absolute -top-1.5 -right-1.5 w-7 h-7 bg-[#191f28] text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"><X className="w-4 h-4" /></button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
