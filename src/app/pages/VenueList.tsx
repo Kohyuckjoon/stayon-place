@@ -125,6 +125,9 @@ const getDenominationStyle = (denom: string) => {
 
 export function VenueList() {
   const navigate = useNavigate();
+  // "국내 수련회" / "국내선교" 상단 탭. "국내선교"는 아직 준비 중인 화면이라
+  // 선택하면 기존 필터·목록 전체를 숨기고 안내 문구만 보여준다.
+  const [activeMainTab, setActiveMainTab] = useState<"domestic" | "mission">("domestic");
   const [dbVenues, setDbVenues] = useState<any[]>([]);
   // [기능 추가] 예약 데이터 상태
   const [allBookings, setAllBookings] = useState<any[]>([]);
@@ -426,6 +429,7 @@ export function VenueList() {
         onClose={() => setIsAuthModalOpen(false)}
       />
 
+      {activeMainTab === "domestic" && (
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-[#F2F4F6]">
         <div className="max-w-[1100px] mx-auto px-5 py-3">
           <div className="flex items-center gap-2">
@@ -643,6 +647,7 @@ export function VenueList() {
           )}
         </AnimatePresence>
       </div>
+      )}
 
       <main className="max-w-[1100px] mx-auto px-5 py-6">
         {/* {!isLoggedIn && (
@@ -690,52 +695,83 @@ export function VenueList() {
                 <p className="text-[#8B95A1] text-[16px] mt-2 font-bold">최신 등록 순으로 보여드릴게요.</p>
               </div>
             </div> */}
-            <div className="mb-6">
-              {/* 타이틀 및 카운트 영역 */}
-              <div className="bg-[#F2F8FF] rounded-2xl p-4 border border-[#E8F3FF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {/* 배너 왼쪽: 텍스트 안내 영역 */}
-                <div className="flex items-start gap-3">
-                  <div className="text-xl mt-0.5 shrink-0">🚀</div>
-                  <div className="flex-1">
-                    <h4 className="text-[14px] font-black text-[#191F28] mb-0.5">
-                      수련회 장소 서비스를 마음껏 이용해보세요!
-                    </h4>
-                    <p className="text-[12px] text-[#6B7684] font-medium leading-relaxed">
-                      오픈 기념 장소 등록 시 다양한 혜택을 제공하고 있습니다. 지금 우리만의 멋진 공간을 공유하고 특별한 리워드를 받아보세요.
-                    </p>
-                    <a
-                      href="https://place.stayon-platform.com/register"
-                      className="inline-block mt-2 text-[12px] font-bold text-[#3182F6] hover:text-[#1B64DA] transition-colors"
-                    >
-                      지금 장소 등록하고 혜택받기 →
-                    </a>
-                  </div>
-                </div>
 
-                <div className="flex shrink-0 items-center">
+            {/* 오픈 기념 배너 */}
+            <div className="bg-[#F2F8FF] rounded-2xl p-4 border border-[#E8F3FF] flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-start gap-3">
+                <div className="text-xl mt-0.5 shrink-0">🚀</div>
+                <div className="flex-1">
+                  <h4 className="text-[14px] font-black text-[#191F28] mb-0.5">
+                    수련회 장소 서비스를 마음껏 이용해보세요!
+                  </h4>
+                  <p className="text-[12px] text-[#6B7684] font-medium leading-relaxed">
+                    오픈 기념 장소 등록 시 다양한 혜택을 제공하고 있습니다. 지금 우리만의 멋진 공간을 공유하고 특별한 리워드를 받아보세요.
+                  </p>
                   <a
                     href="https://place.stayon-platform.com/register"
-                    className="inline-flex items-center justify-center bg-[#3182F6] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#1B64DA] active:scale-[0.98] transition-all tracking-tight shadow-sm"
+                    className="inline-block mt-2 text-[12px] font-bold text-[#3182F6] hover:text-[#1B64DA] transition-colors"
                   >
-                    장소 등록하기
-                    <svg
-                      className="w-3.5 h-3.5 ml-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2.5"
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
+                    지금 장소 등록하고 혜택받기 →
                   </a>
                 </div>
               </div>
+
+              <div className="flex shrink-0 items-center">
+                <a
+                  href="https://place.stayon-platform.com/register"
+                  className="inline-flex items-center justify-center bg-[#3182F6] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl hover:bg-[#1B64DA] active:scale-[0.98] transition-all tracking-tight shadow-sm"
+                >
+                  장소 등록하기
+                  <svg
+                    className="w-3.5 h-3.5 ml-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </a>
+              </div>
             </div>
 
+            {/* "수련회" / "국내선교" 탭 - 토스 스타일 슬라이딩 애니메이션(framer-motion layoutId).
+                BoardSwitcher.tsx와 같은 방식(흰 알약이 탭 사이를 부드럽게 이동)으로 통일했다. */}
+            <div className="inline-flex items-center gap-1 bg-[#F2F4F6] p-1 rounded-full mb-4">
+              {([
+                { id: "domestic", label: "수련회" },
+                { id: "mission", label: "국내선교" },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveMainTab(tab.id)}
+                  className="relative px-5 py-2.5 rounded-full text-[14px] font-black whitespace-nowrap"
+                >
+                  {activeMainTab === tab.id && (
+                    <motion.div
+                      layoutId="venue-main-tab-pill"
+                      className="absolute inset-0 bg-white rounded-full shadow-sm"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    />
+                  )}
+                  <span className={`relative z-10 transition-colors ${activeMainTab === tab.id ? "text-[#3182F6]" : "text-[#8B95A1]"}`}>
+                    {tab.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {activeMainTab === "mission" ? (
+              <div className="py-32 text-center">
+                <p className="text-[20px] font-black text-[#4E5968]">현재 준비중입니다</p>
+              </div>
+            ) : (
+            <>
             <div className="flex items-center justify-between mb-4">
               <p className="text-[13px] font-bold text-[#8B95A1]">총 {filteredVenues.length}곳</p>
               <div className="flex items-center gap-1 bg-[#F2F4F6] p-1 rounded-xl shrink-0">
@@ -907,6 +943,8 @@ export function VenueList() {
                 <h3 className="text-[24px] font-black text-[#4E5968]">조건에 맞는 장소가 없어요</h3>
                 <button onClick={resetFilters} className="mt-6 text-[#3182F6] font-black underline">필터 초기화</button>
               </div>
+            )}
+            </>
             )}
           </>
         )}

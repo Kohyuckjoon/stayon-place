@@ -72,6 +72,7 @@ export {teamsPreview} from "./teamsPreview";
 export {teamRegisterPreview} from "./teamRegisterPreview";
 export {teamDetailPreview} from "./teamDetailPreview";
 export {bandRoomPreview} from "./bandRoomPreview";
+export {programsPreview} from "./programsPreview";
 
 export {
   adminSetUserDisabled,

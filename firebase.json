@@ -43,6 +43,13 @@
         }
       },
       {
+        "source": "/programs",
+        "function": {
+          "functionId": "programsPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
