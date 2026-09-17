@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -399,6 +399,20 @@ export function Header() {
                           <div><div className="text-[15px] font-black text-[#191F28]">전국 교회 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">지역별로 우리 교회 알아보기</div></div>
                         </Link>
                       )}
+                      {/* 굿즈/단체티/차량 렌트 3종 - 서비스 오픈 전이라 일단 노출만 막음. 라우트는 살아있어서
+                          /goods, /shirts, /vehicles로 직접 접근은 계속 가능. */}
+                      {/* <Link to="/goods" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#FFFBEB] rounded-xl flex items-center justify-center group-hover:bg-[#FEF3C7]"><Gift className="w-5 h-5 text-[#F59E0B]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">굿즈 매장 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 굿즈·기념품 업체</div></div>
+                      </Link>
+                      <Link to="/shirts" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#FDF2F8] rounded-xl flex items-center justify-center group-hover:bg-[#FCE7F3]"><Shirt className="w-5 h-5 text-[#EC4899]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">단체티 업체 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 티셔츠·기념품 제작</div></div>
+                      </Link>
+                      <Link to="/vehicles" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#EEF2FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0E7FF]"><Bus className="w-5 h-5 text-[#6366F1]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">차량·버스 대여 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 이동 차량 업체</div></div>
+                      </Link> */}
                       <Link to="/booking-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><CheckCircle2 className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">예약 절차 가이드</div><div className="text-[12px] text-[#8B95A1] font-bold">안전하고 쉬운 예약법</div></div>
@@ -524,6 +538,20 @@ export function Header() {
                             <div><div className="text-[15px] font-black text-[#191F28]">전국 교회 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">우리 교회 알리기</div></div>
                           </Link>
                         )}
+                        {/* 굿즈/단체티/차량 렌트 3종 - 서비스 오픈 전이라 일단 노출만 막음. 라우트는 살아있어서
+                            /goods-register, /shirts-register, /vehicle-register로 직접 접근은 계속 가능. */}
+                        {/* <Link to="/goods-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#FFF7ED] rounded-xl flex items-center justify-center group-hover:bg-[#FFEDD5]"><Gift className="w-5 h-5 text-[#F59E0B]" /></div>
+                          <div><div className="text-[15px] font-black text-[#191F28]">굿즈 매장 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 굿즈 업체 등록</div></div>
+                        </Link>
+                        <Link to="/shirts-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#FDF2F8] rounded-xl flex items-center justify-center group-hover:bg-[#FCE7F3]"><Shirt className="w-5 h-5 text-[#EC4899]" /></div>
+                          <div><div className="text-[15px] font-black text-[#191F28]">단체티·기념품 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">단체티/기념품 업체 등록</div></div>
+                        </Link>
+                        <Link to="/vehicle-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#EEF2FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0E7FF]"><Bus className="w-5 h-5 text-[#6366F1]" /></div>
+                          <div><div className="text-[15px] font-black text-[#191F28]">차량·버스 대여 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">차량/버스 대여 업체 등록</div></div>
+                        </Link> */}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -571,7 +599,9 @@ export function Header() {
               <div className="px-4 py-4 flex flex-col gap-2.5">
                 {/* 둘러보기: 장소/외부 사역팀/합주실/교회 찾기 - 등록 문의보다 방문자가 먼저 찾는 동작이라 최상단에 배치.
                     교회 찾기가 꺼져있으면(churchDirectoryEnabled=false) 항목이 3개라 2열로는 마지막 줄에
-                    빈 칸이 하나 남아 어색해 보여서, 그때는 3열로 한 줄에 꽉 채운다. */}
+                    빈 칸이 하나 남아 어색해 보여서, 그때는 3열로 한 줄에 꽉 채운다.
+                    굿즈/단체티/차량 렌트 3종은 서비스 오픈 전이라 일단 타일 자체를 감춤 (아래 주석 처리분,
+                    라우트는 살아있어서 /goods, /shirts, /vehicles로 직접 접근은 계속 가능). */}
                 <div className={`grid gap-2 ${churchDirectoryEnabled ? "grid-cols-2" : "grid-cols-3"}`}>
                   <Link to="/venues" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F8FF] rounded-xl text-center active:scale-95 transition-all">
                     <MapPin className="w-5 h-5 text-[#3182F6]" />
@@ -591,6 +621,18 @@ export function Header() {
                       <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">전국 교회</span>
                     </Link>
                   )}
+                  {/* <Link to="/goods" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FFFBEB] rounded-xl text-center active:scale-95 transition-all">
+                    <Gift className="w-5 h-5 text-[#F59E0B]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">굿즈 매장</span>
+                  </Link>
+                  <Link to="/shirts" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FDF2F8] rounded-xl text-center active:scale-95 transition-all">
+                    <Shirt className="w-5 h-5 text-[#EC4899]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">단체티·기념품</span>
+                  </Link>
+                  <Link to="/vehicles" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#EEF2FF] rounded-xl text-center active:scale-95 transition-all">
+                    <Bus className="w-5 h-5 text-[#6366F1]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">차량·버스 대여</span>
+                  </Link> */}
                 </div>
 
                 <div className="p-3.5 bg-[#F2F8FF] rounded-2xl border border-[#E8F3FF]">
@@ -610,6 +652,15 @@ export function Header() {
                       <Church className="w-3.5 h-3.5" /> 전국 교회 등록하기
                     </Link>
                   )}
+                  {/* <Link to="/goods-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#F59E0B] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
+                    <Gift className="w-3.5 h-3.5" /> 굿즈 매장 등록하기
+                  </Link>
+                  <Link to="/shirts-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#EC4899] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
+                    <Shirt className="w-3.5 h-3.5" /> 단체티·기념품 등록하기
+                  </Link>
+                  <Link to="/vehicle-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#6366F1] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
+                    <Bus className="w-3.5 h-3.5" /> 차량·버스 대여 등록하기
+                  </Link> */}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">

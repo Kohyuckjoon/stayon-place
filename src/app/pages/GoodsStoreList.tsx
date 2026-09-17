@@ -1,0 +1,212 @@
+import { useState, useEffect, useMemo } from "react";
+import { ScrollRestoration, useNavigate } from "react-router-dom";
+import { db } from "../lib/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { motion, AnimatePresence } from "framer-motion";
+import { Gift, Search, LayoutGrid, List, BadgeCheck, Tag } from "lucide-react";
+
+const VISIBLE_TAG_FILTER_COUNT = 12;
+
+export function GoodsStoreList() {
+  const navigate = useNavigate();
+  const [goodsList, setGoodsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+
+  useEffect(() => {
+    const q = query(collection(db, "goodsStore"), where("status", "==", "approved"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setGoodsList(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    goodsList.forEach((g) => (g.itemTags || []).forEach((t: string) => set.add(t)));
+    return Array.from(set).slice(0, VISIBLE_TAG_FILTER_COUNT);
+  }, [goodsList]);
+
+  const filteredGoods = useMemo(() => {
+    const q = searchQuery.trim();
+    return goodsList
+      .filter((g) => !q || (g.businessName || "").includes(q) || (g.introduction || "").includes(q) || (g.itemTags || []).some((t: string) => t.includes(q)))
+      .filter((g) => !activeTagFilter || (g.itemTags || []).includes(activeTagFilter));
+  }, [goodsList, searchQuery, activeTagFilter]);
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] font-sans antialiased text-[#191F28] pb-24">
+      <ScrollRestoration />
+
+      <div className="bg-white border-b border-[#F2F4F6]">
+        <div className="max-w-[1100px] mx-auto px-5 pt-10 pb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 text-sm font-black bg-[#F2F8FF] text-[#3182F6]">
+            <Gift className="w-4 h-4" /> 굿즈 매장
+          </div>
+          <h1 className="text-[26px] font-black text-[#191F28] mb-2 tracking-tight break-keep">
+            굿즈 매장을 찾아보세요
+          </h1>
+          <p className="text-[14px] text-[#8B95A1] font-bold break-keep">
+            관리자 검토를 거쳐 등록된 업체만 소개돼요.
+          </p>
+        </div>
+      </div>
+
+      <main className="max-w-[1100px] mx-auto px-5 py-6">
+        <div className="relative mb-5">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ADB5BD]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="업체명, 소개, 취급 품목으로 검색"
+            className="w-full h-12 bg-white rounded-2xl pl-11 pr-4 text-[14px] font-bold outline-none border border-[#E5E8EB] focus:border-[#3182F6] transition-all"
+          />
+        </div>
+
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-1">
+            <button
+              onClick={() => setActiveTagFilter(null)}
+              className={`shrink-0 px-3.5 py-2 rounded-full text-[13px] font-bold border transition-all whitespace-nowrap ${!activeTagFilter ? "bg-[#191F28] border-[#191F28] text-white" : "bg-white border-[#E5E8EB] text-[#4E5968] hover:border-[#3182F6]/50"
+                }`}
+            >
+              전체
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
+                className={`shrink-0 px-3.5 py-2 rounded-full text-[13px] font-bold border transition-all whitespace-nowrap ${activeTagFilter === tag ? "bg-[#3182F6] border-[#3182F6] text-white" : "bg-white border-[#E5E8EB] text-[#4E5968] hover:border-[#3182F6]/50"
+                  }`}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="py-32 flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-[3px] border-[#E5E8EB] border-t-[#3182F6] rounded-full animate-spin" />
+            <p className="text-[14px] font-bold text-[#8B95A1]">업체 목록을 불러오고 있어요</p>
+          </div>
+        ) : filteredGoods.length === 0 ? (
+          <div className="py-32 text-center bg-white rounded-[28px] border border-[#F2F4F6]">
+            <h3 className="text-[18px] font-black text-[#4E5968]">등록된 업체가 없어요</h3>
+            <p className="text-[13px] font-bold text-[#B0B8C1] mt-2">곧 새로운 업체가 소개될 예정이에요.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[13px] font-bold text-[#8B95A1]">총 {filteredGoods.length}곳</p>
+              <div className="flex items-center gap-1 bg-[#F2F4F6] p-1 rounded-xl shrink-0">
+                <button
+                  onClick={() => setViewMode("card")}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-all ${viewMode === "card" ? "bg-white text-[#3182F6] shadow-sm" : "text-[#8B95A1] hover:text-[#4E5968]"}`}
+                  aria-label="카드뷰"
+                >
+                  <LayoutGrid className="w-4 h-4" /> 카드뷰
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-all ${viewMode === "list" ? "bg-white text-[#3182F6] shadow-sm" : "text-[#8B95A1] hover:text-[#4E5968]"}`}
+                  aria-label="리스트뷰"
+                >
+                  <List className="w-4 h-4" /> 리스트뷰
+                </button>
+              </div>
+            </div>
+
+            <div className={viewMode === "card" ? "grid md:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-6" : "flex flex-col gap-3"}>
+              <AnimatePresence mode="popLayout">
+                {filteredGoods.map((goods) => {
+                  const photo = goods.photos?.[0];
+                  const priceLabel = goods.minPrice ? `${Number(goods.minPrice).toLocaleString()}원부터` : "가격 문의";
+
+                  if (viewMode === "list") {
+                    return (
+                      <motion.div
+                        key={goods.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        onClick={() => navigate(`/goods/${goods.id}`)}
+                        className="flex items-center gap-4 bg-white rounded-2xl p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all cursor-pointer"
+                      >
+                        <div className="relative w-24 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden shrink-0 bg-[#F2F4F6]">
+                          {photo ? (
+                            <img src={photo} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><Gift className="w-6 h-6 text-[#D1D6DB]" /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-black whitespace-nowrap bg-[#F2F8FF] text-[#3182F6]">
+                              {priceLabel}
+                            </span>
+                            {goods.businessRegistrationNumber && (
+                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-black whitespace-nowrap bg-[#ECFDF5] text-[#10B981]">
+                                <BadgeCheck className="w-2.5 h-2.5" /> 사업자인증
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-[15px] sm:text-[16px] font-black text-[#191F28] truncate mt-1">{goods.businessName}</h3>
+                          {goods.introduction && (
+                            <p className="text-[12px] font-bold text-[#4E5968] mt-1.5 truncate">{goods.introduction}</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
+                  return (
+                    <motion.div
+                      key={goods.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                      onClick={() => navigate(`/goods/${goods.id}`)}
+                      className="flex flex-col bg-white rounded-[20px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500 cursor-pointer"
+                    >
+                      <div className="relative aspect-video overflow-hidden bg-[#F2F4F6]">
+                        {photo ? (
+                          <img src={photo} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center"><Gift className="w-8 h-8 text-[#D1D6DB]" /></div>
+                        )}
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-black shadow-sm bg-[#F2F8FF] text-[#3182F6]">
+                          {priceLabel}
+                        </span>
+                        {goods.businessRegistrationNumber && (
+                          <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black shadow-sm bg-[#ECFDF5] text-[#10B981]">
+                            <BadgeCheck className="w-3 h-3" /> 사업자인증
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-5 flex flex-col gap-3">
+                        <div>
+                          <h3 className="text-[17px] font-black text-[#191F28] line-clamp-1">{goods.businessName}</h3>
+                          {goods.introduction && (
+                            <p className="text-[13px] font-bold text-[#4E5968] line-clamp-2 break-keep mt-1">{goods.introduction}</p>
+                          )}
+                        </div>
+                        {(goods.itemTags || []).length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {goods.itemTags.slice(0, 3).map((tag: string) => (
+                              <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#F2F4F6] text-[#6B7684]">
+                                <Tag className="w-2.5 h-2.5" />{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}

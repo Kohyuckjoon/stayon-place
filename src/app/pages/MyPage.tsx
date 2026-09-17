@@ -2,7 +2,7 @@ import { Header } from "../components/Header";
 import {
   Calendar, MapPin, CheckCircle2, Clock, ChevronRight, Heart, Wallet, ArrowRight,
   Users, LogOut, Settings, AlertTriangle, PlusCircle, UserCircle, MessageCircle, FileText, History as HistoryIcon, Building2, CreditCard, Check, Phone, MapPinned, Sparkles,
-  Lock, Pencil, ClipboardList, Tent,
+  Pencil, ClipboardList, Tent,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,6 +12,10 @@ import { logOut, loginWithGoogle } from "../lib/auth";
 import { db, functions } from "../lib/firebase"; 
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDoc } from "firebase/firestore";
 import { BookingDetailModal } from "../components/BookingDetailModal";
+import { MyShirtsManagerTab } from "../components/MyShirtsManagerTab";
+import { MyGoodsManagerTab } from "../components/MyGoodsManagerTab";
+import { MyVehicleFleetManagerTab } from "../components/MyVehicleFleetManagerTab";
+import { MyVenueCoreManagerTab } from "../components/MyVenueCoreManagerTab";
 import { httpsCallable } from "firebase/functions";
 
 // 상태 배지 컴포넌트 (Toss Style)
@@ -53,12 +57,19 @@ const formatDotDateShort = (dateStr?: string) => (dateStr ? dateStr.slice(5).rep
 export function MyPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"activity" | "myVenues">("activity");
+  const [activeTab, setActiveTab] = useState<"activity" | "myVenues" | "myShirts" | "myGoods" | "myVehicles">("activity");
   const bookingListRef = useRef<HTMLDivElement>(null);
 
   const [myVenues, setMyVenues] = useState<any[]>([]);
   const [myBookings, setMyBookings] = useState<any[]>([]);
   const [myFavorites, setMyFavorites] = useState<any[]>([]);
+  const [myShirts, setMyShirts] = useState<any[]>([]); // 승인된 내 단체티 업체들 (있으면 "티셔츠 관리자" 탭 노출, 여러 개 가능)
+  const [myGoodsList, setMyGoodsList] = useState<any[]>([]); // 승인된 내 굿즈 업체들 (있으면 "굿즈 관리자" 탭 노출, 여러 개 가능)
+  const [myVehicles, setMyVehicles] = useState<any[]>([]); // 승인된 내 차량 렌트 업체들 (있으면 "차량 관리자" 탭 노출, 여러 개 가능)
+  const [selectedShirtId, setSelectedShirtId] = useState<string | null>(null);
+  const [selectedGoodsId, setSelectedGoodsId] = useState<string | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
@@ -151,31 +162,21 @@ export function MyPage() {
     }
   };
 
-  // useEffect(() => {
-  //   // 사용자별 장소 리스트 불러오기 (applicantName 기준)
-  //   if (!user || !user.displayName) return;
-  //   const q = query(
-  //     collection(db, "venues"),
-  //     where("applicantName", "==", user.displayName),
-  //     orderBy("createdAt", "desc")
-  //   );
-  //   const unsubscribe = onSnapshot(q, (snapshot) => {
-  //     const venueData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  //     setMyVenues(venueData);
-  //   });
-  //   return () => unsubscribe();
-  // }, [user]);
-
+  // 승인된 내 장소만 "장소 관리자" 탭에서 자기 관리 대상으로 노출한다 (티셔츠/굿즈/차량과
+  // 동일한 규칙). applicantUid 기준으로 찾으므로, 로그인 필수화 이전에 등록된 장소는
+  // applicantUid가 없어 여기 뜨지 않는다 - 이런 기존 장소는 관리자에게 문의해야 한다.
   useEffect(() => {
     if (!user) return;
     const q = query(
       collection(db, "venues"),
-      where("applicantName", "==", user.displayName || ""),
-      orderBy("createdAt", "desc")
+      where("applicantUid", "==", user.uid),
+      where("status", "==", "approved")
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const venueData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMyVenues(venueData);
+    }, (error) => {
+      console.error("내 장소 조회 에러:", error);
     });
     return () => unsubscribe();
   }, [user]);
@@ -217,6 +218,51 @@ export function MyPage() {
       console.error("Bookings 리스너 에러:", error);
     });
 
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "groupShirts"),
+      where("applicantUid", "==", user.uid),
+      where("status", "==", "approved")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMyShirts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.error("내 단체티 업체 조회 에러:", error);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "goodsStore"),
+      where("applicantUid", "==", user.uid),
+      where("status", "==", "approved")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMyGoodsList(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.error("내 굿즈 업체 조회 에러:", error);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "vehicleRentals"),
+      where("applicantUid", "==", user.uid),
+      where("status", "==", "approved")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMyVehicles(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.error("내 차량 렌트 업체 조회 에러:", error);
+    });
     return () => unsubscribe();
   }, [user]);
 
@@ -400,7 +446,13 @@ export function MyPage() {
 
         <div ref={bookingListRef} className="bg-white rounded-[24px] md:rounded-[40px] shadow-sm border border-gray-100 overflow-hidden mb-5 md:mb-10 scroll-mt-4">
           <div className="flex border-b border-gray-50 px-4 md:px-8 bg-[#F9FAFB]">
-            {[{ id: "activity", label: "내 활동" }, { id: "myVenues", label: "내 장소" }].map((tab) => (
+            {[
+              { id: "activity", label: "내 활동" },
+              { id: "myVenues", label: "장소 관리자" },
+              ...(myShirts.length > 0 ? [{ id: "myShirts", label: "티셔츠 관리자" }] : []),
+              ...(myGoodsList.length > 0 ? [{ id: "myGoods", label: "굿즈 관리자" }] : []),
+              ...(myVehicles.length > 0 ? [{ id: "myVehicles", label: "차량 관리자" }] : []),
+            ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
@@ -595,7 +647,7 @@ export function MyPage() {
                     </div>
                   </div>
                 </motion.div>
-              ) : (
+              ) : activeTab === "myVenues" ? (
                 <motion.div key="myVenues" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 md:space-y-8">
                   <div className="bg-[#3182F6] p-6 md:p-10 rounded-[24px] md:rounded-[40px] text-white flex flex-col md:flex-row items-center text-center md:text-left justify-between gap-4 md:gap-8 shadow-xl shadow-blue-100">
                     <div>
@@ -608,47 +660,94 @@ export function MyPage() {
                   </div>
 
                   <div className="space-y-6 pt-2 md:pt-6">
-                    {/* {myVenues.length > 0 ? myVenues.map((venue) => (
-                      <div key={venue.id} className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm transition-all hover:border-[#3182F6]">
-                        <div className="justify-between items-start mb-6 gap-4 flex">
-                          <StatusBadge status={venue.status} />
-                          <button className="p-3 bg-gray-50 rounded-xl text-gray-300 hover:text-[#3182F6] transition-colors"><Settings className="w-5 h-5" /></button>
-                        </div>
-                        <h4 className="text-[26px] font-black text-[#191F28] leading-tight mb-2">{venue.venueName}</h4>
-                        <p className="text-[#8B95A1] font-bold flex items-center gap-1.5"><MapPin className="w-4 h-4" />{venue.location}</p>
-                      </div>
-                    )) : (
+                    {myVenues.length > 0 ? (
+                      <>
+                        {myVenues.length > 1 && (
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {myVenues.map((v) => (
+                              <button
+                                key={v.id}
+                                onClick={() => setSelectedVenueId(v.id)}
+                                className={`shrink-0 px-4 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all ${(selectedVenueId || myVenues[0].id) === v.id ? "bg-[#191F28] text-white" : "bg-[#F2F4F6] text-[#6B7684] hover:bg-[#E5E8EB]"}`}
+                              >
+                                {v.venueName}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {(() => {
+                          const current = myVenues.find((v) => v.id === selectedVenueId) || myVenues[0];
+                          return current && <MyVenueCoreManagerTab venue={current} />;
+                        })()}
+                      </>
+                    ) : (
                       <div className="py-20 text-center bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
                         <Building2 className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                        <p className="text-[#ADB5BD] font-bold">등록된 장소가 없습니다.</p>
+                        <p className="text-[#ADB5BD] font-bold">승인된 장소가 없어요.</p>
+                        <p className="text-[#B0B8C1] font-bold text-[13px] mt-1.5">장소를 등록하고 관리자 승인을 받으면 여기서 직접 관리할 수 있어요.</p>
                       </div>
-                    )} */}
-                    <motion.div key="myVenues" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 md:space-y-8">
-                      {/* [🔥 디자인 수정: 비활성화 느낌의 자물쇠 영역] */}
-                      <div className="bg-[#F2F4F6] p-5 md:p-10 rounded-[24px] md:rounded-[40px] border-2 border-dashed border-[#D1D6DB] text-[#8B95A1] flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
-                        <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6 text-center md:text-left">
-                          <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-[22px] md:rounded-[32px] flex items-center justify-center shadow-sm shrink-0">
-                            <Lock className="w-6 h-6 md:w-8 md:h-8 text-[#ADB5BD]" />
-                          </div>
-                          <div>
-                            <h3 className="text-[16px] md:text-[22px] font-black mb-1.5 md:mb-2 text-[#4E5968]">내 장소 관리 준비 중</h3>
-                            <p className="text-[#8B95A1] font-bold text-[12px] md:text-[14px] break-keep">직접 등록한 공간을 대시보드에서 편리하게 관리할 수 있는 기능이 곧 업데이트될 예정입니다.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-6 pt-2 md:pt-6 opacity-60 pointer-events-none">
-                        {/* [🔥 디자인 수정: 그레이 톤의 비활성화 리스트] */}
-                        <div className="bg-white p-5 md:p-8 rounded-[24px] md:rounded-[40px] border border-gray-100 shadow-sm">
-                            <div className="flex justify-between items-center mb-3 md:mb-4">
-                                <span className="px-3 py-1 bg-gray-100 rounded-md text-[11px] font-black text-gray-400">서비스 준비 중</span>
-                            </div>
-                            <h4 className="text-[16px] md:text-[22px] font-black text-[#ADB5BD] mb-1">등록된 장소가 없습니다</h4>
-                            <p className="text-gray-300 font-bold text-[12px] md:text-[14px]">나중에 더 편리한 장소 관리 도구를 만나보세요.</p>
-                        </div>
-                      </div>
-                    </motion.div>
+                    )}
                   </div>
+                </motion.div>
+              ) : activeTab === "myShirts" ? (
+                <motion.div key="myShirts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                  {myShirts.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {myShirts.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelectedShirtId(s.id)}
+                          className={`shrink-0 px-4 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all ${(selectedShirtId || myShirts[0].id) === s.id ? "bg-[#191F28] text-white" : "bg-[#F2F4F6] text-[#6B7684] hover:bg-[#E5E8EB]"}`}
+                        >
+                          {s.businessName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {(() => {
+                    const current = myShirts.find((s) => s.id === selectedShirtId) || myShirts[0];
+                    return current && <MyShirtsManagerTab shirt={current} />;
+                  })()}
+                </motion.div>
+              ) : activeTab === "myGoods" ? (
+                <motion.div key="myGoods" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                  {myGoodsList.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {myGoodsList.map((g) => (
+                        <button
+                          key={g.id}
+                          onClick={() => setSelectedGoodsId(g.id)}
+                          className={`shrink-0 px-4 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all ${(selectedGoodsId || myGoodsList[0].id) === g.id ? "bg-[#191F28] text-white" : "bg-[#F2F4F6] text-[#6B7684] hover:bg-[#E5E8EB]"}`}
+                        >
+                          {g.businessName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {(() => {
+                    const current = myGoodsList.find((g) => g.id === selectedGoodsId) || myGoodsList[0];
+                    return current && <MyGoodsManagerTab goods={current} />;
+                  })()}
+                </motion.div>
+              ) : (
+                <motion.div key="myVehicles" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                  {myVehicles.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {myVehicles.map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setSelectedVehicleId(v.id)}
+                          className={`shrink-0 px-4 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all ${(selectedVehicleId || myVehicles[0].id) === v.id ? "bg-[#191F28] text-white" : "bg-[#F2F4F6] text-[#6B7684] hover:bg-[#E5E8EB]"}`}
+                        >
+                          {v.businessName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {(() => {
+                    const current = myVehicles.find((v) => v.id === selectedVehicleId) || myVehicles[0];
+                    return current && <MyVehicleFleetManagerTab vehicle={current} />;
+                  })()}
                 </motion.div>
               )}
             </AnimatePresence>

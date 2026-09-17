@@ -140,6 +140,24 @@ export function AdminBandRoomBookings() {
             { id: "c_pending", label: "검토 대기", count: churchPendingCount, icon: Clock, accentColor: "#FF9500", href: "/admin/churches?tab=pending" },
           ],
         },
+        {
+          label: "굿즈 관리",
+          items: [
+            { id: "g_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/goods?tab=pending" },
+          ],
+        },
+        {
+          label: "단체티 관리",
+          items: [
+            { id: "s_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/shirts?tab=pending" },
+          ],
+        },
+        {
+          label: "차량 대여 관리",
+          items: [
+            { id: "vh_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/vehicles?tab=pending" },
+          ],
+        },
       ]}
       activeId="r_bookings"
       onSelect={() => { /* 이 페이지엔 로컬 탭이 없음 */ }}

@@ -33,6 +33,18 @@ import { BandRoomDetail } from "./pages/BandRoomDetail";
 import { BandRoomBooking } from "./pages/BandRoomBooking";
 import { ChurchList } from "./pages/ChurchList";
 import { ChurchDetail } from "./pages/ChurchDetail";
+import GoodsStoreRegistrationForm from "./pages/GoodsStoreRegistrationForm";
+import { AdminGoodsStore } from "./pages/AdminGoodsStore";
+import { GoodsStoreList } from "./pages/GoodsStoreList";
+import { GoodsStoreDetail } from "./pages/GoodsStoreDetail";
+import GroupShirtsRegistrationForm from "./pages/GroupShirtsRegistrationForm";
+import { AdminGroupShirts } from "./pages/AdminGroupShirts";
+import { GroupShirtsList } from "./pages/GroupShirtsList";
+import { GroupShirtsDetail } from "./pages/GroupShirtsDetail";
+import VehicleRentalRegistrationForm from "./pages/VehicleRentalRegistrationForm";
+import { AdminVehicleRentals } from "./pages/AdminVehicleRentals";
+import { VehicleRentalList } from "./pages/VehicleRentalList";
+import { VehicleRentalDetail } from "./pages/VehicleRentalDetail";
 import { PrivateRoute } from "./lib/PrivateRoute";
 import ProfileSettings from "./pages/ProfileSettings";
 import SafetyGuide from "./pages/SafetyGuide"; // 추가
@@ -149,6 +161,42 @@ export const router = createBrowserRouter([
         element: <ChurchDetail />,
       },
       {
+        path: "goods-register", // 크리스천 굿즈 등록 문의
+        element: <GoodsStoreRegistrationForm />,
+      },
+      {
+        path: "goods", // 크리스천 굿즈 목록
+        element: <GoodsStoreList />,
+      },
+      {
+        path: "goods/:id", // 크리스천 굿즈 상세
+        element: <GoodsStoreDetail />,
+      },
+      {
+        path: "shirts-register", // 단체티·기념품 등록 문의
+        element: <GroupShirtsRegistrationForm />,
+      },
+      {
+        path: "shirts", // 단체티·기념품 목록
+        element: <GroupShirtsList />,
+      },
+      {
+        path: "shirts/:id", // 단체티·기념품 상세
+        element: <GroupShirtsDetail />,
+      },
+      {
+        path: "vehicle-register", // 차량·버스 대여 등록 문의
+        element: <VehicleRentalRegistrationForm />,
+      },
+      {
+        path: "vehicles", // 차량·버스 대여 목록
+        element: <VehicleRentalList />,
+      },
+      {
+        path: "vehicles/:id", // 차량·버스 대여 상세
+        element: <VehicleRentalDetail />,
+      },
+      {
         path: "venue-guide", // 이 부분이 모바일 메뉴의 Link와 매칭됩니다.
         element: <VenueGuide />,
       },
@@ -262,6 +310,9 @@ export const router = createBrowserRouter([
       { path: "band-room-bookings", element: <AdminBandRoomBookings /> },
       { path: "band-room-ads", element: <AdminBandRoomAds /> },
       { path: "churches", element: <AdminChurches /> },
+      { path: "goods", element: <AdminGoodsStore /> },
+      { path: "shirts", element: <AdminGroupShirts /> },
+      { path: "vehicles", element: <AdminVehicleRentals /> },
     ],
   },
 ]);

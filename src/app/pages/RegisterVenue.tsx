@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import {
-  Check, ChevronDown, MapPin, Camera, X, AlertCircle, Info, Car, Bed, Wind, Bath, Volume2, UtensilsCrossed, ExternalLink, PenLine, Heart, Trophy, Phone, ChevronRight, Scale, Ban
+  Check, ChevronDown, MapPin, Camera, X, AlertCircle, Info, Car, Bed, Wind, Bath, Volume2, UtensilsCrossed, ExternalLink, PenLine, Heart, Trophy, Phone, ChevronRight, Scale, Ban, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,8 @@ import { uploadVenueImage } from "../lib/storage";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { TagEditor } from "../components/TagEditor";
 import { DENOMINATION_GROUPS } from "../lib/denominations";
+import { useAuth } from "../lib/AuthContext";
+import { loginWithGoogle } from "../lib/auth";
 import {
   VENUE_IMAGE_CATEGORIES, VENUE_IMAGE_TOTAL_MAX, VenueImageCategoryKey, emptyVenueImagesByCategory, flattenVenueImages,
 } from "../lib/venueImageCategories";
@@ -121,6 +123,7 @@ interface VenueFormData {
 export function RegisterVenue() {
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, loading: authLoading } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isMealGuideOpen, setIsMealGuideOpen] = useState(false); // "식사 제공 가이드" 안내 툴팁
@@ -303,7 +306,7 @@ export function RegisterVenue() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting || !isStepValid) return;
+    if (isSubmitting || !isStepValid || !user) return;
     try {
       setIsSubmitting(true);
       const imagesByCategory: Record<string, string[]> = {};
@@ -320,6 +323,7 @@ export function RegisterVenue() {
       // 1. 파이어베이스 저장
       await addDoc(collection(db, "venues"), {
         ...formData,
+        applicantUid: user.uid,
         images: imageUrls,
         imagesByCategory,
         status: "pending",
@@ -381,6 +385,32 @@ export function RegisterVenue() {
       </button>
     </div>
   );
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 border-[3px] border-[#f2f4f6] border-t-[#3182f6] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto px-6 py-20 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#f2f8ff] text-[#3182f6] rounded-full mb-6 text-sm font-black">
+          <MapPin className="w-4 h-4" /> 장소 등록
+        </div>
+        <p className="text-[18px] font-black text-[#191f28] mb-3">로그인이 필요해요</p>
+        <p className="text-[14px] font-bold text-[#8b95a1] mb-8">장소 등록 신청서를 작성하려면 먼저 로그인해주세요. 계정이 없다면 로그인 과정에서 바로 가입할 수 있어요.</p>
+        <button
+          onClick={() => loginWithGoogle().catch(() => { })}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#3182f6] text-white rounded-xl font-bold text-[14px] hover:bg-[#1b64da] transition-all"
+        >
+          <Lock className="w-4 h-4" /> 로그인하고 계속하기
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-[#191f28] selection:bg-[#3182f6]/10 font-sans antialiased">

@@ -26,11 +26,26 @@ export const sendAdminEmail = async (subject: string, htmlContent: string) => {
   }
 };
 
+const bizRegStatus = (num: unknown) =>
+  typeof num === "string" && num.trim() !== "" ? `등록완료 (${num})` : "미등록";
+
+type FleetRow = { type?: string; count?: number };
+const summarizeFleet = (fleet: unknown) => {
+  if (!Array.isArray(fleet)) return undefined;
+  return (fleet as FleetRow[])
+    .filter((v) => (v.type || "").trim() !== "")
+    .map((v) => `${v.type} ${v.count || 0}대`)
+    .join(", ");
+};
+
 export const sendMailNotification = async (
   type:
     | "JOIN" | "VENUE" | "TEAM" | "TEAM_APPROVE"
     | "BANDROOM" | "BANDROOM_APPROVE"
     | "CHURCH" | "CHURCH_APPROVE"
+    | "GOODS" | "GOODS_APPROVE"
+    | "SHIRTS" | "SHIRTS_APPROVE"
+    | "VEHICLE" | "VEHICLE_APPROVE"
     | "TEAM_BOOST"
     | "RESERVE" | "APPROVE" | "CONFIRM" | "FINAL_DECISION" | "PAYMENT_COMPLETE",
   data: any
@@ -119,6 +134,84 @@ export const sendMailNotification = async (
     color = "#00d082";
     fields = [
       {title: "교회 이름", value: data.churchName},
+      {title: "신청자", value: data.applicantName},
+    ];
+    break;
+
+  case "GOODS":
+    title = "🎁 교회 굿즈 판매 업체 신청 접수";
+    color = "#F59E0B";
+    fields = [
+      {title: "업체명", value: data.businessName},
+      {title: "대표자명", value: data.applicantName},
+      {
+        title: "사업자 등록 여부",
+        value: bizRegStatus(data.businessRegistrationNumber),
+      },
+      {title: "사업자 소재지", value: "온라인 몰"},
+      {title: "연락처", value: data.applicantContact},
+    ];
+    break;
+
+  case "GOODS_APPROVE":
+    title = "✅ 크리스천 굿즈 업체 등록 승인 완료";
+    color = "#00d082";
+    fields = [
+      {title: "업체명", value: data.businessName},
+      {title: "신청자", value: data.applicantName},
+    ];
+    break;
+
+  case "SHIRTS":
+    title = "👕 단체 티셔츠 판매 업체 신청 접수";
+    color = "#F59E0B";
+    fields = [
+      {title: "업체명", value: data.businessName},
+      {title: "대표자명", value: data.applicantName},
+      {
+        title: "사업자 등록 여부",
+        value: bizRegStatus(data.businessRegistrationNumber),
+      },
+      {title: "사업자 소재지", value: "온라인 몰"},
+      {title: "연락처", value: data.applicantContact},
+    ];
+    break;
+
+  case "SHIRTS_APPROVE":
+    title = "✅ 단체티·기념품 업체 등록 승인 완료";
+    color = "#00d082";
+    fields = [
+      {title: "업체명", value: data.businessName},
+      {title: "신청자", value: data.applicantName},
+    ];
+    break;
+
+  case "VEHICLE": {
+    const fleetSummary = summarizeFleet(data.vehicleFleet);
+    const regionSummary = Array.isArray(data.serviceRegions) ?
+      data.serviceRegions.join(", ") :
+      undefined;
+    title = "🚌 수련회 차량 렌트/대여 업체 신청 접수";
+    color = "#F59E0B";
+    fields = [
+      {title: "업체명", value: data.businessName},
+      {title: "대표자명", value: data.applicantName},
+      {
+        title: "사업자 등록 여부",
+        value: bizRegStatus(data.businessRegistrationNumber),
+      },
+      {title: "사업자 소재지 위치", value: regionSummary},
+      {title: "차량 보유 현황(차종)", value: fleetSummary},
+      {title: "연락처", value: data.contactPhone},
+    ];
+    break;
+  }
+
+  case "VEHICLE_APPROVE":
+    title = "✅ 차량·버스 대여 업체 등록 승인 완료";
+    color = "#00d082";
+    fields = [
+      {title: "업체명", value: data.businessName},
       {title: "신청자", value: data.applicantName},
     ];
     break;

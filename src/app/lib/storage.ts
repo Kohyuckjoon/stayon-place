@@ -192,6 +192,58 @@ export const uploadBandRoomImage = async (
 };
 
 /**
+ * 제휴업체(크리스천 굿즈/단체티·기념품/차량·버스 대여) 사진 업로드 함수
+ * (uploadTeamImage와 동일한 방식). 업체 종류마다 업로드 함수를 새로 복제하지 않도록
+ * 최상위 폴더명(folder)을 인자로 받는다.
+ * @param file 업로드할 이미지 파일
+ * @param folder 최상위 폴더명 (예: "goods-store", "group-shirts", "vehicle-rentals")
+ * @param businessName 업체명 (폴더 구조화용)
+ * @param applicantName 신청자명 (폴더 구조화용)
+ */
+export const uploadPartnerImage = async (
+  file: File,
+  folder: string,
+  businessName: string = "unknown",
+  applicantName: string = "anonymous"
+): Promise<string> => {
+  const options = {
+    maxSizeMB: 1,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true
+  };
+
+  try {
+    const compressedFile = await imageCompression(file, options);
+
+    const safeBusinessName = businessName.trim().replace(/\s+/g, '_');
+    const safeApplicantName = applicantName.trim().replace(/\s+/g, '_');
+    const folderPath = `${folder}/${safeBusinessName}_${safeApplicantName}`;
+
+    const fileName = `${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, `${folderPath}/${fileName}`);
+
+    const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on('state_changed',
+        () => { },
+        (error) => {
+          console.error("업로드 실패:", error);
+          reject(error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        }
+      );
+    });
+  } catch (error) {
+    console.error("압축 또는 업로드 중 에러 발생:", error);
+    throw error;
+  }
+};
+
+/**
  * 교회 사진/주보 업로드 함수 (uploadTeamImage와 동일한 방식)
  * @param file 업로드할 이미지 파일
  * @param churchName 교회명 (폴더 구조화용)

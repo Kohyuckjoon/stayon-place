@@ -14,11 +14,14 @@ interface TagEditorProps {
   onChange: (tags: string[]) => void;
   maxTags?: number;
   readOnly?: boolean;
+  // 장소 태그 외 다른 용도(제휴업체 취급 품목 등)로 재사용할 때, 추천 태그 목록만
+  // 바꿔 끼울 수 있게 했다. 안 넘기면 기존 장소용 SUGGESTED_TAGS 그대로 쓴다.
+  suggestedTags?: string[];
 }
 
 const normalizeTag = (raw: string) => raw.trim().replace(/^#+/, "").replace(/\s+/g, "");
 
-export function TagEditor({ tags, onChange, maxTags = MAX_VENUE_TAGS, readOnly = false }: TagEditorProps) {
+export function TagEditor({ tags, onChange, maxTags = MAX_VENUE_TAGS, readOnly = false, suggestedTags = SUGGESTED_TAGS }: TagEditorProps) {
   const [input, setInput] = useState("");
 
   const addTag = (raw: string) => {
@@ -55,7 +58,7 @@ export function TagEditor({ tags, onChange, maxTags = MAX_VENUE_TAGS, readOnly =
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {SUGGESTED_TAGS.map((t) => {
+        {suggestedTags.map((t) => {
           const active = tags.includes(t);
           const disabled = !active && tags.length >= maxTags;
           return (
