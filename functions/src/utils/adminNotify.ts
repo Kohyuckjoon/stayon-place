@@ -40,7 +40,7 @@ const summarizeFleet = (fleet: unknown) => {
 
 export const sendMailNotification = async (
   type:
-    | "JOIN" | "VENUE" | "TEAM" | "TEAM_APPROVE"
+    | "JOIN" | "VENUE" | "MISSION_VENUE" | "TEAM" | "TEAM_APPROVE"
     | "BANDROOM" | "BANDROOM_APPROVE"
     | "CHURCH" | "CHURCH_APPROVE"
     | "GOODS" | "GOODS_APPROVE"
@@ -67,6 +67,15 @@ export const sendMailNotification = async (
   case "VENUE":
     title = "🏠 장소 등록 신청 접수";
     color = "#27ae60";
+    fields = [
+      {title: "장소명", value: data.venueName},
+      {title: "신청자", value: data.applicant},
+    ];
+    break;
+
+  case "MISSION_VENUE":
+    title = "🌏 국내 선교 장소 등록 신청 접수";
+    color = "#2563eb";
     fields = [
       {title: "장소명", value: data.venueName},
       {title: "신청자", value: data.applicant},

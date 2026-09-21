@@ -4,7 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Mic2, Users, Speaker, PlaySquare,
   Phone, Mail, Church, User, ClipboardCheck, CalendarCheck, MapPinned, MapPin,
   CreditCard, Calendar, Trash2, X, RotateCcw, Share2, Edit3, Save, ShieldOff, Lock, ImagePlus, ChevronDown, TrendingUp,
-  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign,
+  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
@@ -549,6 +549,15 @@ export function AdminTeams() {
             { id: "v_approved", label: "승인 완료", count: venues.filter((v) => v.status === "approved").length, icon: CheckCircle, href: "/admin/venues?tab=approved" },
             { id: "v_rejected", label: "반려 / 삭제", count: venues.filter((v) => v.status === "rejected").length, icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_schedule", label: "장소별 일정관리", count: venues.filter((v) => v.status === "approved").length, icon: Calendar, href: "/admin/venues?tab=schedule" },
+          ],
+        },
+        {
+          label: "국내선교 관리",
+          items: [
+            { id: "mv_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/mission-venues?tab=pending" },
+            { id: "mv_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/mission-venues?tab=approved" },
+            { id: "mv_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/mission-venues?tab=rejected" },
+            { id: "mv_schedule", label: "장소별 일정관리", icon: Calendar, href: "/admin/mission-venues?tab=schedule" },
           ],
         },
         {
@@ -1099,6 +1108,19 @@ export function AdminTeams() {
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-black text-[#8B95A1] uppercase tracking-widest mb-1">쓰레드 링크</p>
                           <a href={selectedTeam.threadsUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] font-bold text-[#3182F6] hover:underline break-all">{selectedTeam.threadsUrl}</a>
+                        </div>
+                      </div>
+                    )
+                  )}
+                  {isEditMode ? (
+                    <InfoRow icon={Newspaper} label="네이버 블로그 링크" name="naverBlogUrl" value={editedTeam.naverBlogUrl} isEdit onChange={handleEditChange} />
+                  ) : (
+                    selectedTeam.naverBlogUrl && (
+                      <div className="flex items-start gap-4 p-4">
+                        <div className="mt-0.5 p-2.5 bg-white border border-gray-100 rounded-xl shrink-0 shadow-sm"><Newspaper className="w-4 h-4 text-[#ADB5BD]" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-black text-[#8B95A1] uppercase tracking-widest mb-1">네이버 블로그 링크</p>
+                          <a href={selectedTeam.naverBlogUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] font-bold text-[#3182F6] hover:underline break-all">{selectedTeam.naverBlogUrl}</a>
                         </div>
                       </div>
                     )

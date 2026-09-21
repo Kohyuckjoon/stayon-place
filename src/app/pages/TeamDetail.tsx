@@ -5,7 +5,7 @@ import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../lib/firebase";
 import {
   ChevronLeft, ChevronRight, Phone, User, Church, Mic2, Users, Speaker, MapPinned,
-  PlaySquare, Check, Lock, X, Copy, Play, ChevronDown, Info, ZoomIn, Camera, AtSign,
+  PlaySquare, Check, Lock, X, Copy, Play, ChevronDown, Info, ZoomIn, Camera, AtSign, Newspaper,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { REGION_OPTIONS as ALL_REGIONS } from "../lib/regions";
@@ -114,10 +114,11 @@ function getYoutubeChannelHandle(url: string): string | null {
   }
 }
 
-function SocialLinkCard({ platform, url }: { platform: "instagram" | "threads" | "youtube"; url: string }) {
+function SocialLinkCard({ platform, url }: { platform: "instagram" | "threads" | "youtube" | "naverBlog"; url: string }) {
   const isInstagram = platform === "instagram";
   const isYoutube = platform === "youtube";
-  const handle = isInstagram ? getInstagramHandle(url) : isYoutube ? getYoutubeChannelHandle(url) : getThreadsHandle(url);
+  const isNaverBlog = platform === "naverBlog";
+  const handle = isInstagram ? getInstagramHandle(url) : isYoutube ? getYoutubeChannelHandle(url) : isNaverBlog ? "" : getThreadsHandle(url);
   return (
     <a
       href={url}
@@ -127,14 +128,16 @@ function SocialLinkCard({ platform, url }: { platform: "instagram" | "threads" |
         ? "bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45]"
         : isYoutube
           ? "bg-[#FF0000]"
-          : "bg-[#191f28]"
+          : isNaverBlog
+            ? "bg-[#03C75A]"
+            : "bg-[#191f28]"
         }`}
     >
       <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-        {isInstagram ? <Camera className="w-5 h-5 text-white" /> : isYoutube ? <PlaySquare className="w-5 h-5 text-white" /> : <AtSign className="w-5 h-5 text-white" />}
+        {isInstagram ? <Camera className="w-5 h-5 text-white" /> : isYoutube ? <PlaySquare className="w-5 h-5 text-white" /> : isNaverBlog ? <Newspaper className="w-5 h-5 text-white" /> : <AtSign className="w-5 h-5 text-white" />}
       </div>
       <div className="min-w-0">
-        <p className="text-[13px] font-black text-white">{isInstagram ? "Instagram" : isYoutube ? "YouTube" : "Threads"}</p>
+        <p className="text-[13px] font-black text-white">{isInstagram ? "Instagram" : isYoutube ? "YouTube" : isNaverBlog ? "네이버 블로그" : "Threads"}</p>
         <p className="text-[12px] font-bold text-white/80 truncate">{handle || (isYoutube ? "채널 바로가기" : "바로가기")}</p>
       </div>
     </a>
@@ -379,23 +382,22 @@ export function TeamDetail() {
 
           {/* 활동 이력 / 경력 소개 */}
           <section className={`bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] ${team.hasChurch ? "lg:col-start-2" : "lg:col-start-1"}`}>
-            <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3">
               <h3 className="text-[16px] font-black text-[#191f28] flex items-center gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 활동 이력 / 경력 소개
               </h3>
-              {team.showExtraHistory && team.extraHistory && (
-                <button
-                  type="button"
-                  onClick={() => setIsExtraHistoryOpen(!isExtraHistoryOpen)}
-                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-bold text-[#3182f6] bg-[#f2f8ff] hover:bg-[#e8f3ff] transition-all active:scale-95"
-                >
-                  {isExtraHistoryOpen ? "접기" : "더보기"}
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExtraHistoryOpen ? "rotate-180" : ""}`} />
-                </button>
-              )}
             </div>
             <p className="text-[14px] font-semibold text-[#4e5968] leading-relaxed whitespace-pre-wrap break-words">
               {team.experience || "등록된 소개 내용이 없어요."}
+              {team.showExtraHistory && team.extraHistory && !isExtraHistoryOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsExtraHistoryOpen(true)}
+                  className="inline-flex items-center gap-0.5 ml-1.5 text-[#3182f6] font-black hover:underline"
+                >
+                  ···더보기<ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              )}
             </p>
             <AnimatePresence>
               {isExtraHistoryOpen && team.showExtraHistory && team.extraHistory && (
@@ -413,6 +415,13 @@ export function TeamDetail() {
                         {team.extraHistory}
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsExtraHistoryOpen(false)}
+                      className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-[#8b95a1] hover:text-[#4e5968] transition-colors"
+                    >
+                      접기 <ChevronDown className="w-3.5 h-3.5 rotate-180" />
+                    </button>
                   </div>
                 </motion.div>
               )}
@@ -475,7 +484,7 @@ export function TeamDetail() {
           </section>
 
           {/* 활동 영상 / SNS */}
-          {(allVideoUrls.length > 0 || team.youtubeUrl || team.instagramUrl || team.threadsUrl) && (
+          {(allVideoUrls.length > 0 || team.youtubeUrl || team.instagramUrl || team.threadsUrl || team.naverBlogUrl) && (
             <section className="lg:col-span-2 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h3 className="text-[16px] font-black text-[#191f28] flex items-center gap-2.5">
@@ -493,11 +502,12 @@ export function TeamDetail() {
                 )}
               </div>
 
-              {(team.youtubeUrl || team.instagramUrl || team.threadsUrl) && (
+              {(team.youtubeUrl || team.instagramUrl || team.threadsUrl || team.naverBlogUrl) && (
                 <div className="flex flex-wrap gap-3 mb-4">
                   {team.youtubeUrl && <SocialLinkCard platform="youtube" url={team.youtubeUrl} />}
                   {team.instagramUrl && <SocialLinkCard platform="instagram" url={team.instagramUrl} />}
                   {team.threadsUrl && <SocialLinkCard platform="threads" url={team.threadsUrl} />}
+                  {team.naverBlogUrl && <SocialLinkCard platform="naverBlog" url={team.naverBlogUrl} />}
                 </div>
               )}
 

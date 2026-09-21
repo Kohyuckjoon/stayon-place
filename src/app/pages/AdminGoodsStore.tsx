@@ -5,7 +5,7 @@ import {
   Phone, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, Tag, Banknote, FileText, MessageCircle, Building2, Link2,
-  Plus, ChevronLeft,
+  Plus, ChevronLeft, Download,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
@@ -145,6 +145,28 @@ export function AdminGoodsStore() {
 
   const removePhoto = (url: string) => {
     setEditedGoods((prev: any) => ({ ...prev, photos: (prev.photos || []).filter((p: string) => p !== url) }));
+  };
+
+  // Storage 이미지를 실제로 "다운로드"시킨다. <a download>는 다른 도메인(Storage) 파일에는
+  // 브라우저가 무시하고 그냥 열어버리는 경우가 많아서, fetch로 blob을 받아 강제로 내려받게
+  // 하고, CORS 등으로 실패하면 새 탭으로 열어서 최소한 수동 저장은 가능하게 폴백한다.
+  const downloadImage = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("이미지 요청 실패");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("이미지 다운로드 실패, 새 탭으로 엽니다:", error);
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   };
 
   // 대표/카탈로그 사진을 삭제 후 재추가하지 않고 "그 자리에서" 바로 교체할 수 있게 한다 -
@@ -325,6 +347,15 @@ export function AdminGoodsStore() {
           ],
         },
         {
+          label: "국내선교 관리",
+          items: [
+            { id: "mv_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/mission-venues?tab=pending" },
+            { id: "mv_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/mission-venues?tab=approved" },
+            { id: "mv_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/mission-venues?tab=rejected" },
+            { id: "mv_schedule", label: "장소별 일정관리", icon: Calendar, href: "/admin/mission-venues?tab=schedule" },
+          ],
+        },
+        {
           label: "예약 및 답사 문의",
           items: [
             { id: "bk_pending", label: "예약 대기", count: bookings.filter((b) => b.status === "pending").length, icon: ClipboardCheck, accentColor: "#FF9500", href: "/admin/bookings?tab=pending" },
@@ -470,6 +501,14 @@ export function AdminGoodsStore() {
                           <span className="text-[9px] font-bold text-white">교체중...</span>
                         </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => downloadImage(url, `${selectedGoods.businessName || "goods"}_photo_${idx + 1}.jpg`)}
+                        className="absolute bottom-1 left-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all"
+                        title="다운로드"
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
                       {isEditMode && (
                         <>
                           <button
@@ -591,9 +630,19 @@ export function AdminGoodsStore() {
                   <div className="grid grid-cols-3 gap-2">
                     {selectedGoods.products.map((product: ProductItem) => (
                       <div key={product.id} className="bg-[#FAFAFB] rounded-xl overflow-hidden border border-[#F2F4F6]">
-                        <div className="aspect-square bg-white">
+                        <div className="relative aspect-square bg-white">
                           {product.photo ? (
-                            <img src={product.photo} className="w-full h-full object-cover" />
+                            <>
+                              <img src={product.photo} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => downloadImage(product.photo, `${product.name || "product"}.jpg`)}
+                                className="absolute bottom-1 left-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all"
+                                title="다운로드"
+                              >
+                                <Download className="w-3 h-3" />
+                              </button>
+                            </>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center"><Gift className="w-5 h-5 text-[#D1D6DB]" /></div>
                           )}

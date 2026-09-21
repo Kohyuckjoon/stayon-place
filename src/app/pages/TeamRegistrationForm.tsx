@@ -57,6 +57,7 @@ interface TeamFormData {
   youtubeUrl: string;
   instagramUrl: string;
   threadsUrl: string;
+  naverBlogUrl: string;
   referralSource: string;
   referralDetail: string;
   agreedToPrivacyPolicy: boolean;
@@ -100,6 +101,7 @@ export default function TeamRegistrationForm() {
     youtubeUrl: "",
     instagramUrl: "",
     threadsUrl: "",
+    naverBlogUrl: "",
     referralSource: "",
     referralDetail: "",
     agreedToPrivacyPolicy: false,
@@ -622,6 +624,7 @@ export default function TeamRegistrationForm() {
             <CustomInput label="유튜브 채널 링크" value={formData.youtubeUrl} onChange={(v) => setFormData({ ...formData, youtubeUrl: v })} placeholder="https://youtube.com/@..." />
             <CustomInput label="인스타그램 계정 링크" value={formData.instagramUrl} onChange={(v) => setFormData({ ...formData, instagramUrl: v })} placeholder="https://instagram.com/..." />
             <CustomInput label="쓰레드 계정 링크" value={formData.threadsUrl} onChange={(v) => setFormData({ ...formData, threadsUrl: v })} placeholder="https://threads.net/@..." />
+            <CustomInput label="네이버 블로그 링크" value={formData.naverBlogUrl} onChange={(v) => setFormData({ ...formData, naverBlogUrl: v })} placeholder="https://blog.naver.com/..." />
           </section>
 
           {/* 팀 이미지 */}

@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,8 +30,8 @@ export function Header() {
   const [isBoardOpen, setIsBoardOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isVenueMenuOpen, setIsVenueMenuOpen] = useState(false);
+  const [isSuppliesMenuOpen, setIsSuppliesMenuOpen] = useState(false);
   const [isPlannerMenuOpen, setIsPlannerMenuOpen] = useState(false);
-  const [isScheduleMenuOpen, setIsScheduleMenuOpen] = useState(false);
   const [isRegisterMenuOpen, setIsRegisterMenuOpen] = useState(false);
 
   // [상태 관리] 로그인 및 회원가입 단계 제어
@@ -297,6 +297,10 @@ export function Header() {
 }, []);
 
   const isActive = (path: string) => location.pathname === path;
+  // /teams는 "외부사역팀 찾기"와 "합주실·연습실 찾기"(탭1)가 쿼리스트링(category=bandroom)만
+  // 다르게 공유하는 경로라, pathname만으로는 두 탭을 구분할 수 없어 쿼리까지 같이 본다.
+  const isBandRoomTabActive = isActive("/teams") && new URLSearchParams(location.search).get("category") === "bandroom";
+  const isTeamsTabActive = isActive("/teams") && !isBandRoomTabActive;
 
   // const menuItems = [
   //   // { name: "장소 찾기", path: "/venues", icon: null },
@@ -370,9 +374,9 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
+              {/* 탭1: 장소 찾기 (공간 대여 - 장소/합주실/교회) */}
               <div className="relative shrink-0" onMouseEnter={() => setIsVenueMenuOpen(true)} onMouseLeave={() => setIsVenueMenuOpen(false)}>
-                {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/venues") || isActive("/booking-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/venues") || isActive("/teams") || isActive("/booking-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/venues") || isBandRoomTabActive || isActive("/booking-guide") || isActive("/churches") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   장소 찾기
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isVenueMenuOpen ? "rotate-180" : ""}`} />
                 </button>
@@ -383,15 +387,15 @@ export function Header() {
                     >
                       <Link to="/venues" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><MapPin className="w-5 h-5 text-[#3182F6]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">장소 검색</div><div className="text-[12px] text-[#8B95A1] font-bold">인원과 목적에 맞는 곳</div></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">수련회 장소 검색</div><div className="text-[12px] text-[#8B95A1] font-bold">인원과 목적에 맞는 곳</div></div>
+                      </Link>
+                      <Link to="/venues?category=mission" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#EFF6FF] rounded-xl flex items-center justify-center group-hover:bg-[#DBEAFE]"><Compass className="w-5 h-5 text-[#2563EB]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">국내 선교 장소 검색</div><div className="text-[12px] text-[#8B95A1] font-bold">선교지 협력·봉사 연결</div></div>
                       </Link>
                       <Link to="/teams?category=bandroom" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">합주실·연습실 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">연습·합주 공간 대여</div></div>
-                      </Link>
-                      <Link to="/teams" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">외부 사역팀 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">찬양팀/찬양사역자 섭외</div></div>
                       </Link>
                       {churchDirectoryEnabled && (
                         <Link to="/churches" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
@@ -399,20 +403,6 @@ export function Header() {
                           <div><div className="text-[15px] font-black text-[#191F28]">전국 교회 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">지역별로 우리 교회 알아보기</div></div>
                         </Link>
                       )}
-                      {/* 굿즈/단체티/차량 렌트 3종 - 서비스 오픈 전이라 일단 노출만 막음. 라우트는 살아있어서
-                          /goods, /shirts, /vehicles로 직접 접근은 계속 가능. */}
-                      {/* <Link to="/goods" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#FFFBEB] rounded-xl flex items-center justify-center group-hover:bg-[#FEF3C7]"><Gift className="w-5 h-5 text-[#F59E0B]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">굿즈 매장 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 굿즈·기념품 업체</div></div>
-                      </Link>
-                      <Link to="/shirts" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#FDF2F8] rounded-xl flex items-center justify-center group-hover:bg-[#FCE7F3]"><Shirt className="w-5 h-5 text-[#EC4899]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">단체티 업체 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 티셔츠·기념품 제작</div></div>
-                      </Link>
-                      <Link to="/vehicles" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#EEF2FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0E7FF]"><Bus className="w-5 h-5 text-[#6366F1]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">차량·버스 대여 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 이동 차량 업체</div></div>
-                      </Link> */}
                       <Link to="/booking-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><CheckCircle2 className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">예약 절차 가이드</div><div className="text-[12px] text-[#8B95A1] font-bold">안전하고 쉬운 예약법</div></div>
@@ -422,48 +412,53 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
-              <div className="relative shrink-0" onMouseEnter={() => setIsPlannerMenuOpen(true)} onMouseLeave={() => setIsPlannerMenuOpen(false)}>
-                {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/planner") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/planner") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
-                  최저가 비교
-                  <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isPlannerMenuOpen ? "rotate-180" : ""}`} />
+              {/* 탭3: 수련회 준비물 (굿즈/단체티 - 협력업체 찾기. 차량·버스는 서비스 오픈 전이라 계속 숨김) */}
+              <div className="relative shrink-0" onMouseEnter={() => setIsSuppliesMenuOpen(true)} onMouseLeave={() => setIsSuppliesMenuOpen(false)}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/goods") || isActive("/shirts") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                  굿즈·티셔츠
+                  <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isSuppliesMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
-                  {isPlannerMenuOpen && (
+                  {isSuppliesMenuOpen && (
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[240px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
-                      <Link to="/planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><LayoutDashboard className="w-5 h-5 text-[#3182F6]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">스마트 플래너</div></div>
+                      <Link to="/goods" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#FFFBEB] rounded-xl flex items-center justify-center group-hover:bg-[#FEF3C7]"><Gift className="w-5 h-5 text-[#F59E0B]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">굿즈 매장 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 굿즈·기념품 업체</div></div>
                       </Link>
-                      <Link to="/smart-planner-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><Info className="w-5 h-5 text-[#2DCA72]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">사용법 안내</div></div>
+                      <Link to="/shirts" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#FDF2F8] rounded-xl flex items-center justify-center group-hover:bg-[#FCE7F3]"><Shirt className="w-5 h-5 text-[#EC4899]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">단체티 업체 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 티셔츠·기념품 제작</div></div>
                       </Link>
+                      {/* 차량·버스 대여 - 서비스 오픈 전이라 일단 노출만 막음. 라우트는 살아있어서
+                          /vehicles로 직접 접근은 계속 가능. */}
+                      {/* <Link to="/vehicles" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#EEF2FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0E7FF]"><Bus className="w-5 h-5 text-[#6366F1]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">차량·버스 대여 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 이동 차량 업체</div></div>
+                      </Link> */}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              <div className="relative shrink-0" onMouseEnter={() => setIsScheduleMenuOpen(true)} onMouseLeave={() => setIsScheduleMenuOpen(false)}>
-                {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/smart-planner") || isActive("/schedule-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
-                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/smart-planner") || isActive("/schedule-guide") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
-                  일정표
-                  <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isScheduleMenuOpen ? "rotate-180" : ""}`} />
+              <div className="relative shrink-0" onMouseEnter={() => setIsPlannerMenuOpen(true)} onMouseLeave={() => setIsPlannerMenuOpen(false)}>
+                <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/planner") || isActive("/smart-planner") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
+                  플래너
+                  <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isPlannerMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
-                  {isScheduleMenuOpen && (
+                  {isPlannerMenuOpen && (
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                      className="absolute top-full left-0 mt-2 w-[240px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
-                      <Link to="/smart-planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><BookOpen className="w-5 h-5 text-[#3182F6]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">일정표 만들기</div></div>
+                      <Link to="/planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><LayoutDashboard className="w-5 h-5 text-[#3182F6]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">스마트 플래너</div><div className="text-[12px] text-[#8B95A1] font-bold">최저가 비교하기</div></div>
                       </Link>
-                      <Link to="/schedule-guide" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
-                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><Info className="w-5 h-5 text-[#2DCA72]" /></div>
-                        <div><div className="text-[15px] font-black text-[#191F28]">일정표 가이드</div></div>
+                      <Link to="/smart-planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><BookOpen className="w-5 h-5 text-[#2DCA72]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">일정표 플래너</div><div className="text-[12px] text-[#8B95A1] font-bold">일정표 만들고 배포하기</div></div>
                       </Link>
                     </motion.div>
                   )}
@@ -502,6 +497,16 @@ export function Header() {
                 <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </a>
 
+              {/* 탭2: 외부사역팀 찾기 - 목적지가 하나라 드롭다운 없이 바로 이동하는 단일 링크.
+                  Mic2 아이콘은 등록 문의/수련회 준비물 드롭다운에서도 외부사역팀을 나타낼 때 쓰는 것과 동일. */}
+              <Link
+                to="/teams"
+                className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all shrink-0 group ${isTeamsTabActive ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}
+              >
+                외부사역팀
+                <Mic2 className={`w-3.5 h-3.5 transition-opacity ${isTeamsTabActive ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`} />
+              </Link>
+
               <div className="w-[1px] h-4 bg-[#E5E8EB] mx-2 shrink-0" />
 
               <div className="flex items-center gap-3 shrink-0">
@@ -512,7 +517,7 @@ export function Header() {
                 >
                   <button className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF] transition-all active:scale-95 group whitespace-nowrap">
                     <PlusSquare className="w-4 h-4 transition-transform group-hover:rotate-90" />
-                    <span className="font-black text-[12.5px]">장소 등록 문의</span>
+                    <span className="font-black text-[12.5px]">등록 문의</span>
                     <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-300 ${isRegisterMenuOpen ? "rotate-180" : ""}`} />
                   </button>
                   <AnimatePresence>
@@ -520,13 +525,14 @@ export function Header() {
                       <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         className="absolute top-full right-0 mt-2 w-[240px] bg-white rounded-[24px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                       >
+                        <p className="px-3 pt-2 pb-1 text-[10.5px] font-black text-[#B0B8C1] uppercase tracking-wider">공간</p>
                         <Link to="/register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
                           <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><PlusSquare className="w-5 h-5 text-[#3182F6]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">장소 등록 문의</div><div className="text-[12px] text-[#8B95A1] font-bold">수양관/예배당 등록</div></div>
                         </Link>
-                        <Link to="/team-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
-                          <div className="w-[34px] h-[34px] bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
-                          <div><div className="text-[15px] font-black text-[#191F28]">외부 사역팀 등록 문의</div><div className="text-[12px] text-[#8B95A1] font-bold">찬양팀/찬양사역자 섭외 등록</div></div>
+                        <Link to="/mission-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#EFF6FF] rounded-xl flex items-center justify-center group-hover:bg-[#DBEAFE]"><Compass className="w-5 h-5 text-[#2563EB]" /></div>
+                          <div><div className="text-[15px] font-black text-[#191F28]">국내 선교 장소 등록</div><div className="text-[12px] text-[#8B95A1] font-bold">국내 선교 장소 등록 문의</div></div>
                         </Link>
                         <Link to="/band-room-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
                           <div className="w-[34px] h-[34px] bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
@@ -538,9 +544,17 @@ export function Header() {
                             <div><div className="text-[15px] font-black text-[#191F28]">전국 교회 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">우리 교회 알리기</div></div>
                           </Link>
                         )}
-                        {/* 굿즈/단체티/차량 렌트 3종 - 서비스 오픈 전이라 일단 노출만 막음. 라우트는 살아있어서
-                            /goods-register, /shirts-register, /vehicle-register로 직접 접근은 계속 가능. */}
-                        {/* <Link to="/goods-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+
+                        <div className="h-[1px] bg-[#F2F4F6] my-1.5" />
+                        <p className="px-3 pt-1 pb-1 text-[10.5px] font-black text-[#B0B8C1] uppercase tracking-wider">사역팀</p>
+                        <Link to="/team-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                          <div className="w-[34px] h-[34px] bg-[#F5F3FF] rounded-xl flex items-center justify-center group-hover:bg-[#EDE9FE]"><Mic2 className="w-5 h-5 text-[#8B5CF6]" /></div>
+                          <div><div className="text-[15px] font-black text-[#191F28]">외부 사역팀 등록 문의</div><div className="text-[12px] text-[#8B95A1] font-bold">찬양팀/찬양사역자 섭외 등록</div></div>
+                        </Link>
+
+                        <div className="h-[1px] bg-[#F2F4F6] my-1.5" />
+                        <p className="px-3 pt-1 pb-1 text-[10.5px] font-black text-[#B0B8C1] uppercase tracking-wider">수련회 준비물</p>
+                        <Link to="/goods-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
                           <div className="w-[34px] h-[34px] bg-[#FFF7ED] rounded-xl flex items-center justify-center group-hover:bg-[#FFEDD5]"><Gift className="w-5 h-5 text-[#F59E0B]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">굿즈 매장 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">수련회 굿즈 업체 등록</div></div>
                         </Link>
@@ -548,7 +562,9 @@ export function Header() {
                           <div className="w-[34px] h-[34px] bg-[#FDF2F8] rounded-xl flex items-center justify-center group-hover:bg-[#FCE7F3]"><Shirt className="w-5 h-5 text-[#EC4899]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">단체티·기념품 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">단체티/기념품 업체 등록</div></div>
                         </Link>
-                        <Link to="/vehicle-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
+                        {/* 차량 렌트 - 서비스 오픈 전이라 일단 노출만 막음. 라우트는 살아있어서
+                            /vehicle-register로 직접 접근은 계속 가능. */}
+                        {/* <Link to="/vehicle-register" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[14px] transition-colors group">
                           <div className="w-[34px] h-[34px] bg-[#EEF2FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0E7FF]"><Bus className="w-5 h-5 text-[#6366F1]" /></div>
                           <div><div className="text-[15px] font-black text-[#191F28]">차량·버스 대여 등록하기</div><div className="text-[12px] text-[#8B95A1] font-bold">차량/버스 대여 업체 등록</div></div>
                         </Link> */}

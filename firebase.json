@@ -15,6 +15,27 @@
         }
       },
       {
+        "source": "/venues",
+        "function": {
+          "functionId": "venuesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/mission-venues/**",
+        "function": {
+          "functionId": "missionVenueDetailPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/register",
+        "function": {
+          "functionId": "venueRegisterPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/teams",
         "function": {
           "functionId": "teamsPreview",
@@ -36,6 +57,13 @@
         }
       },
       {
+        "source": "/band-room-register",
+        "function": {
+          "functionId": "bandRoomRegisterPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/band-room/**",
         "function": {
           "functionId": "bandRoomPreview",
@@ -46,6 +74,55 @@
         "source": "/programs",
         "function": {
           "functionId": "programsPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/goods-register",
+        "function": {
+          "functionId": "goodsRegisterPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/goods/**",
+        "function": {
+          "functionId": "goodsDetailPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/goods",
+        "function": {
+          "functionId": "goodsPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/shirts-register",
+        "function": {
+          "functionId": "shirtsRegisterPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/shirts/**",
+        "function": {
+          "functionId": "shirtsDetailPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/shirts",
+        "function": {
+          "functionId": "shirtsPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/vehicle-register",
+        "function": {
+          "functionId": "vehicleRegisterPreview",
           "region": "asia-northeast3"
         }
       },

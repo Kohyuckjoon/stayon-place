@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import {
-  ChevronLeft, ChevronRight, Phone, Gift, Tag, X, ZoomIn,
+  ChevronLeft, ChevronRight, Gift, Tag, X, ZoomIn,
   BadgeCheck, Banknote, ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -184,19 +184,6 @@ export function GoodsStoreDetail() {
                 >
                   <ExternalLink className="w-4 h-4" /> 온라인몰 바로가기
                 </a>
-              )}
-              {goods.consultPhone && (
-                <a
-                  href={`tel:${goods.consultPhone}`}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#191f28] text-white rounded-2xl font-black text-[15px] hover:bg-black transition-all active:scale-[0.98]"
-                >
-                  <Phone className="w-4 h-4" /> 상담 전화걸기
-                </a>
-              )}
-              {goods.contactInfo && (
-                <div className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#f9fafb] border border-[#f2f4f6] text-[#4e5968] rounded-2xl font-bold text-[13px] break-keep text-center px-3">
-                  {goods.contactInfo}
-                </div>
               )}
             </div>
           </section>

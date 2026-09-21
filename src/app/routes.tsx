@@ -7,6 +7,7 @@ import VenueReviewWrite from "./pages/VenueReviewWrite";
 import { Booking } from "./pages/Booking";
 import { MyPage } from "./pages/MyPage";
 import { RegisterVenue } from "./pages/RegisterVenue";
+import MissionVenueRegistrationForm from "./pages/MissionVenueRegistrationForm";
 import { About } from "./pages/About";
 import { Story } from "./pages/Story";
 import { ComparisonPlanner } from "./pages/ComparisonPlanner";
@@ -43,8 +44,10 @@ import { GroupShirtsList } from "./pages/GroupShirtsList";
 import { GroupShirtsDetail } from "./pages/GroupShirtsDetail";
 import VehicleRentalRegistrationForm from "./pages/VehicleRentalRegistrationForm";
 import { AdminVehicleRentals } from "./pages/AdminVehicleRentals";
+import { AdminMissionVenues } from "./pages/AdminMissionVenues";
 import { VehicleRentalList } from "./pages/VehicleRentalList";
 import { VehicleRentalDetail } from "./pages/VehicleRentalDetail";
+import { MissionVenueDetail } from "./pages/MissionVenueDetail";
 import { PrivateRoute } from "./lib/PrivateRoute";
 import ProfileSettings from "./pages/ProfileSettings";
 import SafetyGuide from "./pages/SafetyGuide"; // 추가
@@ -121,6 +124,10 @@ export const router = createBrowserRouter([
         element: (<RegisterVenue />),
       },
       {
+        path: "mission-register", // 국내 선교 장소 등록
+        element: (<MissionVenueRegistrationForm />),
+      },
+      {
         path: "team-register", // 외부 사역팀 등록 문의
         element: <TeamRegistrationForm />,
       },
@@ -191,6 +198,12 @@ export const router = createBrowserRouter([
       {
         path: "vehicles", // 차량·버스 대여 목록
         element: <VehicleRentalList />,
+      },
+      {
+        // 국내 선교 장소 "목록"은 별도 페이지가 아니라 /venues?category=mission으로 흡수됨
+        // (VenueList.tsx가 쿼리스트링으로 수련회/국내선교 탭을 전환). 상세 페이지만 유지.
+        path: "mission-venues/:id", // 국내 선교 장소 상세
+        element: <MissionVenueDetail />,
       },
       {
         path: "vehicles/:id", // 차량·버스 대여 상세
@@ -313,6 +326,7 @@ export const router = createBrowserRouter([
       { path: "goods", element: <AdminGoodsStore /> },
       { path: "shirts", element: <AdminGroupShirts /> },
       { path: "vehicles", element: <AdminVehicleRentals /> },
+      { path: "mission-venues", element: <AdminMissionVenues /> },
     ],
   },
 ]);

@@ -13,6 +13,7 @@ const KEYWORDS = [
   "외부사역팀", "찬양팀섭외", "찬양사역자섭외", "세션섭외",
   "교회찬양팀", "수련회찬양팀", "스테이온",
 ].join(", ");
+const IMAGE = "https://place.stayon-platform.com/place_find_out.png";
 
 // /teams?category=bandroom (합주실·연습실 탭)으로 접근했을 때 보여줄 메타 정보.
 // 쿼리스트링은 Hosting rewrite의 source 매칭에 영향을 주지 않아 /teams와
@@ -23,6 +24,8 @@ const BANDROOM_DESCRIPTION =
 const BANDROOM_KEYWORDS = [
   "합주실", "연습실", "녹음실", "찬양팀합주실", "교회합주실", "스테이온",
 ].join(", ");
+const BANDROOM_IMAGE =
+  "https://place.stayon-platform.com/place_find_music_room.png";
 
 /**
  * Firebase Hosting에서 /teams 요청을 이 함수로 rewrite한다.
@@ -42,6 +45,7 @@ export const teamsPreview = onRequest(
         title: isBandRoomTab ? BANDROOM_TITLE : TITLE,
         description: isBandRoomTab ? BANDROOM_DESCRIPTION : DESCRIPTION,
         keywords: isBandRoomTab ? BANDROOM_KEYWORDS : KEYWORDS,
+        image: isBandRoomTab ? BANDROOM_IMAGE : IMAGE,
       }));
     } catch (error) {
       logger.error("teamsPreview: index.html 서빙 실패", error);

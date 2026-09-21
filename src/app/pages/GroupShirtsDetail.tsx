@@ -3,21 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import {
-  ChevronLeft, ChevronRight, Phone, Shirt, Tag, X, ZoomIn,
-  MessageCircle, BadgeCheck, Banknote, ExternalLink, Copy, Check,
+  ChevronLeft, ChevronRight, Shirt, Tag, X, ZoomIn,
+  BadgeCheck, Banknote, ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
-
-// 전화번호는 상담 전화걸기 버튼(tel: 링크)로 이미 실제 번호가 연결되니,
-// 텍스트로 한 번 더 노출할 때는 중간 4자리를 가려서 보여준다 (010-****-1234).
-function maskPhone(phone: string) {
-  if (!phone) return phone;
-  const parts = phone.split("-");
-  if (parts.length === 3) return `${parts[0]}-${"*".repeat(parts[1].length)}-${parts[2]}`;
-  const digits = phone.replace(/[^0-9]/g, "");
-  if (digits.length < 7) return phone;
-  return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
-}
 
 function InfoRow({ icon, label, value }: any) {
   return (
@@ -32,8 +21,7 @@ function InfoRow({ icon, label, value }: any) {
 }
 
 // 단체티·기념품(수련회 티셔츠) 업체 상세 페이지. 로그인 없이도 누구나 열람할 수 있고,
-// 견적 문의 중개 기능은 제거됐다 - 대신 업체가 등록한 온라인몰 링크와 상담 전화로
-// 방문객이 곧장 연결된다.
+// 개인정보 노출 우려로 상담 전화 연결은 제거됐다 - 업체가 등록한 온라인몰 링크로만 연결된다.
 export function GroupShirtsDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,7 +29,6 @@ export function GroupShirtsDetail() {
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isImageLightboxOpen, setIsImageLightboxOpen] = useState(false);
-  const [phoneCopied, setPhoneCopied] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -74,17 +61,6 @@ export function GroupShirtsDetail() {
       document.title = `${shirt.businessName} | 수련회 티셔츠 | 스테이온`;
     }
   }, [shirt?.businessName]);
-
-  const handleCopyPhone = async () => {
-    if (!shirt?.consultPhone) return;
-    try {
-      await navigator.clipboard.writeText(shirt.consultPhone);
-      setPhoneCopied(true);
-      setTimeout(() => setPhoneCopied(false), 1500);
-    } catch {
-      // 클립보드 API 미지원 환경 - 조용히 무시
-    }
-  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
@@ -211,24 +187,6 @@ export function GroupShirtsDetail() {
                   <ExternalLink className="w-4 h-4" /> 온라인몰 바로가기
                 </a>
               )}
-              {shirt.consultPhone && (
-                <div className="flex gap-2">
-                  <a
-                    href={`tel:${shirt.consultPhone}`}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 md:py-4 bg-[#191f28] text-white rounded-2xl font-black text-[15px] hover:bg-black transition-all active:scale-[0.98]"
-                  >
-                    <Phone className="w-4 h-4" /> 상담 전화걸기
-                  </a>
-                  <button
-                    type="button"
-                    onClick={handleCopyPhone}
-                    className="shrink-0 w-12 flex items-center justify-center bg-[#f2f4f6] text-[#4e5968] rounded-2xl hover:bg-[#e5e8eb] transition-all active:scale-[0.98]"
-                    aria-label="전화번호 복사"
-                  >
-                    {phoneCopied ? <Check className="w-4 h-4 text-[#10b981]" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-              )}
             </div>
           </section>
 
@@ -252,19 +210,6 @@ export function GroupShirtsDetail() {
               </div>
             </section>
           )}
-
-          {/* 연락처 - 잠시 섹션 전체 비노출 처리 (카드뷰 자체를 숨김)
-          {(shirt.consultPhone || shirt.contactInfo) && (
-            <section className="bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
-              <h3 className="text-[15px] md:text-[16px] font-black text-[#191f28] mb-2.5 md:mb-3 flex items-center gap-2 md:gap-2.5">
-                <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 연락처
-              </h3>
-              <div className="bg-[#f9fafb] rounded-2xl border border-[#f2f4f6] overflow-hidden">
-                {shirt.consultPhone && <InfoRow icon={<Phone className="w-4 h-4" />} label="상담 전화(대량 주문 문의 전용)" value={maskPhone(shirt.consultPhone)} />}
-                {shirt.contactInfo && <InfoRow icon={<MessageCircle className="w-4 h-4" />} label="카카오톡/문자" value={shirt.contactInfo} />}
-              </div>
-            </section>
-          )} */}
 
           {/* 상세 설명 */}
           {shirt.description && (

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, storage } from "../lib/firebase";
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayUnion, arrayRemove, Timestamp } from "firebase/firestore";
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayUnion, arrayRemove, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
@@ -520,6 +520,67 @@ export function AdminDashboard() {
     }
   };
 
+  // 수련회 장소(venues) 데이터를 국내 선교 장소(missionVenues, 완전히 분리된 컬렉션)로
+  // 그대로 복사해서 넘겨준다. missionVenues에는 없는 필드(price, 예약/정산 관련 필드,
+  // "야외 및 바베큐장" 사진 카테고리)는 빼고, missionVenues에만 있는 새 필드(교회 사정/원하는
+  // 봉사·헌신, 공개용 전화번호)는 원본에 없으니 빈 값으로 시작한다. 복사한 장소는 새 필드를
+  // 채워 넣어야 하니 "검토 대기" 상태로 만들고, 중복 복사를 막기 위해 원본 venues 문서에
+  // missionVenueId를 남겨 다시 복사하지 못하게 한다.
+  const handleCopyToMissionVenue = async (venue: any) => {
+    if (venue.missionVenueId) return;
+    if (!window.confirm(`"${venue.venueName}"을(를) 국내 선교 장소로 추가하시겠습니까?\n검토 대기 상태로 국내선교 관리에 추가됩니다.`)) return;
+    try {
+      // missionVenueImageCategories.ts와 동일한 순서(야외 및 바베큐장 제외 7개)
+      const missionCategoryOrder = ["entrance", "mainHall", "worshipSetup", "kitchen", "lodging", "restroom", "etc"];
+      const imagesByCategory: Record<string, string[]> = { ...(venue.imagesByCategory || {}) };
+      delete imagesByCategory.outdoor; // missionVenues엔 "야외 및 바베큐장" 카테고리가 없음
+      const images = missionCategoryOrder.flatMap((c) => imagesByCategory[c] || []);
+
+      const missionVenueRef = await addDoc(collection(db, "missionVenues"), {
+        applicantName: venue.applicantName || "",
+        applicantContact: venue.applicantContact || "",
+        applicantEmail: venue.applicantEmail || "",
+        applicantUid: venue.applicantUid || "",
+        venueName: venue.venueName || "",
+        location: venue.location || "",
+        addressDetail: venue.addressDetail || "",
+        denomination: venue.denomination || "",
+        capacity: venue.capacity || 0,
+        hallSize: venue.hallSize || "",
+        soundSystem: venue.soundSystem || "",
+        instruments: venue.instruments || "",
+        projector: venue.projector || "",
+        description: venue.description || "",
+        mealOption: venue.mealOption || [],
+        mealPrice: venue.mealPrice || 0,
+        mealNote: venue.mealNote || "",
+        cafeteriaCapacity: venue.cafeteriaCapacity || 0,
+        parkingCapacity: venue.parkingCapacity || "",
+        beddingAvailable: venue.beddingAvailable || false,
+        airConditioner: venue.airConditioner ?? true,
+        showerBathroom: venue.showerBathroom || "",
+        nightEventLimit: venue.nightEventLimit || "",
+        tags: venue.tags || [],
+        images,
+        imagesByCategory,
+        churchSituation: [],
+        churchSituationOther: "",
+        desiredService: [],
+        desiredServiceOther: "",
+        contactPhone: "",
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      await updateDoc(doc(db, "venues", venue.id), { missionVenueId: missionVenueRef.id });
+      setSelectedVenue((prev: any) => (prev && prev.id === venue.id ? { ...prev, missionVenueId: missionVenueRef.id } : prev));
+      setEditedVenue((prev: any) => (prev && prev.id === venue.id ? { ...prev, missionVenueId: missionVenueRef.id } : prev));
+      alert("국내 선교 장소(검토 대기)로 추가되었습니다.");
+    } catch (error) {
+      console.error("국내 선교 장소 복사 실패:", error);
+      alert("국내 선교 장소로 추가하는 중 오류가 발생했습니다.");
+    }
+  };
+
   // 끌어올리기: 지정한 기간(일 단위) 뒤에 자동으로 상단 노출이 풀리도록 만료 시각을 저장한다.
   // 공개 목록(VenueList.tsx)에서 boostedUntil이 현재보다 미래인 장소를 최상단으로 정렬한다.
   const handleSetBoost = async (id: string, days: number) => {
@@ -731,6 +792,15 @@ export function AdminDashboard() {
             { id: "approved", label: "승인 완료", count: approvedCount, icon: CheckCircle, accentColor: "#3182F6" },
             { id: "rejected", label: "반려 / 삭제", count: rejectedCount, icon: XCircle, accentColor: "#F04452" },
             { id: "schedule", label: "장소별 일정관리", count: approvedCount, icon: Calendar },
+          ],
+        },
+        {
+          label: "국내선교 관리",
+          items: [
+            { id: "mv_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/mission-venues?tab=pending" },
+            { id: "mv_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/mission-venues?tab=approved" },
+            { id: "mv_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/mission-venues?tab=rejected" },
+            { id: "mv_schedule", label: "장소별 일정관리", icon: Calendar, href: "/admin/mission-venues?tab=schedule" },
           ],
         },
         {
@@ -1746,16 +1816,27 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* 하단 제어 결합 인터랙션 버튼 바 */}
+                {/* 하단 제어 결합 인터랙션 버튼 바 - "국내 선교 장소로 추가"는 편집 모드 여부와
+                    무관한 별개 동작이라 두 모드 버튼 줄 모두에 넣는다. */}
                 <div className="pt-8 border-t border-[#F2F4F6] flex gap-3 mt-8">
                   {isEditMode ? (
                     <>
                       <button onClick={() => setIsEditMode(false)} className="flex-1 py-4.5 bg-[#F2F4F6] text-[#6B7684] rounded-2xl font-bold text-[16px] transition-all active:scale-95">취소</button>
+                      {selectedVenue.missionVenueId ? (
+                        <button disabled className="flex-1 py-4.5 bg-[#F2F4F6] text-[#ADB5BD] rounded-2xl font-bold text-[16px] cursor-not-allowed">이미 국내선교로 추가됨</button>
+                      ) : (
+                        <button onClick={() => handleCopyToMissionVenue(selectedVenue)} className="flex-1 py-4.5 bg-[#EFF6FF] text-[#2563EB] rounded-2xl font-bold text-[16px] transition-all active:scale-95">국내 선교 장소로 추가</button>
+                      )}
                       <button onClick={handleUpdate} className="flex-[2] py-4.5 bg-[#3182F6] text-white rounded-2xl font-bold text-[16px] transition-all active:scale-95 shadow-md shadow-[#3182F6]/10">설정 저장</button>
                     </>
                   ) : (
                     <>
                       <button onClick={() => openEditModal(selectedVenue)} className="flex-1 py-4.5 bg-[#E8F3FF] text-[#3182F6] rounded-2xl font-bold text-[16px] transition-all active:scale-95">정보 및 정산 수정</button>
+                      {selectedVenue.missionVenueId ? (
+                        <button disabled className="flex-1 py-4.5 bg-[#F2F4F6] text-[#ADB5BD] rounded-2xl font-bold text-[16px] cursor-not-allowed">이미 국내선교로 추가됨</button>
+                      ) : (
+                        <button onClick={() => handleCopyToMissionVenue(selectedVenue)} className="flex-1 py-4.5 bg-[#EFF6FF] text-[#2563EB] rounded-2xl font-bold text-[16px] transition-all active:scale-95">국내 선교 장소로 추가</button>
+                      )}
                       <button onClick={() => setSelectedVenue(null)} className="flex-1 py-4.5 bg-[#F2F4F6] text-[#4E5968] rounded-2xl font-bold text-[16px] transition-all active:scale-95">닫기</button>
                     </>
                   )}
