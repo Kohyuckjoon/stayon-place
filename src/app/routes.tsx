@@ -72,6 +72,7 @@ import BookingGuide from "./pages/BookingGuide";
 import { SmartPlannerGuide } from "./pages/SmartPlannerGuide";
 import { ScheduleGuide } from "./pages/ScheduleGuide";
 import { CustomGoodsPlanner } from "./pages/CustomGoodsPlanner";
+import { ComingSoon } from "./pages/ComingSoon";
 
 export const router = createBrowserRouter([
   {
@@ -204,6 +205,16 @@ export const router = createBrowserRouter([
         // (VenueList.tsx가 쿼리스트링으로 수련회/국내선교 탭을 전환). 상세 페이지만 유지.
         path: "mission-venues/:id", // 국내 선교 장소 상세
         element: <MissionVenueDetail />,
+      },
+      {
+        // Header.tsx "장소 찾기" > "연합 수련회 장소" 서브메뉴 2개. 아직 실제 콘텐츠가
+        // 없어서 우선 공용 준비중 페이지로 연결해둔다.
+        path: "union-camp-info",
+        element: <ComingSoon title="연합 캠프 수련회 정보" description="여러 교회가 함께하는 연합 캠프 수련회 정보를 준비하고 있어요. 조금만 기다려주세요!" />,
+      },
+      {
+        path: "stayon-union-camp",
+        element: <ComingSoon title="STAYON 국내 연합 캠프" description="스테이온이 직접 준비하는 국내 연합 캠프예요. 곧 자세한 내용으로 찾아뵐게요!" />,
       },
       {
         path: "vehicles/:id", // 차량·버스 대여 상세

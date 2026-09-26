@@ -306,30 +306,32 @@ export function VenueDetail() {
           </button>
         </section>
 
-        {/* 장소 상세 정보 / 장소 리뷰 보기 탭 - 리뷰 탭 클릭 시 하단 리뷰 섹션으로 스크롤 이동 */}
+        {/* 장소 상세 정보 / 장소 리뷰 보기 탭 - 리뷰 탭 클릭 시 하단 리뷰 섹션으로 스크롤 이동.
+            모바일 좁은 화면에서 버튼 안 글자가 중간에 줄바꿈되던 문제 - 라벨을 짧게 줄이고
+            패딩/글자 크기를 모바일 기준으로 줄이고 whitespace-nowrap으로 줄바꿈 자체를 막았다. */}
         <div className="flex bg-[#f2f4f6] p-1.5 rounded-2xl w-fit mb-5">
           <button
             onClick={() => goToTab("info")}
-            className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeInfoTab === "info" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+            className={`px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "info" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
               }`}
           >
-            장소 상세 정보
+            상세정보
           </button>
           <button
             onClick={() => goToTab("photos")}
-            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeInfoTab === "photos" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+            className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "photos" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
               }`}
           >
-            <Camera className="w-4 h-4" />
+            <Camera className="w-3.5 h-3.5 md:w-4 md:h-4" />
             사진
           </button>
           <button
             onClick={() => goToTab("reviews")}
-            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeInfoTab === "reviews" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+            className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "reviews" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
               }`}
           >
-            <MessageSquare className="w-4 h-4" />
-            장소 리뷰 보기{venueReviews.length > 0 ? ` (${venueReviews.length})` : ""}
+            <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            리뷰{venueReviews.length > 0 ? ` (${venueReviews.length})` : ""}
           </button>
         </div>
 
@@ -532,19 +534,19 @@ export function VenueDetail() {
 
           {/* 타이틀/뱃지/정보 카드 - 우측 컬럼 1번째 (중첩 카드 없이 한 겹) */}
           <section className="lg:col-start-2 lg:row-start-1 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] h-full flex flex-col justify-between">
-            <div className="flex justify-between items-center mb-3">
-              <span className="px-3.5 py-1.5 bg-[#f2f8ff] text-[#3182f6] text-[12px] font-black rounded-xl">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <span className="px-3.5 py-1.5 bg-[#f2f8ff] text-[#3182f6] text-[12px] font-black rounded-xl break-keep">
                 {venue.denomination || '교단 정보 없음'}
               </span>
-              <div className="flex items-center gap-1.5 text-[#3182f6] font-black text-[12px]">
+              <div className="flex items-center gap-1.5 text-[#3182f6] font-black text-[12px] shrink-0">
                 <div className="bg-[#3182f6] rounded-full p-0.5"><Check className="w-3 h-3 text-white" strokeWidth={4} /></div>
                 스테이온 인증 장소
               </div>
             </div>
-            <h1 className="text-[24px] font-black text-[#191f28] mb-2 tracking-tighter leading-tight">
+            <h1 className="text-[22px] md:text-[24px] font-black text-[#191f28] mb-2 tracking-tighter leading-tight break-keep">
               {venue.venueName}
             </h1>
-            <p className="flex items-start gap-1.5 text-[#4e5968] text-[14px] font-semibold mb-3 opacity-80">
+            <p className="flex items-start gap-1.5 text-[#4e5968] text-[14px] font-semibold mb-3 opacity-80 break-keep">
               <MapPin className="w-4 h-4 text-[#3182f6] shrink-0 mt-0.5" />
               {venue.location} {venue.addressDetail}
             </p>
@@ -694,7 +696,7 @@ export function VenueDetail() {
               <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 장소 소개
             </h3>
 
-              <p className="text-[#4e5968] leading-[1.7] whitespace-pre-wrap text-[14px] font-bold opacity-90">
+              <p className="text-[#4e5968] leading-[1.7] whitespace-pre-wrap break-keep text-[14px] font-bold opacity-90">
                 {venue.description || "상세 설명이 없습니다."}
               </p>
             </div>
@@ -702,25 +704,25 @@ export function VenueDetail() {
 
           {/* 장소 리뷰 - 상단 "장소 리뷰 보기" 탭 클릭 시 이 지점으로 스크롤 이동 */}
           <div ref={reviewSectionRef} className="lg:col-span-2 scroll-mt-24">
-            <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h3 className="text-[16px] font-black text-[#191f28] flex items-center gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 장소 리뷰
                 {venueReviews.length > 0 && (
                   <span className="text-[13px] font-bold text-[#8b95a1]">{venueReviews.length}개</span>
                 )}
               </h3>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                 <Link
                   to={`/venue/${id}/review/write`}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#f2f4f6] text-[#3182f6] rounded-xl font-bold text-[13px] hover:bg-[#e8f3ff] transition-all"
+                  className="flex items-center gap-1 md:gap-1.5 px-3 md:px-4 py-1.5 md:py-2 bg-[#f2f4f6] text-[#3182f6] rounded-xl font-bold text-[12px] md:text-[13px] whitespace-nowrap hover:bg-[#e8f3ff] transition-all"
                 >
-                  <Plus className="w-4 h-4" /> 리뷰 작성하기
+                  <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> 리뷰 작성
                 </Link>
                 <Link
                   to="/reviews"
-                  className="flex items-center gap-0.5 px-3 py-2 text-[#8b95a1] rounded-xl font-bold text-[13px] hover:text-[#3182f6] transition-all"
+                  className="flex items-center gap-0.5 px-2.5 md:px-3 py-1.5 md:py-2 text-[#8b95a1] rounded-xl font-bold text-[12px] md:text-[13px] whitespace-nowrap hover:text-[#3182f6] transition-all"
                 >
-                  리뷰 더보기 <ChevronRight className="w-4 h-4" />
+                  더보기 <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 </Link>
               </div>
             </div>
@@ -732,7 +734,7 @@ export function VenueDetail() {
                   return (
                     <div key={review.id} className="bg-white rounded-2xl border border-[#f2f4f6] p-5">
                       <div className="flex items-start justify-between gap-3 mb-2">
-                        <p className="text-[15px] font-black text-[#191f28]">{review.title}</p>
+                        <p className="text-[15px] font-black text-[#191f28] break-keep">{review.title}</p>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-[12px] font-bold text-[#8b95a1]">
                             {review.createdAt?.seconds
@@ -759,7 +761,7 @@ export function VenueDetail() {
                           )}
                         </div>
                       </div>
-                      <p className="text-[14px] text-[#4e5968] font-semibold leading-relaxed whitespace-pre-wrap">
+                      <p className="text-[14px] text-[#4e5968] font-semibold leading-relaxed whitespace-pre-wrap break-keep">
                         {review.content}
                       </p>
                     </div>
@@ -782,8 +784,8 @@ export function VenueDetail() {
           {/* 예약 상담 CTA - 맨 아래, 전체 폭 */}
           <section className="lg:col-span-2 bg-[#3182f6] rounded-[24px] p-5 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h3 className="text-[18px] font-black mb-1 tracking-tight">예약 상담을 시작하시겠어요?</h3>
-              <p className="text-[13px] font-medium opacity-90 leading-relaxed">
+              <h3 className="text-[18px] font-black mb-1 tracking-tight break-keep">예약 상담을 시작하시겠어요?</h3>
+              <p className="text-[13px] font-medium opacity-90 leading-relaxed break-keep">
                 원하시는 날짜를 선택하고 간편하게 상담 신청을 완료하세요.
               </p>
             </div>
@@ -875,7 +877,7 @@ function CheckItem({ icon, label, value }: any) {
         </div>
         <span className="text-[#8b95a1] font-bold text-[13px]">{label}</span>
       </div>
-      <div className="text-[#191f28] font-black text-[15px] leading-relaxed whitespace-pre-wrap break-keep">
+      <div className="text-[#191f28] font-semibold text-[14px] leading-relaxed whitespace-pre-wrap break-keep">
         {value}
       </div>
     </div>
@@ -907,7 +909,7 @@ function InfoRow({ icon, label, value, last }: any) {
           <div className="opacity-70 shrink-0">{icon}</div>
           <span className="whitespace-nowrap">{label}</span>
         </div>
-        <p className="text-[#191f28] font-black text-[14px] leading-relaxed whitespace-pre-wrap break-keep">{value}</p>
+        <p className="text-[#191f28] font-semibold text-[14px] leading-relaxed whitespace-pre-wrap break-keep">{value}</p>
       </div>
     );
   }
@@ -918,7 +920,7 @@ function InfoRow({ icon, label, value, last }: any) {
         <div className="opacity-70 shrink-0">{icon}</div>
         <span className="whitespace-nowrap">{label}</span>
       </div>
-      <span className="text-[#191f28] font-black text-[14px] text-right break-keep">{value}</span>
+      <span className="text-[#191f28] font-semibold text-[14px] text-right break-keep">{value}</span>
     </div>
   );
 }

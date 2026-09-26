@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ScrollRestoration, useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Search, LayoutGrid, List, BadgeCheck, Tag } from "lucide-react";
+import { Gift, Search, LayoutGrid, List, BadgeCheck, Tag, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
 const VISIBLE_TAG_FILTER_COUNT = 12;
 
@@ -14,6 +14,13 @@ export function GoodsStoreList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
+  // 태그 필터 칩이 한 줄에 다 안 들어가면 가로 스크롤되는데, PC에서는 Shift+휠을
+  // 눌러야 옆으로 넘어간다는 걸 아는 사람이 거의 없다 - 클릭으로 넘기는 화살표 버튼을
+  // 양쪽에 추가해서 마우스만으로도 넘길 수 있게 한다 (모바일은 이미 좌우 스와이프로 가능).
+  const tagScrollRef = useRef<HTMLDivElement>(null);
+  const scrollTags = (direction: "left" | "right") => {
+    tagScrollRef.current?.scrollBy({ left: direction === "left" ? -220 : 220, behavior: "smooth" });
+  };
 
   useEffect(() => {
     const q = query(collection(db, "goodsStore"), where("status", "==", "approved"));
@@ -68,24 +75,43 @@ export function GoodsStoreList() {
         </div>
 
         {allTags.length > 0 && (
-          <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-1">
-            <button
-              onClick={() => setActiveTagFilter(null)}
-              className={`shrink-0 px-3.5 py-2 rounded-full text-[13px] font-bold border transition-all whitespace-nowrap ${!activeTagFilter ? "bg-[#191F28] border-[#191F28] text-white" : "bg-white border-[#E5E8EB] text-[#4E5968] hover:border-[#3182F6]/50"
-                }`}
-            >
-              전체
-            </button>
-            {allTags.map((tag) => (
+          <div className="relative mb-6">
+            <div ref={tagScrollRef} className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
               <button
-                key={tag}
-                onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
-                className={`shrink-0 px-3.5 py-2 rounded-full text-[13px] font-bold border transition-all whitespace-nowrap ${activeTagFilter === tag ? "bg-[#3182F6] border-[#3182F6] text-white" : "bg-white border-[#E5E8EB] text-[#4E5968] hover:border-[#3182F6]/50"
+                onClick={() => setActiveTagFilter(null)}
+                className={`shrink-0 px-3.5 py-2 rounded-full text-[13px] font-bold border transition-all whitespace-nowrap ${!activeTagFilter ? "bg-[#191F28] border-[#191F28] text-white" : "bg-white border-[#E5E8EB] text-[#4E5968] hover:border-[#3182F6]/50"
                   }`}
               >
-                #{tag}
+                전체
               </button>
-            ))}
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
+                  className={`shrink-0 px-3.5 py-2 rounded-full text-[13px] font-bold border transition-all whitespace-nowrap ${activeTagFilter === tag ? "bg-[#3182F6] border-[#3182F6] text-white" : "bg-white border-[#E5E8EB] text-[#4E5968] hover:border-[#3182F6]/50"
+                    }`}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+            {/* PC 전용 좌우 스크롤 화살표 - 모바일은 터치 스와이프로 이미 넘길 수 있어서 숨김 */}
+            <button
+              type="button"
+              onClick={() => scrollTags("left")}
+              className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 w-7 h-7 items-center justify-center bg-white border border-[#E5E8EB] rounded-full shadow-md text-[#4E5968] hover:bg-[#F9FAFB] transition-all"
+              aria-label="태그 왼쪽으로 이동"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollTags("right")}
+              className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-7 h-7 items-center justify-center bg-white border border-[#E5E8EB] rounded-full shadow-md text-[#4E5968] hover:bg-[#F9FAFB] transition-all"
+              aria-label="태그 오른쪽으로 이동"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -156,6 +182,9 @@ export function GoodsStoreList() {
                           {goods.introduction && (
                             <p className="text-[12px] font-bold text-[#4E5968] mt-1.5 truncate">{goods.introduction}</p>
                           )}
+                          <p className="flex items-center gap-1 text-[11px] font-bold text-[#B0B8C1] mt-1.5">
+                            <Eye className="w-3 h-3" /> 조회 {Number(goods.viewCount || 0).toLocaleString()}
+                          </p>
                         </div>
                       </motion.div>
                     );
@@ -198,6 +227,9 @@ export function GoodsStoreList() {
                             ))}
                           </div>
                         )}
+                        <p className="flex items-center gap-1 text-[11px] font-bold text-[#B0B8C1] -mt-1">
+                          <Eye className="w-3 h-3" /> 조회 {Number(goods.viewCount || 0).toLocaleString()}
+                        </p>
                       </div>
                     </motion.div>
                   );

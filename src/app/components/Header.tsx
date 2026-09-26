@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +30,10 @@ export function Header() {
   const [isBoardOpen, setIsBoardOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isVenueMenuOpen, setIsVenueMenuOpen] = useState(false);
+  // "연합 수련회 장소" 항목 클릭 시 우측으로 펼쳐지는 2차 서브메뉴 (연합 캠프 수련회 정보 /
+  // STAYON 국내 연합 캠프). 나머지 항목들과 달리 바로 이동하는 Link가 아니라 클릭으로
+  // 펼치는 구조라 별도 상태로 관리한다.
+  const [isUnionCampSubOpen, setIsUnionCampSubOpen] = useState(false);
   const [isSuppliesMenuOpen, setIsSuppliesMenuOpen] = useState(false);
   const [isPlannerMenuOpen, setIsPlannerMenuOpen] = useState(false);
   const [isRegisterMenuOpen, setIsRegisterMenuOpen] = useState(false);
@@ -375,7 +379,7 @@ export function Header() {
               </div>
 
               {/* 탭1: 장소 찾기 (공간 대여 - 장소/합주실/교회) */}
-              <div className="relative shrink-0" onMouseEnter={() => setIsVenueMenuOpen(true)} onMouseLeave={() => setIsVenueMenuOpen(false)}>
+              <div className="relative shrink-0" onMouseEnter={() => setIsVenueMenuOpen(true)} onMouseLeave={() => { setIsVenueMenuOpen(false); setIsUnionCampSubOpen(false); }}>
                 <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/venues") || isBandRoomTabActive || isActive("/booking-guide") || isActive("/churches") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   장소 찾기
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isVenueMenuOpen ? "rotate-180" : ""}`} />
@@ -393,6 +397,49 @@ export function Header() {
                         <div className="w-[34px] h-[34px] bg-[#EFF6FF] rounded-xl flex items-center justify-center group-hover:bg-[#DBEAFE]"><Compass className="w-5 h-5 text-[#2563EB]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">국내 선교 장소 검색</div><div className="text-[12px] text-[#8B95A1] font-bold">선교지 협력·봉사 연결</div></div>
                       </Link>
+                      {/* 연합 수련회 장소 - 아직 오픈 전이라 주석 처리. 클릭하면 우측으로
+                          2차 서브메뉴(연합 캠프 수련회 정보 / STAYON 국내 연합 캠프)가 펼쳐지는
+                          구조였음(재오픈 시 아래 주석만 풀면 됨).
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsUnionCampSubOpen((prev) => !prev)}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group"
+                        >
+                          <div className="w-[34px] h-[34px] bg-[#FAF5FF] rounded-xl flex items-center justify-center group-hover:bg-[#F3E8FF] shrink-0"><Users className="w-5 h-5 text-[#9333EA]" /></div>
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="text-[15px] font-black text-[#191F28]">연합 수련회 장소</div>
+                            <div className="text-[12px] text-[#8B95A1] font-bold">여러 교회가 함께하는 캠프</div>
+                          </div>
+                          <ChevronRight className={`w-4 h-4 text-[#ADB5BD] shrink-0 transition-transform ${isUnionCampSubOpen ? "rotate-90" : ""}`} />
+                        </button>
+                        <AnimatePresence>
+                          {isUnionCampSubOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
+                              className="absolute left-full top-0 ml-2 w-[240px] bg-white rounded-[24px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
+                            >
+                              <Link
+                                to="/union-camp-info"
+                                onClick={() => { setIsVenueMenuOpen(false); setIsUnionCampSubOpen(false); }}
+                                className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group"
+                              >
+                                <div className="w-[34px] h-[34px] bg-[#FAF5FF] rounded-xl flex items-center justify-center group-hover:bg-[#F3E8FF] shrink-0"><Info className="w-5 h-5 text-[#9333EA]" /></div>
+                                <div><div className="text-[14px] font-black text-[#191F28]">연합 캠프 수련회 정보</div><div className="text-[11px] text-[#8B95A1] font-bold">정보 제공</div></div>
+                              </Link>
+                              <Link
+                                to="/stayon-union-camp"
+                                onClick={() => { setIsVenueMenuOpen(false); setIsUnionCampSubOpen(false); }}
+                                className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group"
+                              >
+                                <div className="w-[34px] h-[34px] bg-[#FAF5FF] rounded-xl flex items-center justify-center group-hover:bg-[#F3E8FF] shrink-0"><Sparkles className="w-5 h-5 text-[#9333EA]" /></div>
+                                <div><div className="text-[14px] font-black text-[#191F28]">STAYON 국내 연합 캠프</div><div className="text-[11px] text-[#8B95A1] font-bold">스테이온이 직접 준비</div></div>
+                              </Link>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      */}
                       <Link to="/teams?category=bandroom" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F0F9FF] rounded-xl flex items-center justify-center group-hover:bg-[#E0F2FE]"><Music className="w-5 h-5 text-[#0EA5E9]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">합주실·연습실 찾기</div><div className="text-[12px] text-[#8B95A1] font-bold">연습·합주 공간 대여</div></div>
@@ -668,12 +715,14 @@ export function Header() {
                       <Church className="w-3.5 h-3.5" /> 전국 교회 등록하기
                     </Link>
                   )}
-                  {/* <Link to="/goods-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#F59E0B] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/goods-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#F59E0B] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
                     <Gift className="w-3.5 h-3.5" /> 굿즈 매장 등록하기
                   </Link>
                   <Link to="/shirts-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#EC4899] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
                     <Shirt className="w-3.5 h-3.5" /> 단체티·기념품 등록하기
                   </Link>
+                  {/* 차량·버스 대여는 데스크톱 드롭다운에서도 숨겨져 있음(직접 접근은 계속 가능) -
+                      모바일도 동일하게 유지.
                   <Link to="/vehicle-register" className="mt-2 flex items-center justify-center gap-1.5 py-2.5 bg-white rounded-xl text-[13px] font-black text-[#6366F1] text-center shadow-sm" onClick={() => setMobileMenuOpen(false)}>
                     <Bus className="w-3.5 h-3.5" /> 차량·버스 대여 등록하기
                   </Link> */}

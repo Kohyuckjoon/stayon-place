@@ -47,7 +47,9 @@ export const sendMailNotification = async (
     | "SHIRTS" | "SHIRTS_APPROVE"
     | "VEHICLE" | "VEHICLE_APPROVE"
     | "TEAM_BOOST"
-    | "RESERVE" | "APPROVE" | "CONFIRM" | "FINAL_DECISION" | "PAYMENT_COMPLETE",
+    | "RESERVE" | "APPROVE" | "CONFIRM" | "FINAL_DECISION" | "PAYMENT_COMPLETE"
+    | "VENUE_BLOCK_REQUEST" | "VENUE_BLOCK_APPROVED"
+    | "VENUE_BLOCK_AUTO_APPROVED",
   data: any
 ) => {
   let title = "";
@@ -289,6 +291,42 @@ export const sendMailNotification = async (
       {title: "예약자", value: data.userName},
       {title: "결제 금액", value: `${data.amount?.toLocaleString()}원`},
       {title: "결제 상태", value: "✅ 예약금 결제 완료"},
+    ];
+    break;
+
+  case "VENUE_BLOCK_REQUEST":
+    title = `🚫 ${data.titleDatesLabel} 장소 차단 신청이 도착했습니다`;
+    color = "#F04452";
+    fields = [
+      {title: "장소명", value: data.venueName},
+      {title: "신청 날짜", value: data.datesLabel},
+      {title: "장소 사용 신청 교회명", value: data.churchName},
+      {title: "예약 차단 사유", value: data.reason},
+      {title: "신청자", value: data.applicantEmail},
+      {title: "안내", value: "48시간 이내 미승인 시 자동 승인됩니다."},
+    ];
+    break;
+
+  case "VENUE_BLOCK_APPROVED":
+    title = `✅ ${data.titleDatesLabel} 장소 차단 신청 승인 완료`;
+    color = "#00d082";
+    fields = [
+      {title: "장소명", value: data.venueName},
+      {title: "승인된 날짜", value: data.datesLabel},
+      {title: "장소 사용 신청 교회명", value: data.churchName},
+      {title: "신청자", value: data.applicantEmail},
+    ];
+    break;
+
+  case "VENUE_BLOCK_AUTO_APPROVED":
+    title = `⏰ ${data.titleDatesLabel} 장소 차단 신청 자동승인이 완료되었습니다`;
+    color = "#00d082";
+    fields = [
+      {title: "장소명", value: data.venueName},
+      {title: "승인된 날짜", value: data.datesLabel},
+      {title: "장소 사용 신청 교회명", value: data.churchName},
+      {title: "신청자", value: data.applicantEmail},
+      {title: "안내", value: "운영자 미응답으로 기한이 지나 자동승인되었습니다."},
     ];
     break;
   }

@@ -241,7 +241,7 @@ export default function GoodsStoreRegistrationForm() {
           {/* 신청자 정보 */}
           <section className="mb-4">
             <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">신청자 정보</h3>
-            <CustomInput label="신청자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" autoFocus />
+            <CustomInput label="신청자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" />
             <CustomInput
               label="신청자 연락처" required
               value={formData.applicantContact}
@@ -341,17 +341,17 @@ export default function GoodsStoreRegistrationForm() {
           </section>
 
           {/* 필수 동의 사항 */}
-          <section className="mb-10 space-y-3">
+          <section className="mb-6 md:mb-10 space-y-2.5 md:space-y-3">
             <div
               onClick={() => setFormData({ ...formData, agreedToPrivacyPolicy: !formData.agreedToPrivacyPolicy })}
-              className="flex items-start gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+              className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
             >
               <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.agreedToPrivacyPolicy ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                 {formData.agreedToPrivacyPolicy && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
               </div>
               <div>
-                <span className="text-[15px] font-bold text-[#191f28] block mb-1">개인정보 및 업체정보 등록에 대한 동의 (필수)</span>
-                <span className="text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
+                <span className="text-[13px] md:text-[15px] font-bold text-[#191f28] block mb-1">개인정보 및 업체정보 등록에 대한 동의 (필수)</span>
+                <span className="text-[11px] md:text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
                   수집 목적: 업체 소개 및 문의 연락 · 보유 기간: 등록 삭제 시까지
                 </span>
               </div>
@@ -359,14 +359,14 @@ export default function GoodsStoreRegistrationForm() {
 
             <div
               onClick={() => setFormData({ ...formData, agreedToFeeNotice: !formData.agreedToFeeNotice })}
-              className="flex items-start gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+              className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
             >
               <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.agreedToFeeNotice ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                 {formData.agreedToFeeNotice && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
               </div>
               <div>
-                <span className="text-[15px] font-bold text-[#191f28] block mb-1">연간 게시 비용 안내 확인 (필수)</span>
-                <span className="text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
+                <span className="text-[13px] md:text-[15px] font-bold text-[#191f28] block mb-1">연간 게시 비용 안내 확인 (필수)</span>
+                <span className="text-[11px] md:text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
                   연간 게시 비용이 발생할 수 있으며, 발생 시 사전에 스테이온에서 안내드립니다.
                 </span>
               </div>

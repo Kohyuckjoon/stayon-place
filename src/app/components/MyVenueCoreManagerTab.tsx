@@ -2,12 +2,18 @@ import { useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { uploadVenueImage } from "../lib/storage";
-import { Camera, ImagePlus, Info, Loader2, Save, X } from "lucide-react";
+import { Calendar, Camera, ImagePlus, Info, Loader2, Save, X } from "lucide-react";
 import { VENUE_IMAGE_CATEGORIES, VenueImageCategoryKey } from "../lib/venueImageCategories";
+import { VenueBlockRequestModal } from "./VenueBlockRequestModal";
 
-// 마이페이지 "장소 관리자" 탭 - 승인된 장소 사장님이 설명·가격·사진 같은 핵심 정보만
-// 직접 수정할 수 있게 해준다. 시설/정책처럼 복잡한 필드는 관리자만 다룬다. AdminDashboard.tsx와
-// 같은 이유로 Firestore에 직접 쓰지 않고 Cloud Function(manageMyVenueCore)을 통해서만 쓴다.
+// 마이페이지 "장소 관리자" 탭 - 승인된 장소 사장님이 설명·가격·사진·예약 차단 날짜 같은
+// 핵심 정보만 직접 수정할 수 있게 해준다. 시설/정책처럼 복잡한 필드는 관리자만 다룬다.
+// AdminDashboard.tsx와 같은 이유로 Firestore에 직접 쓰지 않고 Cloud
+// Function(manageMyVenueCore)을 통해서만 쓴다. 예약 차단 날짜는 관리자 페이지·사용자
+// 예약 페이지와 완전히 같은 문서(venues/{id}.blockedDates)를 보므로, 여기서 바꾸면
+// 별도 동기화 없이 양쪽에 그대로 반영된다. 직거래 방지를 위해 새 차단은 운영자 승인
+// (또는 72시간 자동승인)을 거쳐야 하므로 VenueBlockRequestModal로 신청만 받고,
+// 이미 승인된 차단을 다시 여는 해제만 승인 없이 즉시 처리한다(toggleBlockedDate).
 export function MyVenueCoreManagerTab({ venue }: { venue: any }) {
   const [description, setDescription] = useState(venue.description || "");
   const [price, setPrice] = useState(String(venue.price || ""));
@@ -17,6 +23,9 @@ export function MyVenueCoreManagerTab({ venue }: { venue: any }) {
   const [uploadingCategory, setUploadingCategory] = useState<VenueImageCategoryKey | null>(null);
   const [removingPhoto, setRemovingPhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState("");
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [blockedDates, setBlockedDates] = useState<string[]>(venue.blockedDates || []);
+  const [scheduleError, setScheduleError] = useState("");
 
   const callManage = async (payload: any) => {
     const manageMyVenueCore = httpsCallable(functions, "manageMyVenueCore");
@@ -74,6 +83,23 @@ export function MyVenueCoreManagerTab({ venue }: { venue: any }) {
     }
   };
 
+  const handleToggleBlockedDate = async (dateStr: string, isCurrentlyBlocked: boolean) => {
+    setScheduleError("");
+    // 달력 클릭 반응성을 위해 먼저 화면에 낙관적으로 반영하고, 실패하면 되돌린다.
+    setBlockedDates((prev) => (isCurrentlyBlocked ? prev.filter((d) => d !== dateStr) : [...prev, dateStr]));
+    try {
+      const result = await callManage({ action: "toggleBlockedDate", dateStr, isCurrentlyBlocked });
+      if (!result.success) {
+        setBlockedDates((prev) => (isCurrentlyBlocked ? [...prev, dateStr] : prev.filter((d) => d !== dateStr)));
+        setScheduleError(result.error || "날짜 변경 중 오류가 발생했습니다.");
+      }
+    } catch (err) {
+      console.error("예약 차단 날짜 변경 실패:", err);
+      setBlockedDates((prev) => (isCurrentlyBlocked ? [...prev, dateStr] : prev.filter((d) => d !== dateStr)));
+      setScheduleError("날짜 변경 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <div className="space-y-5 md:space-y-8">
       <div className="bg-[#3182F6] p-6 md:p-10 rounded-[24px] md:rounded-[40px] text-white flex flex-col md:flex-row items-center text-center md:text-left justify-between gap-4 md:gap-8 shadow-xl shadow-blue-100">
@@ -84,6 +110,35 @@ export function MyVenueCoreManagerTab({ venue }: { venue: any }) {
           </p>
         </div>
       </div>
+
+      <div className="bg-white p-5 md:p-8 rounded-[24px] md:rounded-[32px] border border-gray-100 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h4 className="text-[15px] font-black text-[#191F28] mb-1">예약 차단 날짜</h4>
+            <p className="text-[12px] font-bold text-[#8B95A1]">
+              {blockedDates.length > 0 ? `승인된 차단 ${blockedDates.length}일` : "승인된 차단 날짜가 없어요"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsScheduleOpen(true)}
+            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-[#F2F8FF] text-[#3182F6] rounded-xl font-black text-[13px] hover:bg-[#E8F3FF] transition-all"
+          >
+            <Calendar className="w-4 h-4" /> 차단 신청
+          </button>
+        </div>
+        {scheduleError && (
+          <div className="mt-3 p-3 bg-[#FFF0F0] border border-[#FFD7D7] rounded-xl text-[13px] font-bold text-[#F04452]">{scheduleError}</div>
+        )}
+      </div>
+
+      {isScheduleOpen && (
+        <VenueBlockRequestModal
+          venue={{ id: venue.id, venueName: venue.venueName, location: venue.location, blockedDates }}
+          onUnblock={(dateStr) => handleToggleBlockedDate(dateStr, true)}
+          onClose={() => setIsScheduleOpen(false)}
+        />
+      )}
 
       <div className="flex items-start gap-2.5 p-4 bg-[#F2F8FF] border border-[#D6E8FF] rounded-2xl">
         <Info className="w-4 h-4 text-[#3182F6] shrink-0 mt-0.5" />

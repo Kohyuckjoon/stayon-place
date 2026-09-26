@@ -271,32 +271,32 @@ export default function TeamRegistrationForm() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-xl mx-auto px-6 pt-16 pb-24">
+      <div className="max-w-xl mx-auto px-6 pt-6 md:pt-10 pb-24">
         {/* 안내 헤더 */}
-        <div className="mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#f5f3ff] text-[#8b5cf6] rounded-full mb-6 text-sm font-black">
+        <div className="mb-6 md:mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 md:px-4 py-1.5 md:py-2 bg-[#f5f3ff] text-[#8b5cf6] rounded-full mb-3 md:mb-6 text-[12px] md:text-sm font-black">
             <Mic2 className="w-4 h-4" /> 외부 사역팀 등록
           </div>
-          <h1 className="text-[30px] font-black text-[#191f28] mb-3 leading-tight tracking-tight break-keep">
+          <h1 className="text-[21px] md:text-[30px] font-black text-[#191f28] mb-2 md:mb-3 leading-tight tracking-tight break-keep">
             찬양팀·찬양사역자·세션팀을<br />
             <span className="text-[#8b5cf6]">교회에 소개해보세요</span>
           </h1>
-          <p className="text-[15px] text-[#4e5968] leading-relaxed break-keep font-medium">
+          <p className="text-[13px] md:text-[15px] text-[#4e5968] leading-relaxed break-keep font-medium">
             수련회 장소와 상관없이 섭외를 진행할 수 있고, 등록 및 이용에 비용이 발생하지 않아요.
           </p>
 
-          <div className="mt-6 p-5 bg-[#f9fafb] rounded-[20px] border border-[#f2f4f6]">
-            <p className="text-[13px] text-[#8b95a1] font-bold leading-relaxed break-keep">
+          <div className="mt-4 md:mt-6 p-4 md:p-5 bg-[#f9fafb] rounded-[18px] md:rounded-[20px] border border-[#f2f4f6]">
+            <p className="text-[12px] md:text-[13px] text-[#8b95a1] font-bold leading-relaxed break-keep">
               등록은 현재 무료로 제공되고 있어요. 다만 플랫폼 유지를 위해 추후 연간 게시 비용이 청구될 수 있는 점 참고 부탁드려요.
             </p>
           </div>
 
-          <div className="mt-4 bg-white border-2 border-red-100 rounded-[24px] p-5 shadow-sm">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full mb-3">
+          <div className="mt-3 md:mt-4 bg-white border-2 border-red-100 rounded-[20px] md:rounded-[24px] p-4 md:p-5 shadow-sm">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full mb-2.5 md:mb-3">
               <Ban className="w-3.5 h-3.5" />
               <span className="text-[12px] font-black tracking-tight">이단 · 신천지 원천 차단 정책</span>
             </div>
-            <p className="text-[#4e5968] text-[13px] font-medium leading-relaxed break-keep">
+            <p className="text-[#4e5968] text-[12px] md:text-[13px] font-medium leading-relaxed break-keep">
               스테이온은 신천지, 이단을 절대 금지하며, 소속이 불분명한 경우 등록이 거절될 수 있습니다.
             </p>
           </div>
@@ -304,9 +304,9 @@ export default function TeamRegistrationForm() {
 
         <form onSubmit={handleSubmit} className="space-y-2">
           {/* 대표자 정보 */}
-          <section className="mb-4">
-            <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">대표자 정보</h3>
-            <CustomInput label="대표자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" autoFocus />
+          <section className="mb-3 md:mb-4">
+            <h3 className="text-[13px] font-bold text-[#6b7684] mb-4 md:mb-6 ml-1 uppercase tracking-wider">대표자 정보</h3>
+            <CustomInput label="대표자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" />
             <CustomInput
               label="연락처" required
               value={formData.applicantContact}
@@ -318,10 +318,10 @@ export default function TeamRegistrationForm() {
           </section>
 
           {/* 담임목사님 다름 여부 */}
-          <section className="mb-4">
+          <section className="mb-3 md:mb-4">
             <div
               onClick={() => setFormData({ ...formData, pastorDifferent: !formData.pastorDifferent })}
-              className="flex items-center gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+              className="flex items-center gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
             >
               <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${formData.pastorDifferent ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                 {formData.pastorDifferent && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
@@ -337,7 +337,7 @@ export default function TeamRegistrationForm() {
                       <CustomInput label="담임목사님 성함" required value={formData.pastorName} onChange={(v) => setFormData({ ...formData, pastorName: v })} placeholder="김목사" />
                       <div
                         onClick={() => setFormData({ ...formData, pastorConsentAgreed: !formData.pastorConsentAgreed })}
-                        className="flex items-start gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
+                        className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
                       >
                         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.pastorConsentAgreed ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                           {formData.pastorConsentAgreed && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
@@ -359,19 +359,19 @@ export default function TeamRegistrationForm() {
           {/* 소속 교회 정보 - 모든 신청자(개인/팀/업체 불문)가 항상 입력해야 하는 필수 정보.
               스테이온은 정식 교단에 소속된 교회/사역지 소속만 등록을 받으므로 예/아니오 분기 없이
               바로 입력받는다. */}
-          <section className="mb-10">
-            <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">소속 교회 정보</h3>
+          <section className="mb-6 md:mb-10">
+            <h3 className="text-[13px] font-bold text-[#6b7684] mb-4 md:mb-6 ml-1 uppercase tracking-wider">소속 교회 정보</h3>
             <div>
                 <CustomInput label="소속 교회명" required value={formData.churchName} onChange={(v) => setFormData({ ...formData, churchName: v })} placeholder="예: 은혜교회" />
 
                 {/* 교단 선택 섹션 - RegisterVenue.tsx와 동일한 목록/UI를 그대로 재사용 */}
-                <div className="mb-8 relative">
+                <div className="mb-5 md:mb-8 relative">
                   <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1">
                     소속 교단 <span className="text-[#3182f6]">*</span>
                   </label>
                   <div
                     onClick={() => setIsDenoOpen(!isDenoOpen)}
-                    className={`flex justify-between items-center text-[18px] font-bold py-3 border-b-2 transition-all cursor-pointer ${isDenoOpen ? "border-[#3182f6]" : "border-[#f2f4f6] hover:border-[#e5e8eb]"}`}
+                    className={`flex justify-between items-center text-[15px] md:text-[18px] font-bold py-2.5 md:py-3 border-b-2 transition-all cursor-pointer ${isDenoOpen ? "border-[#3182f6]" : "border-[#f2f4f6] hover:border-[#e5e8eb]"}`}
                   >
                     <span className={(formData.denomination || isCustomDeno) ? "text-[#191f28]" : "text-[#d1d6db]"}>
                       {isCustomDeno ? "직접 입력" : (formData.denomination || "선택해주세요")}
@@ -433,7 +433,7 @@ export default function TeamRegistrationForm() {
                   <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1">
                     소속 교회 주소 <span className="text-[#3182f6]">*</span>
                   </label>
-                  <div onClick={handleChurchAddressSearch} className="flex items-center gap-3 text-[18px] font-bold py-3 border-b-2 border-[#f2f4f6] cursor-pointer hover:border-[#e5e8eb] transition-all">
+                  <div onClick={handleChurchAddressSearch} className="flex items-center gap-3 text-[15px] md:text-[18px] font-bold py-2.5 md:py-3 border-b-2 border-[#f2f4f6] cursor-pointer hover:border-[#e5e8eb] transition-all">
                     <MapPin className="w-5 h-5 text-[#3182f6] shrink-0" strokeWidth={2.5} />
                     <span className={formData.churchAddress ? "text-[#191f28]" : "text-[#d1d6db]"}>
                       {formData.churchAddress || "주소 검색하기"}
@@ -442,7 +442,7 @@ export default function TeamRegistrationForm() {
                   {formData.churchAddress && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
                       <input
-                        className="w-full text-[16px] font-bold py-3 outline-none border-b-2 border-[#f2f4f6] focus:border-[#3182f6] bg-transparent placeholder:text-[#d1d6db] transition-all"
+                        className="w-full text-[14px] md:text-[16px] font-bold py-2.5 md:py-3 outline-none border-b-2 border-[#f2f4f6] focus:border-[#3182f6] bg-transparent placeholder:text-[#d1d6db] transition-all"
                         placeholder="상세 주소를 입력해주세요"
                         value={formData.churchAddressDetail}
                         onChange={(e) => setFormData({ ...formData, churchAddressDetail: e.target.value })}
@@ -482,7 +482,7 @@ export default function TeamRegistrationForm() {
           </section>
 
           {/* 활동 이력 */}
-          <section className="mb-8">
+          <section className="mb-5 md:mb-8">
             <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">
               활동 이력 / 경력 소개 <span className="text-[#3182f6]">*</span>
             </label>
@@ -490,13 +490,13 @@ export default function TeamRegistrationForm() {
               value={formData.experience}
               onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
               placeholder="주요 활동 이력, 수련회/집회 인도 경험, 참고할 만한 링크 등을 자유롭게 적어주세요. 관리자 승인의 주요 근거가 됩니다."
-              className="w-full bg-[#f9fafb] rounded-[24px] p-6 outline-none text-[15px] font-bold text-[#191f28] min-h-[140px] resize-none focus:bg-white border border-[#f2f4f6] focus:border-[#3182f6] transition-all placeholder:text-[#d1d6db] placeholder:font-medium"
+              className="w-full bg-[#f9fafb] rounded-[20px] md:rounded-[24px] p-4 md:p-6 outline-none text-[14px] md:text-[15px] font-bold text-[#191f28] min-h-[110px] md:min-h-[140px] resize-none focus:bg-white border border-[#f2f4f6] focus:border-[#3182f6] transition-all placeholder:text-[#d1d6db] placeholder:font-medium"
             />
           </section>
 
           {/* 팀 정보 */}
-          <section className="mb-4">
-            <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">팀 정보</h3>
+          <section className="mb-3 md:mb-4">
+            <h3 className="text-[13px] font-bold text-[#6b7684] mb-4 md:mb-6 ml-1 uppercase tracking-wider">팀 정보</h3>
 
             <div
               onClick={() => setFormData({ ...formData, isIndividual: !formData.isIndividual })}
@@ -572,7 +572,7 @@ export default function TeamRegistrationForm() {
             {formData.category === "음향·조명" && (
               <div
                 onClick={() => setFormData({ ...formData, hasLighting: !formData.hasLighting })}
-                className="flex items-center gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
+                className="flex items-center gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
               >
                 <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${formData.hasLighting ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                   {formData.hasLighting && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
@@ -599,7 +599,7 @@ export default function TeamRegistrationForm() {
             {!formData.isIndividual && !isInstructorCategory && (
               <div
                 onClick={() => setFormData({ ...formData, hasSoundEngineer: !formData.hasSoundEngineer })}
-                className="flex items-center gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
+                className="flex items-center gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
               >
                 <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${formData.hasSoundEngineer ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                   {formData.hasSoundEngineer && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
@@ -628,7 +628,7 @@ export default function TeamRegistrationForm() {
           </section>
 
           {/* 팀 이미지 */}
-          <section className="mb-10">
+          <section className="mb-6 md:mb-10">
             <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">
               팀 포스터/소개 이미지 <span className="text-[#b0b8c1] font-medium">(선택, 최대 {MAX_TEAM_IMAGES}장)</span>
             </label>
@@ -658,7 +658,7 @@ export default function TeamRegistrationForm() {
           </section>
 
           {/* 가입 경로 */}
-          <section className="mb-10">
+          <section className="mb-6 md:mb-10">
             <PillSelector
               label="어떤 경로로 등록하게 되셨나요?"
               options={REFERRAL_OPTIONS}
@@ -687,10 +687,10 @@ export default function TeamRegistrationForm() {
           </section>
 
           {/* 필수 동의 사항 */}
-          <section className="mb-10 space-y-3">
+          <section className="mb-6 md:mb-10 space-y-2.5 md:space-y-3">
             <div
               onClick={() => setFormData({ ...formData, agreedToPrivacyPolicy: !formData.agreedToPrivacyPolicy })}
-              className="flex items-start gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+              className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
             >
               <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.agreedToPrivacyPolicy ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                 {formData.agreedToPrivacyPolicy && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
@@ -705,7 +705,7 @@ export default function TeamRegistrationForm() {
 
             <div
               onClick={() => setFormData({ ...formData, agreedToFeeNotice: !formData.agreedToFeeNotice })}
-              className="flex items-start gap-3 p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+              className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
             >
               <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.agreedToFeeNotice ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
                 {formData.agreedToFeeNotice && <Check className="w-4 h-4 text-white" strokeWidth={4} />}

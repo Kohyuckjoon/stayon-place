@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { uploadPartnerImage } from "../lib/storage";
-import { Camera, Gift, Info, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, Gift, GripVertical, Info, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 
 const STORAGE_FOLDER = "goods-store";
 
@@ -31,6 +31,8 @@ export function MyGoodsManagerTab({ goods }: { goods: any }) {
   });
   const [savingId, setSavingId] = useState<string | null>(null); // "new" | product.id
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const draftPhotoInputRef = useRef<HTMLInputElement>(null);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -156,6 +158,46 @@ export function MyGoodsManagerTab({ goods }: { goods: any }) {
     }
   };
 
+  const reorderTo = async (orderedIds: string[]) => {
+    setError("");
+    setReordering(true);
+    try {
+      const result = await callManage({ action: "reorder", orderedIds });
+      if (!result.success) {
+        setError(result.error || "순서 변경 중 오류가 발생했습니다.");
+      }
+    } catch (err) {
+      console.error("상품 순서 변경 실패:", err);
+      setError("순서 변경 중 오류가 발생했습니다.");
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const moveProduct = (idx: number, direction: -1 | 1) => {
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= products.length) return;
+    const next = [...products];
+    [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+    reorderTo(next.map((p) => p.id));
+  };
+
+  const handleDropOn = (targetId: string) => {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+    const ids = products.map((p) => p.id);
+    const fromIdx = ids.indexOf(draggedId);
+    const toIdx = ids.indexOf(targetId);
+    setDraggedId(null);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const next = [...ids];
+    next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, draggedId);
+    reorderTo(next);
+  };
+
   return (
     <div className="space-y-5 md:space-y-8">
       <div className="bg-[#3182F6] p-6 md:p-10 rounded-[24px] md:rounded-[40px] text-white flex flex-col md:flex-row items-center text-center md:text-left justify-between gap-4 md:gap-8 shadow-xl shadow-blue-100">
@@ -247,101 +289,149 @@ export function MyGoodsManagerTab({ goods }: { goods: any }) {
         </div>
       )}
 
-      <div className="space-y-4">
-        {products.length === 0 && !isAdding ? (
-          <div className="py-14 md:py-20 text-center bg-white rounded-[22px] md:rounded-[32px] border border-dashed border-gray-200">
-            <Gift className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-[#ADB5BD] font-bold text-[13px] md:text-base">등록된 상품이 없어요. "상품 추가"로 첫 상품을 올려보세요.</p>
-          </div>
-        ) : (
-          products.map((product) => {
-            const isEditing = editingId === product.id;
+      {products.length === 0 && !isAdding ? (
+        <div className="py-14 md:py-20 text-center bg-white rounded-[22px] md:rounded-[32px] border border-dashed border-gray-200">
+          <Gift className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-[#ADB5BD] font-bold text-[13px] md:text-base">등록된 상품이 없어요. "상품 추가"로 첫 상품을 올려보세요.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          {products.map((product, idx) => {
             return (
-              <div key={product.id} className="bg-white p-5 md:p-6 rounded-[24px] border border-gray-100 shadow-sm">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div className="flex gap-4">
-                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-[#F9FAFB] border border-gray-100 shrink-0">
-                        {(editDraft.photoPreview || product.photo) ? (
-                          <img src={editDraft.photoPreview || product.photo} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#ADB5BD]"><Camera className="w-5 h-5" /></div>
-                        )}
-                        <button type="button" onClick={() => editPhotoInputRef.current?.click()} className="absolute bottom-1 right-1 p-1.5 bg-[#191F28] text-white rounded-full shadow-md hover:bg-black transition-all">
-                          <Camera className="w-3.5 h-3.5" />
-                        </button>
-                        <input ref={editPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleEditPhotoChange} />
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <input
-                          value={editDraft.name}
-                          onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-4 py-2.5 bg-[#F9FAFB] rounded-xl text-[14px] font-bold outline-none border border-transparent focus:border-[#3182F6] focus:bg-white transition-all"
-                        />
-                        <input
-                          value={editDraft.price}
-                          onChange={(e) => setEditDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))}
-                          inputMode="numeric"
-                          className="w-full px-4 py-2.5 bg-[#F9FAFB] rounded-xl text-[14px] font-bold outline-none border border-transparent focus:border-[#3182F6] focus:bg-white transition-all"
-                        />
-                      </div>
-                    </div>
-                    <textarea
-                      value={editDraft.description}
-                      onChange={(e) => setEditDraft((prev) => ({ ...prev, description: e.target.value }))}
-                      className="w-full min-h-[80px] px-4 py-3 bg-[#F9FAFB] rounded-xl text-[13px] font-medium outline-none border border-transparent focus:border-[#3182F6] focus:bg-white transition-all resize-none"
-                    />
-                    <div className="flex gap-2">
-                      <button type="button" onClick={cancelEdit} className="flex-1 py-3 bg-[#F2F4F6] text-[#4E5968] rounded-xl font-bold text-[13px]">취소</button>
-                      <button
-                        type="button"
-                        onClick={() => handleEditSubmit(product)}
-                        disabled={savingId === product.id}
-                        className="flex-[2] py-3 bg-[#3182F6] text-white rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-60"
-                      >
-                        {savingId === product.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                        저장하기
-                      </button>
-                    </div>
+              <div
+                key={product.id}
+                draggable
+                onDragStart={() => setDraggedId(product.id)}
+                onDragEnd={() => setDraggedId(null)}
+                onDragOver={(e) => { if (draggedId) e.preventDefault(); }}
+                onDrop={(e) => { e.preventDefault(); handleDropOn(product.id); }}
+                className={`bg-white rounded-[20px] md:rounded-[24px] border shadow-sm overflow-hidden transition-opacity ${draggedId === product.id ? "opacity-40 border-[#3182F6]" : "border-gray-100"}`}
+              >
+                <div className="relative aspect-video bg-[#F2F4F6]">
+                  {product.photo ? (
+                    <img src={product.photo} draggable={false} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><Gift className="w-7 h-7 text-[#D1D6DB]" /></div>
+                  )}
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button type="button" onClick={() => startEdit(product)} className="p-1.5 bg-white/90 backdrop-blur rounded-lg text-[#4E5968] hover:bg-white transition-all shadow-sm">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(product)}
+                      disabled={deletingId === product.id}
+                      className="p-1.5 bg-white/90 backdrop-blur rounded-lg text-[#F04452] hover:bg-white transition-all shadow-sm disabled:opacity-60"
+                    >
+                      {deletingId === product.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
-                ) : (
-                  <div className="flex gap-4">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#F2F4F6] shrink-0">
-                      {product.photo ? (
-                        <img src={product.photo} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center"><Gift className="w-5 h-5 text-[#D1D6DB]" /></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[15px] font-black text-[#191F28] truncate">{product.name || "상품"}</h4>
-                      {Number(product.price) > 0 && (
-                        <p className="text-[13px] font-black text-[#3182F6] mt-0.5">{Number(product.price).toLocaleString()}원</p>
-                      )}
-                      {product.description && (
-                        <p className="text-[12px] font-medium text-[#8B95A1] mt-1 line-clamp-2 break-keep">{product.description}</p>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1.5 shrink-0">
-                      <button type="button" onClick={() => startEdit(product)} className="p-2 bg-[#F2F4F6] rounded-lg text-[#4E5968] hover:bg-[#E5E8EB] transition-all">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(product)}
-                        disabled={deletingId === product.id}
-                        className="p-2 bg-[#FFF0F0] rounded-lg text-[#F04452] hover:bg-[#FFE0E0] transition-all disabled:opacity-60"
-                      >
-                        {deletingId === product.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                  <div className="absolute bottom-2 left-2 p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hidden sm:flex cursor-grab" title="드래그해서 순서 변경">
+                    <GripVertical className="w-3 h-3" />
                   </div>
-                )}
+                  <div className="absolute bottom-2 right-2 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveProduct(idx, -1)}
+                      disabled={idx === 0 || reordering}
+                      className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="이전으로 이동"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveProduct(idx, 1)}
+                      disabled={idx === products.length - 1 || reordering}
+                      className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="다음으로 이동"
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-3.5 md:p-4">
+                  <h4 className="text-[14px] md:text-[15px] font-black text-[#191F28] truncate">{product.name || "상품"}</h4>
+                  {Number(product.price) > 0 && (
+                    <p className="text-[13px] font-black text-[#3182F6] mt-0.5">{Number(product.price).toLocaleString()}원</p>
+                  )}
+                  {product.description && (
+                    <p className="text-[11px] md:text-[12px] font-medium text-[#8B95A1] mt-1 line-clamp-2 break-keep">{product.description}</p>
+                  )}
+                </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
+
+      {editingId && (() => {
+        const product = products.find((p) => p.id === editingId);
+        if (!product) return null;
+        return (
+          <div
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#191F28]/70 backdrop-blur-sm"
+            onClick={cancelEdit}
+          >
+            <div
+              className="bg-white w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-[28px] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-[#F2F4F6] flex items-center justify-between gap-4">
+                <h4 className="text-[17px] font-black text-[#191F28]">상품 수정</h4>
+                <button type="button" onClick={cancelEdit} className="p-1.5 text-[#ADB5BD] hover:text-[#4E5968] transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex gap-4">
+                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-[#F9FAFB] border border-gray-100 shrink-0">
+                    {(editDraft.photoPreview || product.photo) ? (
+                      <img src={editDraft.photoPreview || product.photo} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#ADB5BD]"><Camera className="w-5 h-5" /></div>
+                    )}
+                    <button type="button" onClick={() => editPhotoInputRef.current?.click()} className="absolute bottom-1 right-1 p-1.5 bg-[#191F28] text-white rounded-full shadow-md hover:bg-black transition-all">
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                    <input ref={editPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleEditPhotoChange} />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <input
+                      value={editDraft.name}
+                      onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-[#F9FAFB] rounded-xl text-[14px] font-bold outline-none border border-transparent focus:border-[#3182F6] focus:bg-white transition-all"
+                    />
+                    <input
+                      value={editDraft.price}
+                      onChange={(e) => setEditDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))}
+                      inputMode="numeric"
+                      className="w-full px-4 py-2.5 bg-[#F9FAFB] rounded-xl text-[14px] font-bold outline-none border border-transparent focus:border-[#3182F6] focus:bg-white transition-all"
+                    />
+                  </div>
+                </div>
+                <textarea
+                  value={editDraft.description}
+                  onChange={(e) => setEditDraft((prev) => ({ ...prev, description: e.target.value }))}
+                  className="w-full min-h-[80px] px-4 py-3 bg-[#F9FAFB] rounded-xl text-[13px] font-medium outline-none border border-transparent focus:border-[#3182F6] focus:bg-white transition-all resize-none"
+                />
+                <div className="flex gap-2">
+                  <button type="button" onClick={cancelEdit} className="flex-1 py-3 bg-[#F2F4F6] text-[#4E5968] rounded-xl font-bold text-[13px]">취소</button>
+                  <button
+                    type="button"
+                    onClick={() => handleEditSubmit(product)}
+                    disabled={savingId === product.id}
+                    className="flex-[2] py-3 bg-[#3182F6] text-white rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  >
+                    {savingId === product.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    저장하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

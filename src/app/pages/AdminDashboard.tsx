@@ -9,12 +9,13 @@ import {
   Maximize2, Video, Utensils, Plus, Image as ImageIcon,
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
-  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone
+  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone, Ban, Church
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { db, storage } from "../lib/firebase";
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayUnion, arrayRemove, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, storage, functions } from "../lib/firebase";
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, where, arrayUnion, arrayRemove, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
 import { VenueScheduleModal } from "../components/admin/VenueScheduleModal";
@@ -250,8 +251,8 @@ const CategoryImageGrid = ({
   );
 };
 
-type VenueTab = "pending" | "approved" | "rejected" | "schedule";
-const VALID_VENUE_TABS: VenueTab[] = ["pending", "approved", "rejected", "schedule"];
+type VenueTab = "pending" | "approved" | "rejected" | "schedule" | "blockRequests";
+const VALID_VENUE_TABS: VenueTab[] = ["pending", "approved", "rejected", "schedule", "blockRequests"];
 
 export function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -264,6 +265,8 @@ export function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [venues, setVenues] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [blockRequests, setBlockRequests] = useState<any[]>([]);
+  const [decidingBlockRequestId, setDecidingBlockRequestId] = useState<string | null>(null);
   const [suspendedCount, setSuspendedCount] = useState(0);
   const [scheduleVenueId, setScheduleVenueId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -281,6 +284,7 @@ export function AdminDashboard() {
   const [depositType, setDepositType] = useState<"percent" | "amount">("percent");
   const [boostAmount, setBoostAmount] = useState("7");
   const [boostUnit, setBoostUnit] = useState<"일" | "개월">("일");
+  const [managerEmailInput, setManagerEmailInput] = useState("");
 
   const AVAILABLE_BADGES = [
     { id: "stayon", label: "스테이온 인증", icon: ShieldCheck, color: "#3182F6", bg: "#E8F3FF" },
@@ -490,6 +494,31 @@ export function AdminDashboard() {
     return () => unsubscribe();
   }, []);
 
+  // 장소 관리자(마이페이지)가 신청한, 아직 처리 안 된 예약 차단 신청 목록.
+  // 승인/거절은 decideVenueBlockRequest(functions/src/venueBlockRequest.ts)로만 처리한다.
+  useEffect(() => {
+    const q = query(collection(db, "venueBlockRequests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setBlockRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleDecideBlockRequest = async (requestId: string, action: "approve" | "reject") => {
+    setDecidingBlockRequestId(requestId);
+    try {
+      const decideVenueBlockRequest = httpsCallable(functions, "decideVenueBlockRequest");
+      const res = await decideVenueBlockRequest({ requestId, action });
+      const result = res.data as { success: boolean; error?: string };
+      if (!result.success) alert(result.error || "처리 중 오류가 발생했습니다.");
+    } catch (error) {
+      console.error("장소 차단 신청 처리 실패:", error);
+      alert("처리 중 오류가 발생했습니다.");
+    } finally {
+      setDecidingBlockRequestId(null);
+    }
+  };
+
   // 사이드바의 "차단된 회원" 배지 표시용 (실제 목록/상세는 /admin/users에서 관리)
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
@@ -610,6 +639,43 @@ export function AdminDashboard() {
     } catch (error) {
       console.error("끌어올리기 해제 실패:", error);
       alert("끌어올리기 해제 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 마이페이지 관리자 위임: applicantUid(최초 등록자)가 아니어도, 여기서 추가한 이메일로
+  // 로그인하면 마이페이지 "장소 관리자" 탭에서 이 장소를 관리할 수 있게 된다(서버측
+  // 권한 검사는 functions/src/index.ts의 manageMyVenueCore 참고). 끌어올리기와 같은
+  // 이유로 수정 모드/저장 버튼과 무관하게 클릭 즉시 반영한다.
+  const handleAddManagerEmail = async (id: string) => {
+    const email = managerEmailInput.trim().toLowerCase();
+    if (!email) return;
+    const current: string[] = selectedVenue?.managerEmails || [];
+    if (current.includes(email)) {
+      setManagerEmailInput("");
+      return;
+    }
+    try {
+      const updateData = { managerEmails: [...current, email] };
+      await updateDoc(doc(db, "venues", id), updateData);
+      setSelectedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setManagerEmailInput("");
+    } catch (error) {
+      console.error("관리자 계정 추가 실패:", error);
+      alert("관리자 계정 추가 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleRemoveManagerEmail = async (id: string, email: string) => {
+    try {
+      const next = (selectedVenue?.managerEmails || []).filter((e: string) => e !== email);
+      const updateData = { managerEmails: next };
+      await updateDoc(doc(db, "venues", id), updateData);
+      setSelectedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedVenue((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+    } catch (error) {
+      console.error("관리자 계정 삭제 실패:", error);
+      alert("관리자 계정 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -752,6 +818,7 @@ export function AdminDashboard() {
     approved: { title: "승인 완료된 장소", subtitle: "현재 운영 중인 장소 목록을 확인하고 관리하세요." },
     rejected: { title: "반려 / 삭제 내역", subtitle: "반려되었거나 삭제된 신청 내역을 확인하세요." },
     schedule: { title: "장소별 일정 관리", subtitle: "오픈된 장소의 예약 불가(차단) 일정을 관리하세요." },
+    blockRequests: { title: "장소 차단 신청 승인", subtitle: "직거래 방지를 위해 접수된 예약 차단 신청을 검토하세요. 48시간 내 미처리 시 자동 승인됩니다." },
   };
   const adminEmail = getAuth().currentUser?.email || "admin@stayon.com";
   const openVenues = venues.filter(v => v.status === "approved" && (v.venueName || "").includes(searchQuery));
@@ -792,6 +859,7 @@ export function AdminDashboard() {
             { id: "approved", label: "승인 완료", count: approvedCount, icon: CheckCircle, accentColor: "#3182F6" },
             { id: "rejected", label: "반려 / 삭제", count: rejectedCount, icon: XCircle, accentColor: "#F04452" },
             { id: "schedule", label: "장소별 일정관리", count: approvedCount, icon: Calendar },
+            { id: "blockRequests", label: "차단 신청 승인", count: blockRequests.length, icon: Ban, accentColor: "#F04452" },
           ],
         },
         {
@@ -884,7 +952,8 @@ export function AdminDashboard() {
             { id: "pending", label: "검토 대기", count: pendingCount },
             { id: "approved", label: "승인 완료", count: approvedCount },
             { id: "rejected", label: "반려/삭제", count: rejectedCount },
-            { id: "schedule", label: "일정관리", count: approvedCount }
+            { id: "schedule", label: "일정관리", count: approvedCount },
+            { id: "blockRequests", label: "차단 신청", count: blockRequests.length }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -903,7 +972,7 @@ export function AdminDashboard() {
           <p className="text-[#4E5968] font-bold text-[13px] md:text-[14px]">{headerCopy[activeTab].subtitle}</p>
         </div>
 
-        {activeTab !== "schedule" && (
+        {activeTab !== "schedule" && activeTab !== "blockRequests" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             <StatCard title="검토 대기중" value={`${pendingCount}건`} icon={Clock} colorClass="bg-[#FF9500]" onClick={() => setActiveTab("pending")} isActive={activeTab === "pending"} />
             <StatCard title="운영 중인 장소" value={`${approvedCount}개`} icon={Building2} colorClass="bg-[#3182F6]" onClick={() => setActiveTab("approved")} isActive={activeTab === "approved"} />
@@ -911,7 +980,69 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === "schedule" ? (
+        {activeTab === "blockRequests" ? (
+          <div className="space-y-3">
+            {blockRequests.length > 0 ? blockRequests.map((req) => (
+              <div key={req.id} className="bg-white p-5 rounded-2xl border border-[#F2F4F6] shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-black text-[#191F28] truncate">{req.venueName}</p>
+                    <p className="text-[12px] font-bold text-[#8B95A1] mt-0.5">
+                      {req.createdAt?.toDate?.() ? req.createdAt.toDate().toLocaleString("ko-KR", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"} 신청 · {req.requestedByEmail}
+                    </p>
+                  </div>
+                  <span className="shrink-0 px-2.5 py-1 bg-[#FFF7ED] text-[#C2410C] rounded-full text-[11px] font-black">승인 대기</span>
+                </div>
+                <div className="bg-[#F9FAFB] rounded-xl p-4 space-y-2.5 mb-4">
+                  <div className="flex items-start gap-2.5">
+                    <Calendar className="w-4 h-4 text-[#3182F6] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] font-black text-[#ADB5BD] uppercase tracking-wider mb-0.5">신청 날짜</p>
+                      <p className="text-[13px] font-bold text-[#4E5968] break-keep">{(req.dates || []).join(", ")}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Church className="w-4 h-4 text-[#3182F6] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] font-black text-[#ADB5BD] uppercase tracking-wider mb-0.5">장소 사용 신청 교회명</p>
+                      <p className="text-[13px] font-bold text-[#4E5968] break-keep">{req.churchName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Info className="w-4 h-4 text-[#3182F6] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] font-black text-[#ADB5BD] uppercase tracking-wider mb-0.5">예약 차단 사유</p>
+                      <p className="text-[13px] font-bold text-[#4E5968] break-keep">{req.reason}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDecideBlockRequest(req.id, "reject")}
+                    disabled={decidingBlockRequestId === req.id}
+                    className="flex-1 py-3 bg-[#F2F4F6] text-[#4E5968] rounded-xl font-bold text-[13px] hover:bg-[#E5E8EB] transition-all disabled:opacity-60"
+                  >
+                    거절
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDecideBlockRequest(req.id, "approve")}
+                    disabled={decidingBlockRequestId === req.id}
+                    className="flex-[2] py-3 bg-[#3182F6] text-white rounded-xl font-bold text-[13px] hover:bg-[#1B64DA] transition-all disabled:opacity-60"
+                  >
+                    승인
+                  </button>
+                </div>
+              </div>
+            )) : (
+              <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-[#E5E8EB]">
+                <Ban className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-[#ADB5BD] font-bold text-[14px]">대기 중인 차단 신청이 없어요.</p>
+              </div>
+            )}
+          </div>
+        ) : activeTab === "schedule" ? (
           <div>
             <div className="relative w-full md:w-80 mb-5">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ADB5BD]" />
@@ -1159,6 +1290,43 @@ export function AdminDashboard() {
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* 마이페이지 관리자 계정: 최초 등록자가 아니어도 이 이메일로 로그인하면
+                  마이페이지 "장소 관리자" 탭에서 이 장소를 관리할 수 있다. */}
+              <div className="bg-[#F0F7FF] border border-[#DBEAFE] rounded-2xl p-4">
+                <p className="text-[13px] font-black text-[#1D4ED8] mb-2.5 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 shrink-0" /> 마이페이지 관리자 계정
+                </p>
+                {(selectedVenue.managerEmails || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {selectedVenue.managerEmails.map((email: string) => (
+                      <span key={email} className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-white border border-[#DBEAFE] rounded-full text-[12px] font-bold text-[#1D4ED8]">
+                        {email}
+                        <button type="button" onClick={() => handleRemoveManagerEmail(selectedVenue.id, email)} className="p-0.5 text-[#93C5FD] hover:text-[#F04452] transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={managerEmailInput}
+                    onChange={(e) => setManagerEmailInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddManagerEmail(selectedVenue.id); }}
+                    placeholder="담당자 이메일 입력"
+                    className="flex-1 px-3 py-2 bg-white border border-[#E5E8EB] rounded-xl text-[13px] font-bold outline-none focus:border-[#3182F6]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddManagerEmail(selectedVenue.id)}
+                    className="shrink-0 px-3.5 py-2 bg-[#3182F6] text-white rounded-xl text-[13px] font-black hover:bg-[#1B64DA] transition-all active:scale-95"
+                  >
+                    추가
+                  </button>
+                </div>
               </div>
 
               {/* 사진: 카테고리(예배당/입구, 예배당 전체, 예배 셋팅 ... 기타)별로 나눠서 관리한다.

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
-import { Bus, Info, Loader2, Minus, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Bus, ChevronLeft, ChevronRight, GripVertical, Info, Loader2, Minus, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { FIXED_VEHICLE_TYPES, CUSTOM_VEHICLE_TYPE_LABEL, DriverIncludedOption, isLargeBusType } from "../lib/vehicleTypes";
 
 interface FleetEntry {
@@ -38,6 +38,8 @@ function toggleDriverIncluded(current: DriverIncludedOption[] | undefined, optio
 // 마이페이지 "차량 관리자" 탭 - 승인된 차량 렌트 업체 사장님이 본인 보유 차량을
 // 직접 등록/수정/삭제할 수 있게 해준다. AdminVehicleRentals.tsx와 같은 이유로 Firestore에
 // 직접 쓰지 않고 서버측 Cloud Function(manageMyVehicleFleet)을 통해서만 쓰기가 이뤄진다.
+// 굿즈/티셔츠 관리자 탭과 UX를 맞춰 카드뷰 + 모달 수정 + 순서변경(화살표/드래그)을 그대로
+// 적용했다 - 차종에는 사진이 없어서 카드 썸네일은 버스 아이콘으로 대체.
 export function MyVehicleFleetManagerTab({ vehicle }: { vehicle: any }) {
   const fleet: FleetEntry[] = Array.isArray(vehicle.vehicleFleet) ? vehicle.vehicleFleet : [];
 
@@ -47,6 +49,8 @@ export function MyVehicleFleetManagerTab({ vehicle }: { vehicle: any }) {
   const [editDraft, setEditDraft] = useState<FleetEntry>(emptyDraft());
   const [savingIndex, setSavingIndex] = useState<number | "new" | null>(null);
   const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const callManage = async (payload: any) => {
@@ -144,6 +148,42 @@ export function MyVehicleFleetManagerTab({ vehicle }: { vehicle: any }) {
     } finally {
       setDeletingIndex(null);
     }
+  };
+
+  const reorderTo = async (orderedIndices: number[]) => {
+    setError("");
+    setReordering(true);
+    try {
+      const result = await callManage({ action: "reorder", orderedIndices });
+      if (!result.success) {
+        setError(result.error || "순서 변경 중 오류가 발생했습니다.");
+      }
+    } catch (err) {
+      console.error("보유 차량 순서 변경 실패:", err);
+      setError("순서 변경 중 오류가 발생했습니다.");
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const moveEntry = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= fleet.length) return;
+    const order = fleet.map((_, i) => i);
+    [order[index], order[targetIndex]] = [order[targetIndex], order[index]];
+    reorderTo(order);
+  };
+
+  const handleDropOn = (targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+    const order = fleet.map((_, i) => i);
+    const [moved] = order.splice(draggedIndex, 1);
+    order.splice(targetIndex, 0, moved);
+    setDraggedIndex(null);
+    reorderTo(order);
   };
 
   const renderEditableFields = (entry: FleetEntry, setEntry: (patch: Partial<FleetEntry>) => void, isNew: boolean) => {
@@ -342,76 +382,118 @@ export function MyVehicleFleetManagerTab({ vehicle }: { vehicle: any }) {
         </div>
       )}
 
-      <div className="space-y-4">
-        {fleet.length === 0 && !isAdding ? (
-          <div className="py-14 md:py-20 text-center bg-white rounded-[22px] md:rounded-[32px] border border-dashed border-gray-200">
-            <Bus className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-[#ADB5BD] font-bold text-[13px] md:text-base">등록된 보유 차량이 없어요. "차종 추가"로 첫 차량을 올려보세요.</p>
-          </div>
-        ) : (
-          fleet.map((entry, index) => {
-            const isEditing = editingIndex === index;
-            return (
-              <div key={index} className="bg-white p-5 md:p-6 rounded-[24px] border border-gray-100 shadow-sm">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    {renderEditableFields(editDraft, (patch) => setEditDraft((prev) => ({ ...prev, ...patch })), false)}
-                    <div className="flex gap-2">
-                      <button type="button" onClick={cancelEdit} className="flex-1 py-3 bg-[#F2F4F6] text-[#4E5968] rounded-xl font-bold text-[13px]">취소</button>
-                      <button
-                        type="button"
-                        onClick={() => handleEditSubmit(index)}
-                        disabled={savingIndex === index}
-                        className="flex-[2] py-3 bg-[#3182F6] text-white rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-60"
-                      >
-                        {savingIndex === index ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                        저장하기
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-4">
-                    <div className="p-2.5 bg-[#F2F8FF] rounded-xl shrink-0">
-                      <Bus className="w-5 h-5 text-[#3182F6]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[15px] font-black text-[#191F28]">
-                        {entry.type || "차종"} <span className="text-[#8B95A1] font-bold text-[13px]">· {entry.count || 0}대</span>
-                      </h4>
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {(entry.driverIncluded || []).map((opt) => (
-                          <span key={opt} className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">{DRIVER_INCLUDED_LABELS[opt]}</span>
-                        ))}
-                        {entry.lodging && <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">숙박·숙식 제공 필요</span>}
-                        {entry.driverChristian && <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">{DRIVER_CHRISTIAN_LABELS[entry.driverChristian]}</span>}
-                        {entry.cargoSpace && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">
-                            짐 적재칸 있음{entry.cargoCapacity ? ` (캐리어 ${entry.cargoCapacity})` : ""}
-                          </span>
-                        )}
-                        {entry.insurance && <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#ECFDF5] text-[#10B981]">{INSURANCE_LABELS[entry.insurance]}</span>}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5 shrink-0">
-                      <button type="button" onClick={() => startEdit(index, entry)} className="p-2 bg-[#F2F4F6] rounded-lg text-[#4E5968] hover:bg-[#E5E8EB] transition-all">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(index, entry)}
-                        disabled={deletingIndex === index}
-                        className="p-2 bg-[#FFF0F0] rounded-lg text-[#F04452] hover:bg-[#FFE0E0] transition-all disabled:opacity-60"
-                      >
-                        {deletingIndex === index ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
+      {fleet.length === 0 && !isAdding ? (
+        <div className="py-14 md:py-20 text-center bg-white rounded-[22px] md:rounded-[32px] border border-dashed border-gray-200">
+          <Bus className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-[#ADB5BD] font-bold text-[13px] md:text-base">등록된 보유 차량이 없어요. "차종 추가"로 첫 차량을 올려보세요.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          {fleet.map((entry, index) => (
+            <div
+              key={index}
+              draggable
+              onDragStart={() => setDraggedIndex(index)}
+              onDragEnd={() => setDraggedIndex(null)}
+              onDragOver={(e) => { if (draggedIndex !== null) e.preventDefault(); }}
+              onDrop={(e) => { e.preventDefault(); handleDropOn(index); }}
+              className={`bg-white rounded-[20px] md:rounded-[24px] border shadow-sm overflow-hidden transition-opacity ${draggedIndex === index ? "opacity-40 border-[#3182F6]" : "border-gray-100"}`}
+            >
+              <div className="relative aspect-video bg-[#F2F8FF] flex items-center justify-center">
+                <Bus className="w-8 h-8 text-[#3182F6]" />
+                <div className="absolute top-2 right-2 flex gap-1.5">
+                  <button type="button" onClick={() => startEdit(index, entry)} className="p-1.5 bg-white/90 backdrop-blur rounded-lg text-[#4E5968] hover:bg-white transition-all shadow-sm">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(index, entry)}
+                    disabled={deletingIndex === index}
+                    className="p-1.5 bg-white/90 backdrop-blur rounded-lg text-[#F04452] hover:bg-white transition-all shadow-sm disabled:opacity-60"
+                  >
+                    {deletingIndex === index ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <div className="absolute bottom-2 left-2 p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hidden sm:flex cursor-grab" title="드래그해서 순서 변경">
+                  <GripVertical className="w-3 h-3" />
+                </div>
+                <div className="absolute bottom-2 right-2 flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => moveEntry(index, -1)}
+                    disabled={index === 0 || reordering}
+                    className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="이전으로 이동"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveEntry(index, 1)}
+                    disabled={index === fleet.length - 1 || reordering}
+                    className="p-1.5 bg-white/90 text-[#4E5968] rounded-full shadow-md hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="다음으로 이동"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
-            );
-          })
-        )}
-      </div>
+              <div className="p-3.5 md:p-4">
+                <h4 className="text-[14px] md:text-[15px] font-black text-[#191F28] truncate">
+                  {entry.type || "차종"} <span className="text-[#8B95A1] font-bold text-[12px]">· {entry.count || 0}대</span>
+                </h4>
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {(entry.driverIncluded || []).map((opt) => (
+                    <span key={opt} className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">{DRIVER_INCLUDED_LABELS[opt]}</span>
+                  ))}
+                  {entry.lodging && <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">숙박·숙식 제공 필요</span>}
+                  {entry.driverChristian && <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">{DRIVER_CHRISTIAN_LABELS[entry.driverChristian]}</span>}
+                  {entry.cargoSpace && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F2F4F6] text-[#4E5968]">
+                      짐 적재칸{entry.cargoCapacity ? ` (${entry.cargoCapacity})` : " 있음"}
+                    </span>
+                  )}
+                  {entry.insurance && <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#ECFDF5] text-[#10B981]">{INSURANCE_LABELS[entry.insurance]}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editingIndex !== null && fleet[editingIndex] && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#191F28]/70 backdrop-blur-sm"
+          onClick={cancelEdit}
+        >
+          <div
+            className="bg-white w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-[28px] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-[#F2F4F6] flex items-center justify-between gap-4">
+              <h4 className="text-[17px] font-black text-[#191F28]">보유 차량 수정</h4>
+              <button type="button" onClick={cancelEdit} className="p-1.5 text-[#ADB5BD] hover:text-[#4E5968] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {renderEditableFields(editDraft, (patch) => setEditDraft((prev) => ({ ...prev, ...patch })), false)}
+              <div className="flex gap-2">
+                <button type="button" onClick={cancelEdit} className="flex-1 py-3 bg-[#F2F4F6] text-[#4E5968] rounded-xl font-bold text-[13px]">취소</button>
+                <button
+                  type="button"
+                  onClick={() => handleEditSubmit(editingIndex)}
+                  disabled={savingIndex === editingIndex}
+                  className="flex-[2] py-3 bg-[#3182F6] text-white rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  {savingIndex === editingIndex ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  저장하기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

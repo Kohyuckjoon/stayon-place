@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
-  BarChart3, Megaphone, CreditCard, RotateCcw,
+  BarChart3, Megaphone, CreditCard, RotateCcw, Ban,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
@@ -106,6 +106,7 @@ export function AdminBandRoomBookings() {
           items: [
             { id: "v_pending", label: "검토 대기", count: venues.filter((v) => v.status === "pending").length, icon: Clock, accentColor: "#FF9500", href: "/admin/venues?tab=pending" },
             { id: "v_approved", label: "승인 완료", count: venues.filter((v) => v.status === "approved").length, icon: CheckCircle, href: "/admin/venues?tab=approved" },
+            { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
           ],
         },
         {

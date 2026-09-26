@@ -108,8 +108,8 @@ export default function BandRoomRegistrationForm() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + selectedFiles.length > 10) {
-      alert("사진은 최대 10장까지만 등록 가능합니다.");
+    if (files.length + selectedFiles.length > 30) {
+      alert("사진은 최대 30장까지만 등록 가능합니다.");
       return;
     }
     setSelectedFiles((prev) => [...prev, ...files]);
@@ -243,7 +243,7 @@ export default function BandRoomRegistrationForm() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-xl mx-auto px-6 pt-16 pb-24">
+      <div className="max-w-xl mx-auto px-6 pt-6 md:pt-10 pb-24">
         <div className="mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#f0f9ff] text-[#0ea5e9] rounded-full mb-6 text-sm font-black">
             <Music className="w-4 h-4" /> 합주실·연습실 등록
@@ -299,7 +299,7 @@ export default function BandRoomRegistrationForm() {
 
           <section className="mb-4">
             <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">신청자 정보</h3>
-            <CustomInput label="신청자 성함" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" autoFocus />
+            <CustomInput label="신청자 성함" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" />
             <CustomInput
               label="담당자 연락처" required
               value={formData.applicantContact}
@@ -427,7 +427,7 @@ export default function BandRoomRegistrationForm() {
           </section>
 
           <section className="mb-8">
-            <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">공간 사진 ({selectedFiles.length}/10) <span className="text-[#0ea5e9]">*</span></label>
+            <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">공간 사진 ({selectedFiles.length}/30) <span className="text-[#0ea5e9]">*</span></label>
             <div className="grid grid-cols-3 gap-3">
               <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square bg-[#f9fafb] border-2 border-dashed border-[#e5e8eb] rounded-2xl flex flex-col items-center justify-center gap-1.5 text-[#adb5bd] hover:bg-[#f2f4f6] hover:border-[#0ea5e9]/30 transition-all group">
                 <Camera className="w-5 h-5 group-hover:text-[#0ea5e9]" /> <span className="text-[11px] font-bold group-hover:text-[#0ea5e9]">사진 추가</span>

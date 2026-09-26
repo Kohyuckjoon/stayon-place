@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import {
-  Check, ChevronDown, MapPin, Camera, X, AlertCircle, Info, Car, Bed, Wind, Bath, Volume2, UtensilsCrossed, ExternalLink, PenLine, Heart, Trophy, Phone, ChevronRight, Scale, Ban, Lock
+  Check, ChevronDown, MapPin, Camera, X, AlertCircle, Info, Car, Bed, Wind, Bath, Volume2, UtensilsCrossed, ExternalLink, PenLine, Heart, Trophy, Phone, ChevronRight, Scale, Ban, Lock, Church
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +32,7 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffi
   };
 
   return (
-    <div className="group relative mb-10">
+    <div className="group relative mb-6 md:mb-10">
       <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1 group-focus-within:text-[#3182f6] transition-colors tracking-tight">
         {label}
       </label>
@@ -47,7 +47,7 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffi
             value={getDisplayValue()}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className={`w-full text-[20px] font-bold py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] resize-y leading-snug ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
+            className={`w-full text-[16px] md:text-[20px] font-bold py-2.5 md:py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] resize-y leading-snug ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
               }`}
           />
         ) : (
@@ -70,12 +70,12 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffi
               // onChange(rawValue);
             }}
             placeholder={placeholder}
-            className={`w-full text-[20px] font-bold py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
+            className={`w-full text-[16px] md:text-[20px] font-bold py-2.5 md:py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
               }`}
           />
         )}
         {suffix && (value?.toString().length > 0 || value !== 0) && (
-          <span className="absolute right-2 text-[18px] font-bold text-[#191f28]">{suffix}</span>
+          <span className="absolute right-2 text-[15px] md:text-[18px] font-bold text-[#191f28]">{suffix}</span>
         )}
       </div>
       <AnimatePresence>
@@ -450,36 +450,42 @@ export function RegisterVenue() {
         <motion.div className="h-full bg-[#3182f6]" initial={{ width: "0%" }} animate={{ width: `${(currentStep / steps.length) * 100}%` }} transition={{ duration: 0.5, ease: "circOut" }} />
       </div>
 
-      <div className="max-w-xl mx-auto px-6 pt-20 pb-24">
+      <div className="max-w-xl mx-auto px-6 pt-6 md:pt-10 pb-24">
+        {/* 국내 선교 장소 등록(/mission-register)과 화면이 헷갈리지 않도록, 어느 스텝에서도
+            항상 최상단에 이 페이지가 "수련회 장소" 등록 화면임을 명시한다. */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#191f28] text-white font-black text-[12px] rounded-lg mb-4">
+          <Church className="w-3.5 h-3.5" /> 교회 수련회 장소 등록
+        </div>
+
         {/* 가이드 안내 섹션 추가 */}
         {currentStep === 1 && (
-          <div className="space-y-4 mb-12">
+          <div className="space-y-3 md:space-y-4 mb-8 md:mb-12">
             {/* 메인 안내 카드 */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-8 rounded-[32px] border border-[#f2f4f6] shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
+              className="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-[#f2f4f6] shadow-[0_8px_24px_rgba(0,0,0,0.04)]"
             >
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="bg-[#f2f8ff] p-3 rounded-2xl">
-                    <Heart className="w-6 h-6 text-[#3182f6] fill-[#3182f6]" />
+              <div className="flex flex-col gap-4 md:gap-6">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="bg-[#f2f8ff] p-2.5 md:p-3 rounded-2xl">
+                    <Heart className="w-5 h-5 md:w-6 md:h-6 text-[#3182f6] fill-[#3182f6]" />
                   </div>
-                  <h3 className="text-[20px] font-bold text-[#191f28] tracking-tight">공간 나눔이 처음이신가요?</h3>
+                  <h3 className="text-[17px] md:text-[20px] font-bold text-[#191f28] tracking-tight">공간 나눔이 처음이신가요?</h3>
                 </div>
 
-                <p className="text-[15px] text-[#4e5968] leading-relaxed break-keep font-medium">
+                <p className="text-[13px] md:text-[15px] text-[#4e5968] leading-relaxed break-keep font-medium">
                   사역지의 소중한 공간을 공유해 주셔서 감사합니다. <br />
                   직접 작성이 번거로우시다면 <span className="text-[#3182f6] font-bold">스테이온이 대신 등록해 드릴게요.</span>
                 </p>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-2.5 md:gap-3">
                   {/* 옵션 1: 직접 작성 (현재 화면 유지) */}
-                  <div className="flex items-center gap-3 p-4 bg-[#f9fafb] rounded-2xl border border-transparent">
-                    <div className="w-5 h-5 rounded-full bg-[#3182f6] flex items-center justify-center">
+                  <div className="flex items-center gap-3 p-3.5 md:p-4 bg-[#f9fafb] rounded-2xl border border-transparent">
+                    <div className="w-5 h-5 rounded-full bg-[#3182f6] flex items-center justify-center shrink-0">
                       <Check className="w-3 h-3 text-white" strokeWidth={4} />
                     </div>
-                    <span className="text-[14px] font-bold text-[#3182f6]">아래 신청서를 직접 작성하기</span>
+                    <span className="text-[13px] md:text-[14px] font-bold text-[#3182f6]">아래 신청서를 직접 작성하기</span>
                   </div>
 
                   {/* 옵션 2: 전화 요청 버튼 */}
@@ -498,23 +504,23 @@ export function RegisterVenue() {
                   <a
                     href={`tel:${ADMIN_PHONE_NUMBER}`}
                     onClick={handleCallAction}
-                    className="flex items-center justify-between p-5 bg-white border-2 border-[#3182f6] rounded-2xl hover:bg-[#f2f8ff] transition-all group cursor-pointer decoration-none"
+                    className="flex items-center justify-between p-4 md:p-5 bg-white border-2 border-[#3182f6] rounded-2xl hover:bg-[#f2f8ff] transition-all group cursor-pointer decoration-none"
                   >
                     {/* <div className="flex items-center gap-3">
                       <Phone className="w-5 h-5 text-[#3182f6] animate-pulse" />
                       <span className="text-[15px] font-bold text-[#3182f6]">전화로 바로 등록 신청하기</span>
                     </div> */}
 
-                    <div className="relative flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#3182f6]/10 rounded-2xl flex items-center justify-center">
-                        <Phone className="w-6 h-6 text-[#3182f6] animate-bounce" />
+                    <div className="relative flex items-center gap-3 md:gap-4">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-[#3182f6]/10 rounded-2xl flex items-center justify-center shrink-0">
+                        <Phone className="w-5 h-5 md:w-6 md:h-6 text-[#3182f6] animate-bounce" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-[#8B95A1]">상담원 연결</span>
-                        <span className="text-[17px] font-black text-[#191F28]">전화로 바로 등록 신청하기</span>
+                        <span className="text-[12px] md:text-sm font-bold text-[#8B95A1]">상담원 연결</span>
+                        <span className="text-[15px] md:text-[17px] font-black text-[#191F28]">전화로 바로 등록 신청하기</span>
                       </div>
                     </div>
-                    <ChevronDown className="w-5 h-5 text-[#3182f6] -rotate-90 group-hover:translate-x-1 transition-transform" />
+                    <ChevronDown className="w-5 h-5 text-[#3182f6] -rotate-90 group-hover:translate-x-1 transition-transform shrink-0" />
                   </a>
                 </div>
               </div>
@@ -620,8 +626,8 @@ export function RegisterVenue() {
               )}
             </AnimatePresence>
 
-            <div className="bg-white border-2 border-red-100 rounded-[28px] p-6 mb-6 shadow-sm relative overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="bg-white border-2 border-red-100 rounded-[24px] md:rounded-[28px] p-4 md:p-6 mb-4 md:mb-6 shadow-sm relative overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3 md:mb-4">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full">
                     <Ban className="w-3.5 h-3.5" />
                     <span className="text-[12px] font-black tracking-tight">이단 · 신천지 원천 차단 정책</span>
@@ -631,11 +637,11 @@ export function RegisterVenue() {
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-4">
-                  <h3 className="text-lg md:text-xl font-black text-gray-950 leading-tight">
+                <div className="space-y-2 md:space-y-3 mb-3 md:mb-4">
+                  <h3 className="text-[15px] md:text-xl font-black text-gray-950 leading-tight">
                     신천지 및 이단 추수꾼의 출입을 <span className="text-red-600">철저히 금지</span>합니다.
                   </h3>
-                <p className="text-gray-600 text-base md:text-lg font-medium leading-relaxed">
+                <p className="text-gray-600 text-[13px] md:text-lg font-medium leading-relaxed">
                   스테이온은 대한예수교장로회(합동·통합), 기독교대한감리회(기감), 기독교대한성결교회(성결교) 등 <strong className="text-gray-950 font-bold">공식 한국 주요 전통교단 소속 및 초교파 바른 신앙을 가진 안전한 장소</strong>만 등록됩니다.
                 </p>
 
@@ -649,9 +655,9 @@ export function RegisterVenue() {
                 </div>
 
                 {/* 법적 조치 안내 미니 박스 */}
-                <div className="bg-gray-950 text-white p-4 rounded-2xl">
+                <div className="bg-gray-950 text-white p-3.5 md:p-4 rounded-2xl">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 bg-red-600/20 rounded-xl flex items-center justify-center text-red-400">
+                    <div className="w-7 h-7 bg-red-600/20 rounded-xl flex items-center justify-center text-red-400 shrink-0">
                       <Scale className="w-4 h-4" />
                     </div>
                     <div>
@@ -659,7 +665,7 @@ export function RegisterVenue() {
                       <div className="text-xs font-black">무단 출입 및 적발 시</div>
                     </div>
                   </div>
-                  <p className="text-[11px] text-gray-300 font-medium leading-relaxed bg-white/5 p-3 rounded-xl border border-white/10">
+                  <p className="text-[11px] text-gray-300 font-medium leading-relaxed bg-white/5 p-2.5 md:p-3 rounded-xl border border-white/10">
                     적발 시 예배 및 설교 방해죄(형법 제158조), 퇴거불응죄(형법 제319조 2항), 업무방해죄(형법 제314조), 개인정보보호법 위반 등의 <strong className="text-white font-bold">가능한 모든 법적 조치</strong>를 엄중히 취하겠습니다.
                   </p>
                 </div>
@@ -669,49 +675,49 @@ export function RegisterVenue() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-[#f9fafb] p-8 rounded-[32px] border border-[#f2f4f6]"
+              className="bg-[#f9fafb] p-5 md:p-8 rounded-[24px] md:rounded-[32px] border border-[#f2f4f6]"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center">
+              <div className="flex items-center gap-3 mb-4 md:mb-6">
+                <div className="w-7 h-7 md:w-8 md:h-8 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
                   <Info className="w-4 h-4 text-[#3182f6]" />
                 </div>
-                <h4 className="text-[16px] font-black text-[#191f28]">정직한 플랫폼 수수료 안내</h4>
+                <h4 className="text-[14px] md:text-[16px] font-black text-[#191f28]">정직한 플랫폼 수수료 안내</h4>
               </div>
 
               {/* 하이라이트: 1회차 0원 */}
-              <div className="bg-white p-5 rounded-2xl border border-[#3182f6]/20 shadow-[0_4px_16px_rgba(49,130,246,0.04)] mb-4 flex justify-between items-center">
+              <div className="bg-white p-4 md:p-5 rounded-2xl border border-[#3182f6]/20 shadow-[0_4px_16px_rgba(49,130,246,0.04)] mb-3 md:mb-4 flex justify-between items-center">
                 <div>
                   <span className="text-xs font-bold text-[#3182f6] bg-[#f2f8ff] px-2 py-0.5 rounded-md mb-1 inline-block">첫 등록 혜택</span>
-                  <p className="text-[15px] font-black text-[#191f28]">최초 등록 후</p>
+                  <p className="text-[13px] md:text-[15px] font-black text-[#191f28]">최초 등록 후</p>
                 </div>
-                <span className="text-[18px] font-black text-[#3182f6]">0원 <span className="text-xs font-bold text-[#6b7684] ml-0.5">(면제)</span></span>
+                <span className="text-[15px] md:text-[18px] font-black text-[#3182f6]">0원 <span className="text-xs font-bold text-[#6b7684] ml-0.5">(면제)</span></span>
                 {/* <span className="text-[18px] font-black text-[#3182f6]">0%<span className="text-xs font-bold text-[#6b7684] ml-0.5"></span></span> */}
               </div>
 
               {/* 수수료 구간 리스트 */}
-              <div className="space-y-3 px-1 mb-5">
-                <div className="flex justify-between items-center py-2 border-b border-[#f2f4f6] text-[14px]">
+              <div className="space-y-2 md:space-y-3 px-1 mb-4 md:mb-5">
+                <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-[#f2f4f6] text-[12px] md:text-[14px]">
                   <span className="font-bold text-[#4e5968]">2회 ~ 10회 미만 계약</span>
                   <span className="font-black text-[#191f28]">총 합계 금액의 10%</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f2f4f6] text-[14px]">
+                <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-[#f2f4f6] text-[12px] md:text-[14px]">
                   <span className="font-bold text-[#4e5968]">11회 ~ 20회 미만 계약</span>
                   <span className="font-black text-[#3182f6]">총 금액의 9%</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-[#f2f4f6] text-[14px]">
+                <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-[#f2f4f6] text-[12px] md:text-[14px]">
                   <span className="font-bold text-[#4e5968]">21회 ~ 25회 미만 계약</span>
                   <span className="font-black text-[#3182f6]">총 금액의 8%</span>
                 </div>
-                <div className="flex justify-between items-center py-2 text-[14px]">
+                <div className="flex justify-between items-center py-1.5 md:py-2 text-[12px] md:text-[14px]">
                   <span className="font-bold text-[#4e5968] flex items-center gap-1">
                     26회차 이후 <span className="text-amber-500 font-black text-xs flex items-center">(VIP 인증 <Trophy className="w-3 h-3 text-amber-500 fill-amber-500 inline ml-0.5" />)</span>
                   </span>
-                  <span className="font-black text-amber-600 text-[15px]">총 금액의 7%</span>
+                  <span className="font-black text-amber-600 text-[13px] md:text-[15px]">총 금액의 7%</span>
                 </div>
               </div>
 
               {/* 하단 유의사항 */}
-              <p className="text-[12px] text-[#8b95a1] leading-relaxed break-keep font-medium">
+              <p className="text-[11px] md:text-[12px] text-[#8b95a1] leading-relaxed break-keep font-medium">
                 * 최초 계약 성사 시 플랫폼 수수료는 완전히 면제됩니다(PG/카드사 수수료 자동 공제). 공동체의 지속 가능한 사역을 위해 항상 정직하게 운영하겠습니다.
                 {/* * 공동체의 지속 가능한 사역을 위해 항상 정직하게 운영하겠습니다. */}
               </p>
@@ -812,9 +818,9 @@ export function RegisterVenue() {
           </div>
         )}
 
-        <header className="mb-14">
-          <motion.div key={currentStep} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="inline-block px-3 py-1 bg-[#f2f8ff] text-[#3182f6] font-bold text-[12px] rounded-lg mb-4">STEP 0{currentStep}</motion.div>
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-[#191f28]">
+        <header className="mb-8 md:mb-14">
+          <motion.div key={currentStep} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="inline-block px-3 py-1 bg-[#f2f8ff] text-[#3182f6] font-bold text-[12px] rounded-lg mb-3 md:mb-4">STEP 0{currentStep}</motion.div>
+          <h1 className="text-[21px] md:text-[28px] font-bold leading-tight tracking-tight text-[#191f28]">
             {currentStep === 1 && <>나의 사역지와<br /><span className="text-[#3182f6]">기본 정보</span>를 등록해볼까요?</>}
             {currentStep === 2 && <>더욱 정확한 매칭을 위해<br /><span className="text-[#3182f6]">시설 상세</span>를 알려주세요</>}
             {currentStep === 3 && <>마지막으로<br /><span className="text-[#3182f6]">입력 내용</span>이 정확한가요?</>}
@@ -825,7 +831,7 @@ export function RegisterVenue() {
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-2">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4 md:gap-6">
                   <CustomInput label="신청자 성함" value={formData.applicantName} onChange={(v: any) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" />
                   <CustomInput label="연락처" value={formData.applicantContact} error={errors.contact} onChange={(v: any) => setFormData({ ...formData, applicantContact: formatPhoneNumber(v) })} placeholder="010-0000-0000" />
                 </div>
@@ -842,16 +848,16 @@ export function RegisterVenue() {
                 <CustomInput label="장소 이름 (교회명/센터명)" value={formData.venueName} onChange={(v: any) => setFormData({ ...formData, venueName: v })} placeholder="예: 평화 수양관" />
 
                 {/* 교단 선택 섹션 */}
-                <div className="mb-10 relative" ref={dropdownRef}>
+                <div className="mb-6 md:mb-10 relative" ref={dropdownRef}>
                   <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1">소속 교단</label>
                   <div
                     onClick={() => setIsDenoOpen(!isDenoOpen)}
-                    className={`flex justify-between items-center text-[20px] font-bold py-4 border-b-2 transition-all cursor-pointer ${isDenoOpen ? 'border-[#3182f6]' : 'border-[#f2f4f6] hover:border-[#e5e8eb]'}`}
+                    className={`flex justify-between items-center text-[16px] md:text-[20px] font-bold py-3 md:py-4 border-b-2 transition-all cursor-pointer ${isDenoOpen ? 'border-[#3182f6]' : 'border-[#f2f4f6] hover:border-[#e5e8eb]'}`}
                   >
                     <span className={(formData.denomination || isCustomDeno) ? 'text-[#191f28]' : 'text-[#d1d6db]'}>
                       {isCustomDeno ? "직접 입력" : (formData.denomination || "선택해주세요")}
                     </span>
-                    <ChevronDown className={`w-6 h-6 text-[#adb5bd] transition-transform ${isDenoOpen ? 'rotate-180 text-[#3182f6]' : ''}`} />
+                    <ChevronDown className={`w-5 h-5 md:w-6 md:h-6 text-[#adb5bd] transition-transform shrink-0 ${isDenoOpen ? 'rotate-180 text-[#3182f6]' : ''}`} />
                   </div>
 
                   <AnimatePresence>
@@ -893,19 +899,19 @@ export function RegisterVenue() {
                   </AnimatePresence>
                 </div>
 
-                <div className="mb-10">
+                <div className="mb-6 md:mb-10">
                   <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1">위치 정보</label>
-                  <div onClick={handleAddressSearch} className="flex items-center gap-3 text-[20px] font-bold py-4 border-b-2 border-[#f2f4f6] cursor-pointer hover:border-[#e5e8eb] transition-all">
-                    <MapPin className="w-5 h-5 text-[#3182f6]" strokeWidth={2.5} />
+                  <div onClick={handleAddressSearch} className="flex items-center gap-3 text-[16px] md:text-[20px] font-bold py-3 md:py-4 border-b-2 border-[#f2f4f6] cursor-pointer hover:border-[#e5e8eb] transition-all">
+                    <MapPin className="w-5 h-5 text-[#3182f6] shrink-0" strokeWidth={2.5} />
                     <span className={formData.location ? 'text-[#191f28]' : 'text-[#d1d6db]'}>{formData.location || "주소 검색하기"}</span>
                   </div>
                   {formData.location && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                      <input className="w-full text-[18px] font-bold py-4 outline-none border-b-2 border-[#f2f4f6] focus:border-[#3182f6] placeholder:text-[#d1d6db] transition-all" placeholder="상세 주소를 입력해주세요" value={formData.addressDetail} onChange={(e) => setFormData({ ...formData, addressDetail: e.target.value })} />
+                      <input className="w-full text-[15px] md:text-[18px] font-bold py-3 md:py-4 outline-none border-b-2 border-[#f2f4f6] focus:border-[#3182f6] placeholder:text-[#d1d6db] transition-all" placeholder="상세 주소를 입력해주세요" value={formData.addressDetail} onChange={(e) => setFormData({ ...formData, addressDetail: e.target.value })} />
                     </motion.div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-4 md:gap-8">
                   <CustomInput label="최대 수용 인원" type="number" suffix="명" value={formData.capacity} onChange={(v: any) => handleNumberInput("capacity", v)} placeholder="0" />
                   <CustomInput label="1박 이용료 (총액 기준)" type="number" suffix="원" value={formData.price} error={errors.price} onChange={(v: any) => handleNumberInput("price", v)} placeholder="0" />
                 </div>

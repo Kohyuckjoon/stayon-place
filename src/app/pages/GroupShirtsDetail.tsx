@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../lib/firebase";
 import {
-  ChevronLeft, ChevronRight, Shirt, Tag, X, ZoomIn,
+  ChevronLeft, ChevronRight, Shirt, Tag, X, ZoomIn, Eye, MousePointerClick,
   BadgeCheck, Banknote, ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+// 상세페이지 조회수/"온라인몰 바로가기" 클릭수는 소유권 검사가 필요 없는 익명 카운터라
+// 서버의 logStoreEvent(공용 함수, functions/src/index.ts)를 fire-and-forget으로 호출한다 -
+// 응답을 기다리지 않아 페이지 로딩이나 외부 링크 이동이 느려지지 않는다.
+const logShirtEvent = (id: string, type: "view" | "onlineStoreClick") => {
+  const fn = httpsCallable(functions, "logStoreEvent");
+  fn({ store: "shirts", id, type }).catch((err) => console.error("스토어 이벤트 기록 실패:", err));
+};
 
 function InfoRow({ icon, label, value }: any) {
   return (
@@ -41,7 +50,9 @@ export function GroupShirtsDetail() {
         const docRef = doc(db, "groupShirts", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().status === "approved") {
-          setShirt(docSnap.data());
+          const data = docSnap.data();
+          setShirt({ ...data, viewCount: (Number(data.viewCount) || 0) + 1 });
+          logShirtEvent(id, "view");
         } else {
           alert("업체 정보를 찾을 수 없습니다.");
           navigate("/shirts");
@@ -159,9 +170,19 @@ export function GroupShirtsDetail() {
                   </span>
                 )}
               </div>
-              <h1 className="text-[22px] md:text-[24px] font-black text-[#191f28] mb-2.5 md:mb-3 tracking-tighter leading-tight break-keep">
+              <h1 className="text-[22px] md:text-[24px] font-black text-[#191f28] mb-2 tracking-tighter leading-tight break-keep">
                 {shirt.businessName}
               </h1>
+              <div className="flex items-center gap-3 mb-2.5 md:mb-3 text-[12px] font-bold text-[#8b95a1]">
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3.5 h-3.5" /> 조회 {Number(shirt.viewCount || 0).toLocaleString()}
+                </span>
+                {shirt.onlineStoreUrl && (
+                  <span className="flex items-center gap-1">
+                    <MousePointerClick className="w-3.5 h-3.5" /> 바로가기 클릭 {Number(shirt.onlineStoreClickCount || 0).toLocaleString()}
+                  </span>
+                )}
+              </div>
               {shirt.introduction && (
                 <p className="text-[14px] font-bold text-[#4e5968] leading-relaxed break-keep mb-3 md:mb-4">
                   {shirt.introduction}
@@ -182,6 +203,10 @@ export function GroupShirtsDetail() {
                   href={shirt.onlineStoreUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    if (id) logShirtEvent(id, "onlineStoreClick");
+                    setShirt((prev: any) => ({ ...prev, onlineStoreClickCount: (Number(prev.onlineStoreClickCount) || 0) + 1 }));
+                  }}
                   className="w-full flex items-center justify-center gap-2 py-3.5 md:py-4 bg-[#3182f6] text-white rounded-2xl font-black text-[15px] hover:bg-[#1b64da] transition-all active:scale-[0.98]"
                 >
                   <ExternalLink className="w-4 h-4" /> 온라인몰 바로가기

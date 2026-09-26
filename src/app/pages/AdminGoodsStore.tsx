@@ -5,7 +5,7 @@ import {
   Phone, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, Tag, Banknote, FileText, MessageCircle, Building2, Link2,
-  Plus, ChevronLeft, Download,
+  Plus, ChevronLeft, Download, ChevronUp, ChevronDown, Ban,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
@@ -120,6 +120,7 @@ export function AdminGoodsStore() {
   const [editedGoods, setEditedGoods] = useState<any>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [managerEmailInput, setManagerEmailInput] = useState("");
   const [productPhotoUploadingId, setProductPhotoUploadingId] = useState<string | null>(null);
   const [photoReplacingIdx, setPhotoReplacingIdx] = useState<number | null>(null);
 
@@ -205,6 +206,16 @@ export function AdminGoodsStore() {
     setEditedGoods((prev: any) => ({ ...prev, products: (prev.products || []).filter((p: ProductItem) => p.id !== id) }));
   };
 
+  const moveProduct = (idx: number, direction: -1 | 1) => {
+    setEditedGoods((prev: any) => {
+      const list = [...(prev.products || [])];
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= list.length) return prev;
+      [list[idx], list[targetIdx]] = [list[targetIdx], list[idx]];
+      return { ...prev, products: list };
+    });
+  };
+
   const handleProductPhotoChange = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -241,6 +252,43 @@ export function AdminGoodsStore() {
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditedGoods((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  // 마이페이지 관리자 위임: applicantUid(최초 등록자)가 아니어도, 여기서 추가한 이메일로
+  // 로그인하면 마이페이지 "굿즈 관리자" 탭에서 이 업체를 관리할 수 있게 된다(서버측
+  // 권한 검사는 functions/src/index.ts의 manageMyGoodsProduct 참고). 수정 모드/저장
+  // 버튼과 무관하게 클릭 즉시 반영한다.
+  const handleAddManagerEmail = async (id: string) => {
+    const email = managerEmailInput.trim().toLowerCase();
+    if (!email) return;
+    const current: string[] = selectedGoods?.managerEmails || [];
+    if (current.includes(email)) {
+      setManagerEmailInput("");
+      return;
+    }
+    try {
+      const updateData = { managerEmails: [...current, email] };
+      await updateDoc(doc(db, "goodsStore", id), updateData);
+      setSelectedGoods((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedGoods((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setManagerEmailInput("");
+    } catch (error) {
+      console.error("관리자 계정 추가 실패:", error);
+      alert("관리자 계정 추가 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleRemoveManagerEmail = async (id: string, email: string) => {
+    try {
+      const next = (selectedGoods?.managerEmails || []).filter((e: string) => e !== email);
+      const updateData = { managerEmails: next };
+      await updateDoc(doc(db, "goodsStore", id), updateData);
+      setSelectedGoods((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedGoods((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+    } catch (error) {
+      console.error("관리자 계정 삭제 실패:", error);
+      alert("관리자 계정 삭제 중 오류가 발생했습니다.");
+    }
   };
 
   useEffect(() => {
@@ -344,6 +392,7 @@ export function AdminGoodsStore() {
             { id: "v_approved", label: "승인 완료", count: venues.filter((v) => v.status === "approved").length, icon: CheckCircle, href: "/admin/venues?tab=approved" },
             { id: "v_rejected", label: "반려 / 삭제", count: venues.filter((v) => v.status === "rejected").length, icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_schedule", label: "장소별 일정관리", count: venues.filter((v) => v.status === "approved").length, icon: Calendar, href: "/admin/venues?tab=schedule" },
+            { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
           ],
         },
         {
@@ -452,6 +501,43 @@ export function AdminGoodsStore() {
                       <Edit3 className="w-5 h-5 text-[#4E5968]" />
                     </button>
                   )}
+                </div>
+              </div>
+
+              {/* 마이페이지 관리자 계정: 최초 등록자가 아니어도 이 이메일로 로그인하면
+                  마이페이지 "굿즈 관리자" 탭에서 이 업체를 관리할 수 있다. */}
+              <div className="mx-6 mt-5 bg-[#F0F7FF] border border-[#DBEAFE] rounded-2xl p-4">
+                <p className="text-[13px] font-black text-[#1D4ED8] mb-2.5 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 shrink-0" /> 마이페이지 관리자 계정
+                </p>
+                {(selectedGoods.managerEmails || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {selectedGoods.managerEmails.map((email: string) => (
+                      <span key={email} className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-white border border-[#DBEAFE] rounded-full text-[12px] font-bold text-[#1D4ED8]">
+                        {email}
+                        <button type="button" onClick={() => handleRemoveManagerEmail(selectedGoods.id, email)} className="p-0.5 text-[#93C5FD] hover:text-[#F04452] transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={managerEmailInput}
+                    onChange={(e) => setManagerEmailInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddManagerEmail(selectedGoods.id); }}
+                    placeholder="담당자 이메일 입력"
+                    className="flex-1 px-3 py-2 bg-white border border-[#E5E8EB] rounded-xl text-[13px] font-bold outline-none focus:border-[#3182F6]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddManagerEmail(selectedGoods.id)}
+                    className="shrink-0 px-3.5 py-2 bg-[#3182F6] text-white rounded-xl text-[13px] font-black hover:bg-[#1B64DA] transition-all active:scale-95"
+                  >
+                    추가
+                  </button>
                 </div>
               </div>
 
@@ -569,7 +655,7 @@ export function AdminGoodsStore() {
                 )}
                 {isEditMode ? (
                   <div className="space-y-2">
-                    {(editedGoods.products || []).map((product: ProductItem) => (
+                    {(editedGoods.products || []).map((product: ProductItem, idx: number) => (
                       <div key={product.id} className="flex gap-3 p-3 bg-[#FAFAFB] rounded-2xl border border-[#F2F4F6]">
                         <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-white border border-[#E5E8EB] shrink-0">
                           {product.photo ? (
@@ -617,9 +703,29 @@ export function AdminGoodsStore() {
                             className="w-full px-2.5 py-1.5 bg-white border border-[#E5E8EB] rounded-lg text-[12px] font-medium outline-none focus:border-[#3182F6]"
                           />
                         </div>
-                        <button type="button" onClick={() => removeProduct(product.id)} className="shrink-0 p-1.5 text-[#ADB5BD] hover:text-[#F04452] transition-colors self-start">
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="shrink-0 flex flex-col items-center gap-0.5 self-start">
+                          <button
+                            type="button"
+                            onClick={() => moveProduct(idx, -1)}
+                            disabled={idx === 0}
+                            className="p-1 text-[#ADB5BD] hover:text-[#3182F6] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="위로 이동"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveProduct(idx, 1)}
+                            disabled={idx === (editedGoods.products || []).length - 1}
+                            className="p-1 text-[#ADB5BD] hover:text-[#3182F6] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="아래로 이동"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                          <button type="button" onClick={() => removeProduct(product.id)} className="p-1.5 text-[#ADB5BD] hover:text-[#F04452] transition-colors">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {(editedGoods.products || []).length === 0 && (
@@ -627,9 +733,9 @@ export function AdminGoodsStore() {
                     )}
                   </div>
                 ) : (selectedGoods.products || []).length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-1.5">
                     {selectedGoods.products.map((product: ProductItem) => (
-                      <div key={product.id} className="bg-[#FAFAFB] rounded-xl overflow-hidden border border-[#F2F4F6]">
+                      <div key={product.id} className="bg-[#FAFAFB] rounded-lg overflow-hidden border border-[#F2F4F6]">
                         <div className="relative aspect-square bg-white">
                           {product.photo ? (
                             <>
@@ -644,12 +750,12 @@ export function AdminGoodsStore() {
                               </button>
                             </>
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center"><Gift className="w-5 h-5 text-[#D1D6DB]" /></div>
+                            <div className="w-full h-full flex items-center justify-center"><Gift className="w-4 h-4 text-[#D1D6DB]" /></div>
                           )}
                         </div>
-                        <div className="p-2">
-                          <p className="text-[12px] font-black text-[#191F28] truncate">{product.name || "이름 없음"}</p>
-                          <p className="text-[11px] font-bold text-[#3182F6]">{product.price ? `${Number(product.price).toLocaleString()}원` : "-"}</p>
+                        <div className="p-1.5">
+                          <p className="text-[11px] font-black text-[#191F28] truncate">{product.name || "이름 없음"}</p>
+                          <p className="text-[10px] font-bold text-[#3182F6]">{product.price ? `${Number(product.price).toLocaleString()}원` : "-"}</p>
                         </div>
                       </div>
                     ))}

@@ -11,7 +11,7 @@ export const CustomInput = ({
   label: string; value: string; onChange: (v: string) => void; placeholder?: string;
   required?: boolean; error?: string; autoFocus?: boolean; hint?: string;
 }) => (
-  <div className="group relative mb-8">
+  <div className="group relative mb-5 md:mb-8">
     <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1 group-focus-within:text-[#3182f6] transition-colors tracking-tight">
       {label} {required && <span className="text-[#3182f6]">*</span>}
     </label>
@@ -21,7 +21,7 @@ export const CustomInput = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full text-[18px] font-bold py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
+      className={`w-full text-[15px] md:text-[18px] font-bold py-2.5 md:py-3 px-1 border-b-2 outline-none transition-all bg-transparent placeholder:text-[#d1d6db] text-[#191f28] ${error ? "border-[#f04452]" : "border-[#f2f4f6] focus:border-[#3182f6]"
         }`}
     />
     {hint && !error && (
@@ -56,7 +56,7 @@ export const PillSelector = ({
   label: string; options: readonly string[]; value: string; onChange: (v: string) => void;
   required?: boolean; columns?: number;
 }) => (
-  <div className="mb-8">
+  <div className="mb-5 md:mb-8">
     <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">
       {label} {required && <span className="text-[#3182f6]">*</span>}
     </label>
@@ -88,7 +88,7 @@ export const CardSelector = ({
   onChange: (v: string) => void;
   required?: boolean;
 }) => (
-  <div className="mb-8">
+  <div className="mb-5 md:mb-8">
     <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">
       {label} {required && <span className="text-[#3182f6]">*</span>}
     </label>
@@ -128,7 +128,7 @@ export const MultiPillSelector = ({
     onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
   };
   return (
-    <div className="mb-8">
+    <div className="mb-5 md:mb-8">
       <label className="block text-[13px] font-bold text-[#6b7684] mb-3 ml-1 tracking-tight">
         {label} {required && <span className="text-[#3182f6]">*</span>}
       </label>

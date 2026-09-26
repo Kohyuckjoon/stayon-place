@@ -5,7 +5,7 @@ import {
   Phone, Mail, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, Church, Building2, ChevronLeft,
-  Wind, Bed, Car, Bath, Volume2, Tag as TagIcon,
+  Wind, Bed, Car, Bath, Volume2, Tag as TagIcon, Ban,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayRemove, arrayUnion } from "firebase/firestore";
@@ -297,6 +297,7 @@ export function AdminMissionVenues() {
             { id: "v_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/venues?tab=approved" },
             { id: "v_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_schedule", label: "장소별 일정관리", icon: Calendar, href: "/admin/venues?tab=schedule" },
+            { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
           ],
         },
         {

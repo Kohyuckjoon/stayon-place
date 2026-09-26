@@ -18,6 +18,57 @@ import { MyVehicleFleetManagerTab } from "../components/MyVehicleFleetManagerTab
 import { MyVenueCoreManagerTab } from "../components/MyVenueCoreManagerTab";
 import { httpsCallable } from "firebase/functions";
 
+// "OO 관리자" 탭들(장소/티셔츠/굿즈/차량)이 공통으로 쓰는 구독 로직 - 본인이 직접
+// 등록한(applicantUid) 리스팅뿐 아니라, 관리자가 /admin에서 managerEmails 배열에
+// 추가해준 이메일로 로그인한 경우에도 같은 리스팅이 보이도록 두 쿼리를 각각 구독해서
+// 합친다. managerEmails array-contains 쿼리에 status 필터까지 같이 걸면 새 복합
+// 색인이 필요해지는데, 이 프로젝트는 firestore.indexes.json으로 색인을 관리하지 않고
+// 있어서 status 필터는 받아온 뒤 이쪽에서 걸러낸다.
+function subscribeMyListings(
+  collectionName: string,
+  uid: string,
+  email: string | null | undefined,
+  onChange: (docs: any[]) => void
+) {
+  let ownedDocs: any[] = [];
+  let managedDocs: any[] = [];
+  const emit = () => {
+    const map = new Map<string, any>();
+    [...ownedDocs, ...managedDocs].forEach((d) => map.set(d.id, d));
+    onChange(Array.from(map.values()));
+  };
+
+  const ownedQuery = query(
+    collection(db, collectionName),
+    where("applicantUid", "==", uid),
+    where("status", "==", "approved")
+  );
+  const unsubOwned = onSnapshot(ownedQuery, (snapshot) => {
+    ownedDocs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    emit();
+  }, (error) => {
+    console.error(`${collectionName} 소유 리스팅 조회 에러:`, error);
+  });
+
+  let unsubManaged = () => {};
+  if (email) {
+    const managedQuery = query(collection(db, collectionName), where("managerEmails", "array-contains", email));
+    unsubManaged = onSnapshot(managedQuery, (snapshot) => {
+      managedDocs = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((d: any) => d.status === "approved");
+      emit();
+    }, (error) => {
+      console.error(`${collectionName} 매니저 위임 리스팅 조회 에러:`, error);
+    });
+  }
+
+  return () => {
+    unsubOwned();
+    unsubManaged();
+  };
+}
+
 // 상태 배지 컴포넌트 (Toss Style)
 const StatusBadge = ({ status }: any) => {
   const getStatusUI = (status: string) => {
@@ -163,22 +214,13 @@ export function MyPage() {
   };
 
   // 승인된 내 장소만 "장소 관리자" 탭에서 자기 관리 대상으로 노출한다 (티셔츠/굿즈/차량과
-  // 동일한 규칙). applicantUid 기준으로 찾으므로, 로그인 필수화 이전에 등록된 장소는
-  // applicantUid가 없어 여기 뜨지 않는다 - 이런 기존 장소는 관리자에게 문의해야 한다.
+  // 동일한 규칙). applicantUid로 등록한 것뿐 아니라, 관리자가 managerEmails에 추가해준
+  // 계정으로 로그인한 경우도 같이 뜬다 (subscribeMyListings 참고). 로그인 필수화 이전에
+  // 등록되어 applicantUid도 없고 managerEmails도 아직 안 채워진 장소는 여전히 여기 안
+  // 뜨므로, 그런 기존 장소는 관리자가 /admin에서 매니저 계정을 지정해줘야 한다.
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "venues"),
-      where("applicantUid", "==", user.uid),
-      where("status", "==", "approved")
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const venueData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMyVenues(venueData);
-    }, (error) => {
-      console.error("내 장소 조회 에러:", error);
-    });
-    return () => unsubscribe();
+    return subscribeMyListings("venues", user.uid, user.email, setMyVenues);
   }, [user]);
 
   useEffect(() => {
@@ -223,47 +265,17 @@ export function MyPage() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "groupShirts"),
-      where("applicantUid", "==", user.uid),
-      where("status", "==", "approved")
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMyShirts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    }, (error) => {
-      console.error("내 단체티 업체 조회 에러:", error);
-    });
-    return () => unsubscribe();
+    return subscribeMyListings("groupShirts", user.uid, user.email, setMyShirts);
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "goodsStore"),
-      where("applicantUid", "==", user.uid),
-      where("status", "==", "approved")
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMyGoodsList(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    }, (error) => {
-      console.error("내 굿즈 업체 조회 에러:", error);
-    });
-    return () => unsubscribe();
+    return subscribeMyListings("goodsStore", user.uid, user.email, setMyGoodsList);
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "vehicleRentals"),
-      where("applicantUid", "==", user.uid),
-      where("status", "==", "approved")
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMyVehicles(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    }, (error) => {
-      console.error("내 차량 렌트 업체 조회 에러:", error);
-    });
-    return () => unsubscribe();
+    return subscribeMyListings("vehicleRentals", user.uid, user.email, setMyVehicles);
   }, [user]);
 
   useEffect(() => {
@@ -445,7 +457,11 @@ export function MyPage() {
         </div>
 
         <div ref={bookingListRef} className="bg-white rounded-[24px] md:rounded-[40px] shadow-sm border border-gray-100 overflow-hidden mb-5 md:mb-10 scroll-mt-4">
-          <div className="flex border-b border-gray-50 px-4 md:px-8 bg-[#F9FAFB]">
+          {/* 최대 5개(내 활동 + 장소/티셔츠/굿즈/차량 관리자)까지 뜰 수 있는데, 줄바꿈도
+              가로 스크롤도 없이 flex로만 나열돼 있어서 모바일 좁은 화면에서 다 같이 뜨면
+              글자가 찌그러지듯 좁아졌다. shrink-0 + whitespace-nowrap으로 찌그러짐 자체를
+              막고, 대신 안 들어가는 만큼은 가로 스크롤되게(모바일은 스와이프로 자연스럽게) */}
+          <div className="flex overflow-x-auto scrollbar-hide border-b border-gray-50 px-4 md:px-8 bg-[#F9FAFB]">
             {[
               { id: "activity", label: "내 활동" },
               { id: "myVenues", label: "장소 관리자" },
@@ -456,7 +472,7 @@ export function MyPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`relative py-4 px-3 md:py-6 md:px-4 text-[15px] md:text-[17px] font-bold transition-all ${activeTab === tab.id ? "text-[#191F28]" : "text-[#ADB5BD] hover:text-[#8B95A1]"}`}
+                className={`relative shrink-0 whitespace-nowrap py-3.5 px-2.5 md:py-6 md:px-4 text-[13px] md:text-[17px] font-bold transition-all ${activeTab === tab.id ? "text-[#191F28]" : "text-[#ADB5BD] hover:text-[#8B95A1]"}`}
               >
                 {tab.label}
                 {activeTab === tab.id && <motion.div layoutId="activeTabIndicator" className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#3182F6] rounded-t-full" />}
@@ -677,7 +693,7 @@ export function MyPage() {
                         )}
                         {(() => {
                           const current = myVenues.find((v) => v.id === selectedVenueId) || myVenues[0];
-                          return current && <MyVenueCoreManagerTab venue={current} />;
+                          return current && <MyVenueCoreManagerTab key={current.id} venue={current} />;
                         })()}
                       </>
                     ) : (
@@ -706,7 +722,7 @@ export function MyPage() {
                   )}
                   {(() => {
                     const current = myShirts.find((s) => s.id === selectedShirtId) || myShirts[0];
-                    return current && <MyShirtsManagerTab shirt={current} />;
+                    return current && <MyShirtsManagerTab key={current.id} shirt={current} />;
                   })()}
                 </motion.div>
               ) : activeTab === "myGoods" ? (
@@ -726,7 +742,7 @@ export function MyPage() {
                   )}
                   {(() => {
                     const current = myGoodsList.find((g) => g.id === selectedGoodsId) || myGoodsList[0];
-                    return current && <MyGoodsManagerTab goods={current} />;
+                    return current && <MyGoodsManagerTab key={current.id} goods={current} />;
                   })()}
                 </motion.div>
               ) : (
@@ -746,7 +762,7 @@ export function MyPage() {
                   )}
                   {(() => {
                     const current = myVehicles.find((v) => v.id === selectedVehicleId) || myVehicles[0];
-                    return current && <MyVehicleFleetManagerTab vehicle={current} />;
+                    return current && <MyVehicleFleetManagerTab key={current.id} vehicle={current} />;
                   })()}
                 </motion.div>
               )}

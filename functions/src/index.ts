@@ -3,6 +3,7 @@ import {setGlobalOptions} from "firebase-functions/v2";
 import {onCall, CallableRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {sendMailNotification} from "./utils/adminNotify";
+import {isOwnerOrManager} from "./utils/ownership";
 import {defineSecret} from "firebase-functions/params";
 
 const gmailUser = defineSecret("GMAIL_USER");
@@ -62,10 +63,50 @@ export const logTeamContactEvent = onCall({
   }
 });
 
+// 굿즈/단체티 상세페이지 조회수 및 "온라인몰 바로가기" 클릭수 기록 - logTeamContactEvent와
+// 동일한 이유(익명 방문자가 호출하는 단순 카운터라 소유권 검사가 필요 없음)로 컬렉션·필드를
+// 화이트리스트로 제한해 한 함수를 goodsStore/groupShirts 둘이 같이 쓴다.
+const STORE_EVENT_COLLECTIONS: Record<string, string> = {
+  goods: "goodsStore",
+  shirts: "groupShirts",
+};
+const STORE_EVENT_FIELDS: Record<string, string> = {
+  view: "viewCount",
+  onlineStoreClick: "onlineStoreClickCount",
+};
+
+export const logStoreEvent = onCall({
+  region: "asia-northeast3",
+  cors: true,
+}, async (request: CallableRequest<any>) => {
+  const {store, id, type} = request.data ?? {};
+  const collectionName = typeof store === "string" ?
+    STORE_EVENT_COLLECTIONS[store] : undefined;
+  const field = typeof type === "string" ? STORE_EVENT_FIELDS[type] : undefined;
+  if (!id || typeof id !== "string" || !collectionName || !field) {
+    return {success: false, error: "잘못된 요청"};
+  }
+  try {
+    await admin.firestore().collection(collectionName).doc(id).update({
+      [field]: admin.firestore.FieldValue.increment(1),
+    });
+    return {success: true};
+  } catch (error) {
+    console.error("스토어 이벤트 기록 에러:", error);
+    return {success: false, error: "기록 실패"};
+  }
+});
+
 export {
   registerPaymentAndSchedule,
   scheduledBalancePayment,
 } from "./paymentHandler";
+
+export {
+  submitVenueBlockRequest,
+  decideVenueBlockRequest,
+  expireStaleVenueBlockRequests,
+} from "./venueBlockRequest";
 
 export {venuePreview} from "./venuePreview";
 export {venuesPreview} from "./venuesPreview";
@@ -108,11 +149,12 @@ export const manageMyShirtProduct = onCall({
   cors: true,
 }, async (request: CallableRequest<any>) => {
   const uid = request.auth?.uid;
+  const callerEmail = request.auth?.token.email;
   if (!uid) {
     return {success: false, error: "로그인이 필요합니다."};
   }
 
-  const {shirtId, action, product, productId} = request.data ?? {};
+  const {shirtId, action, product, productId, orderedIds} = request.data ?? {};
   if (typeof shirtId !== "string" || !shirtId) {
     return {success: false, error: "잘못된 요청입니다."};
   }
@@ -125,7 +167,7 @@ export const manageMyShirtProduct = onCall({
       return {success: false, error: "업체 정보를 찾을 수 없습니다."};
     }
     const data = snap.data() || {};
-    if (data.applicantUid !== uid) {
+    if (!isOwnerOrManager(data, uid, callerEmail)) {
       return {success: false, error: "본인 업체만 관리할 수 있습니다."};
     }
     if (data.status !== "approved") {
@@ -177,6 +219,23 @@ export const manageMyShirtProduct = onCall({
       return {success: true};
     }
 
+    if (action === "reorder") {
+      if (!Array.isArray(orderedIds) || orderedIds.length !== products.length) {
+        return {success: false, error: "잘못된 요청입니다."};
+      }
+      const byId = new Map(products.map((p) => [p.id, p]));
+      const next = orderedIds.map(
+        (id: unknown) => (typeof id === "string" ? byId.get(id) : undefined)
+      );
+      const hasMissing = next.some((p) => !p);
+      const hasDuplicate = new Set(orderedIds).size !== products.length;
+      if (hasMissing || hasDuplicate) {
+        return {success: false, error: "잘못된 요청입니다."};
+      }
+      await shirtRef.update({products: next});
+      return {success: true};
+    }
+
     return {success: false, error: "알 수 없는 요청입니다."};
   } catch (error) {
     console.error("상품 관리 처리 에러:", error);
@@ -194,11 +253,12 @@ export const manageMyGoodsProduct = onCall({
   cors: true,
 }, async (request: CallableRequest<any>) => {
   const uid = request.auth?.uid;
+  const callerEmail = request.auth?.token.email;
   if (!uid) {
     return {success: false, error: "로그인이 필요합니다."};
   }
 
-  const {goodsId, action, product, productId} = request.data ?? {};
+  const {goodsId, action, product, productId, orderedIds} = request.data ?? {};
   if (typeof goodsId !== "string" || !goodsId) {
     return {success: false, error: "잘못된 요청입니다."};
   }
@@ -211,7 +271,7 @@ export const manageMyGoodsProduct = onCall({
       return {success: false, error: "업체 정보를 찾을 수 없습니다."};
     }
     const data = snap.data() || {};
-    if (data.applicantUid !== uid) {
+    if (!isOwnerOrManager(data, uid, callerEmail)) {
       return {success: false, error: "본인 업체만 관리할 수 있습니다."};
     }
     if (data.status !== "approved") {
@@ -259,6 +319,23 @@ export const manageMyGoodsProduct = onCall({
         return {success: false, error: "잘못된 요청입니다."};
       }
       const next = products.filter((p) => p.id !== productId);
+      await goodsRef.update({products: next});
+      return {success: true};
+    }
+
+    if (action === "reorder") {
+      if (!Array.isArray(orderedIds) || orderedIds.length !== products.length) {
+        return {success: false, error: "잘못된 요청입니다."};
+      }
+      const byId = new Map(products.map((p) => [p.id, p]));
+      const next = orderedIds.map(
+        (id: unknown) => (typeof id === "string" ? byId.get(id) : undefined)
+      );
+      const hasMissing = next.some((p) => !p);
+      const hasDuplicate = new Set(orderedIds).size !== products.length;
+      if (hasMissing || hasDuplicate) {
+        return {success: false, error: "잘못된 요청입니다."};
+      }
       await goodsRef.update({products: next});
       return {success: true};
     }
@@ -342,6 +419,7 @@ export const manageMyVehicleFleet = onCall({
   cors: true,
 }, async (request: CallableRequest<any>) => {
   const uid = request.auth?.uid;
+  const callerEmail = request.auth?.token.email;
   if (!uid) {
     return {success: false, error: "로그인이 필요합니다."};
   }
@@ -360,7 +438,7 @@ export const manageMyVehicleFleet = onCall({
       return {success: false, error: "업체 정보를 찾을 수 없습니다."};
     }
     const data = snap.data() || {};
-    if (data.applicantUid !== uid) {
+    if (!isOwnerOrManager(data, uid, callerEmail)) {
       return {success: false, error: "본인 업체만 관리할 수 있습니다."};
     }
     if (data.status !== "approved") {
@@ -409,6 +487,22 @@ export const manageMyVehicleFleet = onCall({
       return {success: true};
     }
 
+    if (action === "reorder") {
+      const orderedIndices = request.data?.orderedIndices;
+      const isValidPermutation = Array.isArray(orderedIndices) &&
+        orderedIndices.length === fleet.length &&
+        new Set(orderedIndices).size === fleet.length &&
+        orderedIndices.every(
+          (i: unknown) => typeof i === "number" && i >= 0 && i < fleet.length
+        );
+      if (!isValidPermutation) {
+        return {success: false, error: "잘못된 요청입니다."};
+      }
+      const next = orderedIndices.map((i: number) => fleet[i]);
+      await vehicleRef.update({vehicleFleet: next});
+      return {success: true};
+    }
+
     return {success: false, error: "알 수 없는 요청입니다."};
   } catch (error) {
     console.error("보유 차량 관리 처리 에러:", error);
@@ -418,10 +512,11 @@ export const manageMyVehicleFleet = onCall({
 
 // 장소(마이페이지 "장소 관리자" 탭)용 - manageMyShirtProduct와 동일한 이유로 서버에서
 // 소유권을 검사하고 대신 써준다. 장소는 등록 당시 로그인이 필수가 아니었던 기존 데이터가
-// 있어 applicantUid가 없는 문서는 이 함수로 관리할 수 없다(본인 확인 자체가 불가능하기
-// 때문). 편집 범위도 "핵심 정보"(설명·가격·사진)로 좁혀, 시설/정책 같은 복잡한 필드는
-// 여전히 관리자만 다루게 한다. 사진은 lib/venueImageCategories.ts와 동일한 8개
-// 카테고리 구조를 그대로 따른다.
+// 있어 applicantUid가 없는 문서도 있는데, 이런 문서는 /admin에서 managerEmails로
+// 담당자를 지정해줘야만 마이페이지에서 관리할 수 있다(isOwnerOrManager 참고). 편집
+// 범위도 "핵심 정보"(설명·가격·사진)로 좁혀, 시설/정책 같은 복잡한 필드는 여전히
+// 관리자만 다루게 한다. 사진은 lib/venueImageCategories.ts와 동일한 8개 카테고리
+// 구조를 그대로 따른다.
 const VENUE_IMAGE_CATEGORY_MAX: Record<string, number> = {
   entrance: 3,
   mainHall: 4,
@@ -439,6 +534,7 @@ export const manageMyVenueCore = onCall({
   cors: true,
 }, async (request: CallableRequest<any>) => {
   const uid = request.auth?.uid;
+  const callerEmail = request.auth?.token.email;
   if (!uid) {
     return {success: false, error: "로그인이 필요합니다."};
   }
@@ -458,7 +554,7 @@ export const manageMyVenueCore = onCall({
       return {success: false, error: "장소 정보를 찾을 수 없습니다."};
     }
     const data = snap.data() || {};
-    if (!data.applicantUid || data.applicantUid !== uid) {
+    if (!isOwnerOrManager(data, uid, callerEmail)) {
       return {success: false, error: "본인 장소만 관리할 수 있습니다."};
     }
     if (data.status !== "approved") {
@@ -522,6 +618,19 @@ export const manageMyVenueCore = onCall({
         (k) => imagesByCategory[k] || []
       );
       await venueRef.update({imagesByCategory, images});
+      return {success: true};
+    }
+
+    if (action === "toggleBlockedDate") {
+      const {dateStr, isCurrentlyBlocked} = request.data ?? {};
+      if (typeof dateStr !== "string" || !dateStr) {
+        return {success: false, error: "잘못된 요청입니다."};
+      }
+      await venueRef.update({
+        blockedDates: isCurrentlyBlocked ?
+          admin.firestore.FieldValue.arrayRemove(dateStr) :
+          admin.firestore.FieldValue.arrayUnion(dateStr),
+      });
       return {success: true};
     }
 

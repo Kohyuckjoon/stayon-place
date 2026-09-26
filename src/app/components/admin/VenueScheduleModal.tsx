@@ -118,15 +118,15 @@ export function VenueScheduleModal({ venue, onToggleDate, onClose }: VenueSchedu
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-[560px] rounded-[28px] shadow-2xl overflow-hidden"
+        className="bg-white w-full max-w-[560px] max-h-[90vh] overflow-y-auto rounded-[24px] md:rounded-[28px] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-[#F2F4F6] flex items-start justify-between gap-4">
+        <div className="p-4 md:p-6 border-b border-[#F2F4F6] flex items-start justify-between gap-4">
           <div className="min-w-0">
             <span className="inline-block px-3 py-1 bg-[#191F28] text-white rounded-full text-[11px] font-black mb-2">
               예약 차단 설정
             </span>
-            <h2 className="text-[19px] font-black text-[#191F28] truncate">{venue.venueName}</h2>
+            <h2 className="text-[17px] md:text-[19px] font-black text-[#191F28] truncate">{venue.venueName}</h2>
             {venue.location && (
               <div className="flex items-center gap-1.5 text-[#8B95A1] text-[13px] font-bold mt-1">
                 <MapPin className="w-3.5 h-3.5 text-[#3182F6] shrink-0" />
@@ -139,7 +139,7 @@ export function VenueScheduleModal({ venue, onToggleDate, onClose }: VenueSchedu
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           <CalendarWrapper>
             <Calendar
               locale="ko-KR"
@@ -176,7 +176,7 @@ export function VenueScheduleModal({ venue, onToggleDate, onClose }: VenueSchedu
           </div>
         </div>
 
-        <div className="p-6 pt-0">
+        <div className="p-4 md:p-6 pt-0">
           <button
             onClick={onClose}
             className="w-full py-3.5 bg-[#F2F4F6] text-[#4E5968] rounded-2xl font-bold text-[15px] transition-all active:scale-95"

@@ -331,7 +331,7 @@ export default function ChurchRegistrationForm() {
           {/* 신청자 정보 */}
           <section className="mb-4">
             <h3 className="text-[13px] font-bold text-[#6b7684] mb-6 ml-1 uppercase tracking-wider">신청자 정보</h3>
-            <CustomInput label="신청자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" autoFocus />
+            <CustomInput label="신청자 이름" required value={formData.applicantName} onChange={(v) => setFormData({ ...formData, applicantName: v })} placeholder="홍길동" />
             <CustomInput
               label="신청자 연락처" required
               value={formData.applicantContact}

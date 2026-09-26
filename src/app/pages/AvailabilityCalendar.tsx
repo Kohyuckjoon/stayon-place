@@ -84,15 +84,20 @@ const CalendarWrapper = styled.div`
     }
   }
 
-  /* 예약 완료(X 표시) 스타일 - 입금 완료된 날짜에만 적용 */
-  .booked-day {
+  /* 예약 완료(X 표시) 스타일 - 입금 완료된 날짜에만 적용.
+     오늘 날짜(.react-calendar__tile--now)가 동시에 예약 완료 날짜이면, 두 클래스가
+     같은 버튼에 함께 붙는데 둘 다 단일 클래스 선택자라 CSS 파일에서 나중에 나오는
+     쪽(.react-calendar__tile--now)이 이겨서 오늘 날짜만 파란 숫자가 X 위로 비쳐
+     보이는 문제가 있었다. .react-calendar__tile을 덧붙여 선택자 우선순위를 올려서
+     예약 완료 날짜는 오늘이든 아니든 항상 동일하게(회색 배경 + X만) 보이게 한다. */
+  .react-calendar__tile.booked-day {
     background-color: #F2F4F6 !important; /* 배경을 살짝 더 어둡게 하여 대비 증폭 */
     color: #ADB5BD !important; /* 숫자 색상 */
     cursor: not-allowed !important;
     pointer-events: none;
     position: relative; /* 자식 요소인 X 표시의 기준점 */
     overflow: hidden; /* X 표시가 타일을 벗어나지 않도록 설정 */
-    
+
     &::before, &::after {
       content: '';
       position: absolute;
@@ -104,7 +109,7 @@ const CalendarWrapper = styled.div`
       border-radius: 2px;
       z-index: 1; /* 숫자보다 위에 보이도록 설정 */
     }
-    
+
     /* X자 형태 정밀 조정 */
     &::before { transform: translate(-50%, -50%) rotate(45deg); }
     &::after { transform: translate(-50%, -50%) rotate(-45deg); }

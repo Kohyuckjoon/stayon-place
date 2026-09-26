@@ -4,7 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Mic2, Users, Speaker, PlaySquare,
   Phone, Mail, Church, User, ClipboardCheck, CalendarCheck, MapPinned, MapPin,
   CreditCard, Calendar, Trash2, X, RotateCcw, Share2, Edit3, Save, ShieldOff, Lock, ImagePlus, ChevronDown, TrendingUp,
-  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper,
+  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
@@ -549,6 +549,7 @@ export function AdminTeams() {
             { id: "v_approved", label: "승인 완료", count: venues.filter((v) => v.status === "approved").length, icon: CheckCircle, href: "/admin/venues?tab=approved" },
             { id: "v_rejected", label: "반려 / 삭제", count: venues.filter((v) => v.status === "rejected").length, icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_schedule", label: "장소별 일정관리", count: venues.filter((v) => v.status === "approved").length, icon: Calendar, href: "/admin/venues?tab=schedule" },
+            { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
           ],
         },
         {
