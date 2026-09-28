@@ -127,6 +127,20 @@
         }
       },
       {
+        "source": "/reviews",
+        "function": {
+          "functionId": "reviewsPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/sitemap.xml",
+        "function": {
+          "functionId": "dynamicSitemap",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

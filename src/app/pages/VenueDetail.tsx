@@ -21,8 +21,13 @@ export function VenueDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [venue, setVenue] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // 서버(venuePreview)가 HTML에 미리 실어 보낸 이 장소의 공개 정보. 데이터베이스
+  // 조회를 기다리지 않고 첫 렌더부터 내용을 그려서, 구글봇이 화면을 찍는 순간에도
+  // 빈 화면이 아니게 한다. 아래 fetchVenue가 곧바로 최신 값으로 덮어쓴다.
+  const preloaded = (window as any).__PRELOADED_VENUE__;
+  const initialVenue = preloaded && preloaded.id === id ? preloaded.data : null;
+  const [venue, setVenue] = useState<any>(initialVenue);
+  const [loading, setLoading] = useState(!initialVenue);
   const [realBookings, setRealBookings] = useState<any[]>([]);
 
   // 이미지 확대를 위한 상태 값

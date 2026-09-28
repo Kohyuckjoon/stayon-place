@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://place.stayon-platform.com/sitemap.xml

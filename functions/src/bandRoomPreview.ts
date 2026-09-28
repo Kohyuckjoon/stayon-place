@@ -29,6 +29,13 @@ export const bandRoomPreview = onRequest(
         const roomName = roomData?.roomName as string | undefined;
         const roomType = roomData?.roomType as string | undefined;
         const address = roomData?.address as string | undefined;
+        const photos = roomData?.photos as string[] | undefined;
+
+        // 등록한 첫 번째 사진이 있으면 카카오톡 등 미리보기 이미지를 그걸로 바꾼다.
+        // 없으면 index.html의 기본 스테이온 배너 이미지가 그대로 유지된다.
+        if (photos && photos.length > 0) {
+          meta.image = photos[0];
+        }
 
         if (roomName) {
           meta.title = `${roomName} | 교회 찬양팀 합주 공간 소개 | STAYON에서.`;
