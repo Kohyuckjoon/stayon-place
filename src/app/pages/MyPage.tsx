@@ -16,6 +16,7 @@ import { MyShirtsManagerTab } from "../components/MyShirtsManagerTab";
 import { MyGoodsManagerTab } from "../components/MyGoodsManagerTab";
 import { MyVehicleFleetManagerTab } from "../components/MyVehicleFleetManagerTab";
 import { MyVenueCoreManagerTab } from "../components/MyVenueCoreManagerTab";
+import { MyTeamManagerTab } from "../components/MyTeamManagerTab";
 import { httpsCallable } from "firebase/functions";
 
 // "OO 관리자" 탭들(장소/티셔츠/굿즈/차량)이 공통으로 쓰는 구독 로직 - 본인이 직접
@@ -108,7 +109,7 @@ const formatDotDateShort = (dateStr?: string) => (dateStr ? dateStr.slice(5).rep
 export function MyPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"activity" | "myVenues" | "myShirts" | "myGoods" | "myVehicles">("activity");
+  const [activeTab, setActiveTab] = useState<"activity" | "myVenues" | "myShirts" | "myGoods" | "myVehicles" | "myTeams">("activity");
   const bookingListRef = useRef<HTMLDivElement>(null);
 
   const [myVenues, setMyVenues] = useState<any[]>([]);
@@ -117,10 +118,12 @@ export function MyPage() {
   const [myShirts, setMyShirts] = useState<any[]>([]); // 승인된 내 단체티 업체들 (있으면 "티셔츠 관리자" 탭 노출, 여러 개 가능)
   const [myGoodsList, setMyGoodsList] = useState<any[]>([]); // 승인된 내 굿즈 업체들 (있으면 "굿즈 관리자" 탭 노출, 여러 개 가능)
   const [myVehicles, setMyVehicles] = useState<any[]>([]); // 승인된 내 차량 렌트 업체들 (있으면 "차량 관리자" 탭 노출, 여러 개 가능)
+  const [myTeams, setMyTeams] = useState<any[]>([]); // 승인된 내 외부사역팀들 (있으면 "외부사역 관리자" 탭 노출, 여러 개 가능)
   const [selectedShirtId, setSelectedShirtId] = useState<string | null>(null);
   const [selectedGoodsId, setSelectedGoodsId] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
@@ -276,6 +279,11 @@ export function MyPage() {
   useEffect(() => {
     if (!user) return;
     return subscribeMyListings("vehicleRentals", user.uid, user.email, setMyVehicles);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeMyListings("ministryTeams", user.uid, user.email, setMyTeams);
   }, [user]);
 
   useEffect(() => {
@@ -468,6 +476,7 @@ export function MyPage() {
               ...(myShirts.length > 0 ? [{ id: "myShirts", label: "티셔츠 관리자" }] : []),
               ...(myGoodsList.length > 0 ? [{ id: "myGoods", label: "굿즈 관리자" }] : []),
               ...(myVehicles.length > 0 ? [{ id: "myVehicles", label: "차량 관리자" }] : []),
+              ...(myTeams.length > 0 ? [{ id: "myTeams", label: "외부사역 관리자" }] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -745,7 +754,7 @@ export function MyPage() {
                     return current && <MyGoodsManagerTab key={current.id} goods={current} />;
                   })()}
                 </motion.div>
-              ) : (
+              ) : activeTab === "myVehicles" ? (
                 <motion.div key="myVehicles" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
                   {myVehicles.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-1">
@@ -763,6 +772,26 @@ export function MyPage() {
                   {(() => {
                     const current = myVehicles.find((v) => v.id === selectedVehicleId) || myVehicles[0];
                     return current && <MyVehicleFleetManagerTab key={current.id} vehicle={current} />;
+                  })()}
+                </motion.div>
+              ) : (
+                <motion.div key="myTeams" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                  {myTeams.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {myTeams.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => setSelectedTeamId(t.id)}
+                          className={`shrink-0 px-4 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all ${(selectedTeamId || myTeams[0].id) === t.id ? "bg-[#191F28] text-white" : "bg-[#F2F4F6] text-[#6B7684] hover:bg-[#E5E8EB]"}`}
+                        >
+                          {t.teamName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {(() => {
+                    const current = myTeams.find((t) => t.id === selectedTeamId) || myTeams[0];
+                    return current && <MyTeamManagerTab key={current.id} team={current} />;
                   })()}
                 </motion.div>
               )}

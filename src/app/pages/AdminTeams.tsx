@@ -337,6 +337,7 @@ export function AdminTeams() {
   const [editedTeam, setEditedTeam] = useState<any>(null);
   const [posterUploading, setPosterUploading] = useState(false);
   const posterInputRef = useRef<HTMLInputElement>(null);
+  const [managerEmailInput, setManagerEmailInput] = useState("");
   const [boostAmount, setBoostAmount] = useState("7");
   const [boostUnit, setBoostUnit] = useState<"일" | "개월">("일");
 
@@ -404,6 +405,43 @@ export function AdminTeams() {
     setSelectedTeam(null);
     setEditedTeam(null);
     setIsEditMode(false);
+  };
+
+  // 마이페이지 관리자 위임: applicantUid(최초 등록자)가 아니어도, 여기서 추가한 이메일로
+  // 로그인하면 마이페이지 "외부사역 관리자" 탭에서 이 팀을 관리할 수 있게 된다(서버측
+  // 권한 검사는 functions/src/index.ts의 manageMyTeamCore 참고). AdminGoodsStore.tsx와
+  // 동일한 패턴 - 수정 모드/저장 버튼과 무관하게 클릭 즉시 반영한다.
+  const handleAddManagerEmail = async (id: string) => {
+    const email = managerEmailInput.trim().toLowerCase();
+    if (!email) return;
+    const current: string[] = selectedTeam?.managerEmails || [];
+    if (current.includes(email)) {
+      setManagerEmailInput("");
+      return;
+    }
+    try {
+      const updateData = { managerEmails: [...current, email] };
+      await updateDoc(doc(db, "ministryTeams", id), updateData);
+      setSelectedTeam((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedTeam((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setManagerEmailInput("");
+    } catch (error) {
+      console.error("관리자 계정 추가 실패:", error);
+      alert("관리자 계정 추가 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleRemoveManagerEmail = async (id: string, email: string) => {
+    try {
+      const next = (selectedTeam?.managerEmails || []).filter((e: string) => e !== email);
+      const updateData = { managerEmails: next };
+      await updateDoc(doc(db, "ministryTeams", id), updateData);
+      setSelectedTeam((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+      setEditedTeam((prev: any) => (prev && prev.id === id ? { ...prev, ...updateData } : prev));
+    } catch (error) {
+      console.error("관리자 계정 삭제 실패:", error);
+      alert("관리자 계정 삭제 중 오류가 발생했습니다.");
+    }
   };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -755,6 +793,43 @@ export function AdminTeams() {
                 )}
                 <button onClick={closeTeamModal} className="p-2 bg-[#F2F4F6] rounded-full hover:bg-[#E5E8EB] transition-all">
                   <X className="w-5 h-5 text-[#4E5968]" />
+                </button>
+              </div>
+            </div>
+
+            {/* 마이페이지 관리자 계정: 최초 등록자가 아니어도 이 이메일로 로그인하면
+                마이페이지 "외부사역 관리자" 탭에서 이 팀을 관리할 수 있다. */}
+            <div className="mx-6 mt-5 bg-[#F0F7FF] border border-[#DBEAFE] rounded-2xl p-4">
+              <p className="text-[13px] font-black text-[#1D4ED8] mb-2.5 flex items-center gap-1.5">
+                <Users className="w-4 h-4 shrink-0" /> 마이페이지 관리자 계정
+              </p>
+              {(selectedTeam.managerEmails || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {selectedTeam.managerEmails.map((email: string) => (
+                    <span key={email} className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-white border border-[#DBEAFE] rounded-full text-[12px] font-bold text-[#1D4ED8]">
+                      {email}
+                      <button type="button" onClick={() => handleRemoveManagerEmail(selectedTeam.id, email)} className="p-0.5 text-[#93C5FD] hover:text-[#F04452] transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="email"
+                  value={managerEmailInput}
+                  onChange={(e) => setManagerEmailInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddManagerEmail(selectedTeam.id); }}
+                  placeholder="담당자 이메일 입력"
+                  className="flex-1 px-3 py-2 bg-white border border-[#E5E8EB] rounded-xl text-[13px] font-bold outline-none focus:border-[#3182F6]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddManagerEmail(selectedTeam.id)}
+                  className="shrink-0 px-3.5 py-2 bg-[#3182F6] text-white rounded-xl text-[13px] font-black hover:bg-[#1B64DA] transition-all active:scale-95"
+                >
+                  추가
                 </button>
               </div>
             </div>

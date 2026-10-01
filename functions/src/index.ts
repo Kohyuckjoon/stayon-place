@@ -642,3 +642,112 @@ export const manageMyVenueCore = onCall({
     return {success: false, error: "처리 중 오류가 발생했습니다."};
   }
 });
+
+// 외부 사역팀(마이페이지 "외부사역 관리자" 탭)용 - manageMyVenueCore와 같은 이유로
+// 서버에서 소유권을 검사하고 대신 써준다. 팀은 굿즈/단체티/차량과 달리 "상품 목록" 같은
+// 하위 리스트가 없는 단일 프로필이라, 장소(venue)의 "핵심 정보만 자가수정" 패턴을
+// 그대로 따른다. 팀명/분야/규모/구성/장비/지역/소속 교회 정보처럼 승인 근거와 직결되는
+// 구조적 필드는 여전히 관리자만 다루고, 시간이 지나며 바뀔 수 있는 정보(활동
+// 이력·연락처·SNS 링크·포스터 이미지)만 자가수정을 허용한다.
+const MAX_MY_TEAM_IMAGES = 3;
+
+export const manageMyTeamCore = onCall({
+  region: "asia-northeast3",
+  cors: true,
+}, async (request: CallableRequest<any>) => {
+  const uid = request.auth?.uid;
+  const callerEmail = request.auth?.token.email;
+  if (!uid) {
+    return {success: false, error: "로그인이 필요합니다."};
+  }
+
+  const {
+    teamId, action, experience, applicantContact, applicantEmail,
+    youtubeUrl, instagramUrl, threadsUrl, naverBlogUrl, photoUrl, photoUrls,
+  } = request.data ?? {};
+  if (typeof teamId !== "string" || !teamId) {
+    return {success: false, error: "잘못된 요청입니다."};
+  }
+
+  const teamRef = admin.firestore().collection("ministryTeams").doc(teamId);
+
+  try {
+    const snap = await teamRef.get();
+    if (!snap.exists) {
+      return {success: false, error: "사역팀 정보를 찾을 수 없습니다."};
+    }
+    const data = snap.data() || {};
+    if (!isOwnerOrManager(data, uid, callerEmail)) {
+      return {success: false, error: "본인 팀만 관리할 수 있습니다."};
+    }
+    if (data.status !== "approved") {
+      return {success: false, error: "승인된 팀만 관리할 수 있습니다."};
+    }
+
+    if (action === "updateInfo") {
+      const update: Record<string, unknown> = {};
+      if (typeof experience === "string") {
+        update.experience = experience.slice(0, 2000);
+      }
+      if (typeof applicantContact === "string") {
+        update.applicantContact = applicantContact.slice(0, 20);
+      }
+      if (typeof applicantEmail === "string") {
+        update.applicantEmail = applicantEmail.slice(0, 100);
+      }
+      if (typeof youtubeUrl === "string") {
+        update.youtubeUrl = youtubeUrl.slice(0, 300);
+      }
+      if (typeof instagramUrl === "string") {
+        update.instagramUrl = instagramUrl.slice(0, 300);
+      }
+      if (typeof threadsUrl === "string") {
+        update.threadsUrl = threadsUrl.slice(0, 300);
+      }
+      if (typeof naverBlogUrl === "string") {
+        update.naverBlogUrl = naverBlogUrl.slice(0, 300);
+      }
+      if (Object.keys(update).length === 0) {
+        return {success: false, error: "수정할 내용이 없습니다."};
+      }
+      await teamRef.update(update);
+      return {success: true};
+    }
+
+    if (action === "addPhoto" || action === "removePhoto") {
+      const current: string[] = Array.isArray(data.posterImages) ?
+        data.posterImages :
+        (data.posterImage ? [data.posterImage] : []);
+      let next: string[];
+
+      if (action === "addPhoto") {
+        const incoming: string[] = Array.isArray(photoUrls) ?
+          photoUrls :
+          (photoUrl ? [photoUrl] : []);
+        if (incoming.length === 0) {
+          return {success: false, error: "추가할 사진이 없습니다."};
+        }
+        if (current.length + incoming.length > MAX_MY_TEAM_IMAGES) {
+          return {
+            success: false,
+            error: `사진은 최대 ${MAX_MY_TEAM_IMAGES}장까지 등록할 수 있습니다.`,
+          };
+        }
+        next = [...current, ...incoming];
+      } else {
+        if (typeof photoUrl !== "string" || !photoUrl) {
+          return {success: false, error: "잘못된 요청입니다."};
+        }
+        next = current.filter((u) => u !== photoUrl);
+      }
+
+      await teamRef.update({posterImages: next, posterImage: next[0] || ""});
+      return {success: true};
+    }
+
+    return {success: false, error: "알 수 없는 요청입니다."};
+  } catch (error) {
+    console.error("사역팀 핵심 정보 관리 처리 에러:", error);
+    return {success: false, error: "처리 중 오류가 발생했습니다."};
+  }
+});
