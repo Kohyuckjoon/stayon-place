@@ -49,7 +49,8 @@ export const sendMailNotification = async (
     | "TEAM_BOOST"
     | "RESERVE" | "APPROVE" | "CONFIRM" | "FINAL_DECISION" | "PAYMENT_COMPLETE"
     | "VENUE_BLOCK_REQUEST" | "VENUE_BLOCK_APPROVED"
-    | "VENUE_BLOCK_AUTO_APPROVED",
+    | "VENUE_BLOCK_AUTO_APPROVED"
+    | "SOUND_CONSTRUCTION",
   data: any
 ) => {
   let title = "";
@@ -327,6 +328,22 @@ export const sendMailNotification = async (
       {title: "장소 사용 신청 교회명", value: data.churchName},
       {title: "신청자", value: data.applicantEmail},
       {title: "안내", value: "운영자 미응답으로 기한이 지나 자동승인되었습니다."},
+    ];
+    break;
+
+  case "SOUND_CONSTRUCTION":
+    title = `🔊 ${data.churchName} 음향 시공 견적 신청이 도착했습니다`;
+    color = "#3182f6";
+    fields = [
+      {title: "교회 이름", value: data.churchName},
+      {title: "교단", value: data.denomination},
+      {title: "담임목사님 성함", value: data.pastorName},
+      {title: "교회 주소", value: data.churchAddress},
+      {title: "시공 면적", value: `${data.areaPyeong}평`},
+      {title: "기존 음향 설치 상태", value: data.existingSoundStatus},
+      {title: "조명 설치 상태", value: data.lightingStatus},
+      {title: "신청자", value: data.applicantName},
+      {title: "연락처", value: data.applicantContact},
     ];
     break;
   }

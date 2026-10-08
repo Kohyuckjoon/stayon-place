@@ -30,10 +30,13 @@ export function Layout() {
         <Outlet />
 
         {/* 인스타그램/쓰레드 플로팅 버튼 - 카카오 문의 버튼 바로 위에 원형 + 버튼으로 접혀있다가
-            누르면 위로 펼쳐진다. 카카오는 원래 있던 문의 버튼을 그대로 쓰면 돼서 여기 안 넣었다. */}
+            누르면 위로 펼쳐진다. 카카오는 원래 있던 문의 버튼을 그대로 쓰면 돼서 여기 안 넣었다.
+            모바일에서는 카카오/플래너 버튼(둘 다 아이콘만 있는 56px 원형)과 같은 right-4 기준으로
+            맞추고, 그 두 버튼 높이만큼 간격을 띄워 세로로 깔끔하게 쌓이게 한다. 데스크톱(md 이상)
+            간격·위치는 기존 값 그대로 유지. */}
         <div
-          className={`fixed z-[999] right-10 flex flex-col-reverse items-center gap-3 ${
-            isVenuesPage ? "bottom-[178px]" : "bottom-[108px]"
+          className={`fixed z-[999] right-4 md:right-10 flex flex-col-reverse items-center gap-3 ${
+            isVenuesPage ? "bottom-[152px] md:bottom-[178px]" : "bottom-[84px] md:bottom-[108px]"
           }`}
         >
           <button
@@ -88,16 +91,16 @@ export function Layout() {
           href="https://pf.kakao.com/_AtexfX/chat"
           target="_blank"
           rel="noreferrer"
-          className={`fixed z-[999] flex items-center gap-3 px-6 py-4 bg-[#FEE500] hover:bg-[#FDD800] text-[#373206] rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-105 active:scale-95 group ${
-            isVenuesPage ? "bottom-[110px] right-10" : "bottom-10 right-10"
+          className={`fixed z-[999] flex items-center justify-center md:justify-start gap-0 md:gap-3 w-14 h-14 md:w-auto md:h-auto px-0 md:px-6 py-0 md:py-4 bg-[#FEE500] hover:bg-[#FDD800] text-[#373206] rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-105 active:scale-95 group ${
+            isVenuesPage ? "bottom-[88px] md:bottom-[110px] right-4 md:right-10" : "bottom-4 md:bottom-10 right-4 md:right-10"
           }`}
         >
-          <div className="w-5 h-5 flex items-center justify-center">
+          <div className="w-5 h-5 flex items-center justify-center shrink-0">
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
               <path d="M12 2C6.48 2 2 5.52 2 9.85c0 2.72 1.7 5.12 4.29 6.46-.23.82-.82 2.97-.93 3.42-.1.41.13.56.42.36.4-.28 3.52-2.38 4.02-2.73.74.15 1.51.24 2.3.24 5.52 0 10-3.52 10-7.85C22 5.52 17.52 2 12 2z" />
             </svg>
           </div>
-          <span className="font-black text-[14px]">1:1 문의하기</span>
+          <span className="hidden md:inline font-black text-[14px]">1:1 문의하기</span>
         </a>
       </main>
       <Footer />

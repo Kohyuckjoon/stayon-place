@@ -933,6 +933,12 @@ export function AdminDashboard() {
             { id: "vh_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/vehicles?tab=rejected" },
           ],
         },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
+          ],
+        },
       ]}
       activeId={activeTab}
       onSelect={(id) => setActiveTab(id as any)}

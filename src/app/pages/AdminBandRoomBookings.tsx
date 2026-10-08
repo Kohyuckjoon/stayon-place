@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
-  BarChart3, Megaphone, CreditCard, RotateCcw, Ban,
+  BarChart3, Megaphone, CreditCard, RotateCcw, Ban, Volume2,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
@@ -164,6 +164,12 @@ export function AdminBandRoomBookings() {
           label: "차량 대여 관리",
           items: [
             { id: "vh_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/vehicles?tab=pending" },
+          ],
+        },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
           ],
         },
       ]}

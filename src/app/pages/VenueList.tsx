@@ -973,7 +973,7 @@ export function VenueList() {
               </div>
             </div>
 
-            <div className={viewMode === "card" ? "grid md:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-6" : "flex flex-col gap-3"}>
+            <div className={viewMode === "card" ? "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-4 md:gap-x-5 md:gap-y-6" : "flex flex-col gap-3"}>
               <AnimatePresence mode="popLayout">
                 {filteredVenues.map((venue) => {
                   const isAdded = plannerItems.some(item => item.id === venue.id);
@@ -1033,10 +1033,10 @@ export function VenueList() {
                     <motion.div
                       key={venue.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                       onClick={() => navigate(`/venue/${venue.id}`)}
-                      className="cursor-pointer group relative flex flex-col bg-white rounded-[20px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500"
+                      className="cursor-pointer group relative flex flex-col bg-white rounded-2xl md:rounded-[20px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500"
                     >
-                      <button onClick={(e) => togglePlannerItem(venue, e)} className={`absolute top-4 left-4 z-10 p-2.5 rounded-xl backdrop-blur-xl transition-all active:scale-90 shadow-lg ${isAdded ? "bg-[#3182F6] text-white" : "bg-white/80 text-[#191F28] hover:bg-white"}`}>
-                        {isAdded ? <Check className="w-4 h-4" strokeWidth={3} /> : <Plus className="w-4 h-4" strokeWidth={3} />}
+                      <button onClick={(e) => togglePlannerItem(venue, e)} className={`absolute top-2 left-2 md:top-4 md:left-4 z-10 p-1.5 md:p-2.5 rounded-lg md:rounded-xl backdrop-blur-xl transition-all active:scale-90 shadow-lg ${isAdded ? "bg-[#3182F6] text-white" : "bg-white/80 text-[#191F28] hover:bg-white"}`}>
+                        {isAdded ? <Check className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={3} /> : <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={3} />}
                       </button>
                       <div className="relative aspect-[16/10.5] overflow-hidden bg-[#F2F4F6]">
                         <img src={venue.images?.[0] || "/placeholder.jpg"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
@@ -1048,25 +1048,25 @@ export function VenueList() {
                         )} */}
 
                         {/* 리포미디어 이슈 : 사용자 뱃지 추천 제안 */}
-                        <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 items-end">
+                        <div className="absolute top-2 right-2 md:top-4 md:right-4 z-10 flex flex-col gap-1 md:gap-1.5 items-end">
                           {isBoosted(venue) && (
-                            <div className="bg-[#FFF7ED]/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 border border-[#FFEDD5] shadow-sm whitespace-nowrap">
-                              <span className="text-[11px] font-black text-[#EA580C]">🔥 추천</span>
+                            <div className="bg-[#FFF7ED]/95 backdrop-blur-md px-2 py-1 md:px-3 md:py-1.5 rounded-full flex items-center gap-1 border border-[#FFEDD5] shadow-sm whitespace-nowrap">
+                              <span className="text-[9.5px] md:text-[11px] font-black text-[#EA580C]">🔥 추천</span>
                             </div>
                           )}
                           {/* 1. 기본 boolean 기반의 StayOn 인증 데이터 처리 */}
                           {venue.verified && (
-                            <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 border border-[#3182F6]/10 shadow-sm whitespace-nowrap">
-                              <ShieldCheck className="w-3.5 h-3.5 text-[#3182F6]" strokeWidth={2.5} />
-                              <span className="text-[11px] font-black text-[#191F28]">StayOn 인증</span>
+                            <div className="bg-white/95 backdrop-blur-md px-2 py-1 md:px-3 md:py-1.5 rounded-full flex items-center gap-1 border border-[#3182F6]/10 shadow-sm whitespace-nowrap">
+                              <ShieldCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#3182F6]" strokeWidth={2.5} />
+                              <span className="text-[9.5px] md:text-[11px] font-black text-[#191F28]">StayOn 인증</span>
                             </div>
                           )}
 
                           {/* 2. StayOn 인증 (신규 어드민 badges 배열에 'stayon'이 있고, 기존 verified와 중복되지 않을 때만) */}
                           {venue.badges?.includes("stayon") && !venue.verified && (
-                            <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 border border-[#3182F6]/10 shadow-sm whitespace-nowrap">
-                              <ShieldCheck className="w-3.5 h-3.5 text-[#3182F6]" strokeWidth={2.5} />
-                              <span className="text-[11px] font-black text-[#191F28]">StayOn 인증</span>
+                            <div className="bg-white/95 backdrop-blur-md px-2 py-1 md:px-3 md:py-1.5 rounded-full flex items-center gap-1 border border-[#3182F6]/10 shadow-sm whitespace-nowrap">
+                              <ShieldCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#3182F6]" strokeWidth={2.5} />
+                              <span className="text-[9.5px] md:text-[11px] font-black text-[#191F28]">StayOn 인증</span>
                             </div>
                           )}
 
@@ -1081,36 +1081,36 @@ export function VenueList() {
 
 
                       </div>
-                      <div className="p-5 flex flex-col gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-[18px] font-black text-[#191F28] line-clamp-1">{venue.venueName}</h3>
-                          <div className="flex items-center gap-1.5 text-[#8B95A1] font-bold text-[13px]">
-                            <MapPin className="w-3.5 h-3.5" />
+                      <div className="p-2.5 md:p-5 flex flex-col gap-2.5 md:gap-4">
+                        <div className="space-y-1 md:space-y-2">
+                          <h3 className="text-[14px] md:text-[18px] font-black text-[#191F28] line-clamp-1">{venue.venueName}</h3>
+                          <div className="flex items-center gap-1 md:gap-1.5 text-[#8B95A1] font-bold text-[11px] md:text-[13px]">
+                            <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
                               <span className="truncate">
                                 {/* {venue.address || venue.location} */}
                                 {(venue.address || venue.location || "").split(" ").slice(0, 3).join(" ")}
                               </span>
                           </div>
-                          <div className="flex items-center gap-2 pt-1">
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${getDenominationStyle(venue.denomination)}`}>{venue.denomination?.split("(")[0] || "기타"}</span>
-                            <div className="flex items-center gap-1 text-[#4E5968] font-black text-[13px]"><Users className="w-3.5 h-3.5 opacity-40" /> <span>최대 {venue.capacity}명</span></div>
+                          <div className="flex items-center gap-1.5 md:gap-2 pt-1 flex-wrap">
+                            <span className={`px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg text-[9px] md:text-[10px] font-black whitespace-nowrap ${getDenominationStyle(venue.denomination)}`}>{venue.denomination?.split("(")[0] || "기타"}</span>
+                            <div className="flex items-center gap-1 text-[#4E5968] font-black text-[11px] md:text-[13px] whitespace-nowrap"><Users className="w-3 h-3 md:w-3.5 md:h-3.5 opacity-40" /> <span>최대 {venue.capacity}명</span></div>
                           </div>
                           {venue.tags?.length > 0 && (
-                            <div className="flex items-center gap-1.5 pt-1">
+                            <div className="flex items-center gap-1 md:gap-1.5 pt-1 flex-wrap">
                               {venue.tags.slice(0, 3).map((tag: string) => (
-                                <span key={tag} className="text-[11px] font-bold text-[#3182F6] bg-[#F2F8FF] px-2 py-1 rounded-lg whitespace-nowrap">#{tag}</span>
+                                <span key={tag} className="text-[9.5px] md:text-[11px] font-bold text-[#3182F6] bg-[#F2F8FF] px-1.5 py-0.5 md:px-2 md:py-1 rounded-lg whitespace-nowrap">#{tag}</span>
                               ))}
                               {venue.tags.length > 3 && (
-                                <span className="text-[11px] font-bold text-[#8B95A1] bg-[#F2F4F6] px-2 py-1 rounded-lg shrink-0">+{venue.tags.length - 3}</span>
+                                <span className="text-[9.5px] md:text-[11px] font-bold text-[#8B95A1] bg-[#F2F4F6] px-1.5 py-0.5 md:px-2 md:py-1 rounded-lg shrink-0">+{venue.tags.length - 3}</span>
                               )}
                             </div>
                           )}
                         </div>
                         <div className="w-full h-[1px] bg-[#F2F4F6]" />
                         <div className="flex items-center justify-between">
-                          <span className="text-[13px] font-bold text-[#8B95A1]">1박 기준</span>
+                          <span className="text-[10.5px] md:text-[13px] font-bold text-[#8B95A1]">1박 기준</span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-[21px] font-black text-[#3182F6]">{Number(venue.price || 0).toLocaleString()}</span><span className="text-[14px] font-black text-[#3182F6]">원</span>
+                            <span className="text-[15px] md:text-[21px] font-black text-[#3182F6]">{Number(venue.price || 0).toLocaleString()}</span><span className="text-[11px] md:text-[14px] font-black text-[#3182F6]">원</span>
                           </div>
                         </div>
                       </div>
@@ -1131,22 +1131,24 @@ export function VenueList() {
         )}
       </main>
 
-      {/* 스마트 플래너 플로팅 버튼 */}
+      {/* 스마트 플래너 플로팅 버튼 - 모바일에서는 아이콘만 있는 동그란 버튼으로 줄여서
+          같은 화면 구석에 뜨는 1:1 문의하기(Layout.tsx) 버튼과 겹쳐 보이지 않게 한다.
+          PC(md 이상)는 기존 글자 포함 알약 버튼 그대로 유지. */}
       <motion.button
         whileHover={{ scale: 1.05, y: -5 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsPlannerOpen(true)}
-        className="fixed bottom-10 right-10 z-[60] bg-[#191F28] text-white pl-6 pr-7 py-5 rounded-[30px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] flex items-center gap-4 transition-all"
+        className="fixed bottom-4 md:bottom-10 right-4 md:right-10 z-[60] bg-[#191F28] text-white w-14 h-14 md:w-auto md:h-auto px-0 md:pl-6 md:pr-7 py-0 md:py-5 rounded-full md:rounded-[30px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] flex items-center justify-center md:gap-4 transition-all"
       >
-        <div className="relative">
-          <Briefcase className="w-6 h-6 text-[#3182F6]" strokeWidth={2.5} />
+        <div className="relative flex items-center justify-center shrink-0">
+          <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-[#3182F6]" strokeWidth={2.5} />
           {plannerItems.length > 0 && (
-            <span className="absolute -top-3 -right-3 bg-[#F04452] text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-[3px] border-[#191F28] animate-in zoom-in duration-300">
+            <span className="absolute -top-2.5 -right-2.5 md:-top-3 md:-right-3 bg-[#F04452] text-[10px] md:text-[11px] font-black w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center border-[2px] md:border-[3px] border-[#191F28] animate-in zoom-in duration-300">
               {plannerItems.length}
             </span>
           )}
         </div>
-        <span className="font-black text-[17px] tracking-tight">
+        <span className="hidden md:inline font-black text-[17px] tracking-tight">
           {isLoggedIn ? "스마트 플래너" : "임시 플래너"}
         </span>
       </motion.button>

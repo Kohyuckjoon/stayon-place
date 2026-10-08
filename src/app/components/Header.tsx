@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +37,8 @@ export function Header() {
   const [isSuppliesMenuOpen, setIsSuppliesMenuOpen] = useState(false);
   const [isPlannerMenuOpen, setIsPlannerMenuOpen] = useState(false);
   const [isRegisterMenuOpen, setIsRegisterMenuOpen] = useState(false);
+  const [isTeamsMenuOpen, setIsTeamsMenuOpen] = useState(false);
+  const [isSoundMenuOpen, setIsSoundMenuOpen] = useState(false);
 
   // [상태 관리] 로그인 및 회원가입 단계 제어
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -328,7 +330,7 @@ export function Header() {
         ? "bg-white/80 backdrop-blur-2xl border-b border-[#F2F4F6] shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
         : "bg-white border-b border-transparent"
         }`}>
-        <div className="max-w-7xl mx-auto px-6 py-4 md:py-5">
+        <div className="max-w-[1400px] mx-auto px-6 py-5 md:py-6">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3 group shrink-0">
               <div className="w-10 h-10 bg-[#191F28] rounded-[14px] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:rotate-[-5deg] shadow-lg shadow-gray-200">
@@ -340,7 +342,7 @@ export function Header() {
               </div>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-1 min-w-0">
+            <nav className="hidden md:flex items-center gap-0.5 min-w-0">
               {/* 화면이 좁아지면(노트북 창 절반 크기 등) 메뉴 글자가 중간에서 끊겨 보이던 문제 —
                   항상 한 줄(whitespace-nowrap)로 유지하고 줄어들지 않게(shrink-0) 했다.
                   (overflow-x-auto로 이 구간만 가로 스크롤시키는 방식도 시도했었지만, 그러면
@@ -507,13 +509,18 @@ export function Header() {
                         <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><BookOpen className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">일정표 플래너</div><div className="text-[12px] text-[#8B95A1] font-bold">일정표 만들고 배포하기</div></div>
                       </Link>
+                      <Link to="/programs" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#F0FDFA] rounded-xl flex items-center justify-center group-hover:bg-[#CCFBF1]"><CalendarDays className="w-5 h-5 text-[#0D9488]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">교회 프로그램</div><div className="text-[12px] text-[#8B95A1] font-bold">레크리에이션 아이디어 얻기</div></div>
+                      </Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              <div className="relative shrink-0" onMouseEnter={() => setIsBoardOpen(true)} onMouseLeave={() => setIsBoardOpen(false)}>
-                {/* <button className={`flex items-center gap-1.5 px-5 py-2.5 text-[15px] font-bold rounded-2xl transition-all ${isActive("/reviews") || isActive("/programs") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}> */}
+              {/* 게시판 탭 - 언젠가 다시 쓸 예정이라 코드는 남겨두고, 지금은 노출만 막는다
+                  (boardItems 배열과 모바일 메뉴 쪽 사용처는 그대로 둔다). */}
+              {/* <div className="relative shrink-0" onMouseEnter={() => setIsBoardOpen(true)} onMouseLeave={() => setIsBoardOpen(false)}>
                 <button className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all ${isActive("/reviews") || isActive("/programs") ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}>
                   게시판
                   <ChevronDown className={`w-4 h-4 opacity-50 transition-transform duration-300 ${isBoardOpen ? "rotate-180" : ""}`} />
@@ -532,7 +539,7 @@ export function Header() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </div> */}
 
               <a
                 href="https://bulletin.stayon-platform.com/"
@@ -544,15 +551,66 @@ export function Header() {
                 <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </a>
 
-              {/* 탭2: 외부사역팀 찾기 - 목적지가 하나라 드롭다운 없이 바로 이동하는 단일 링크.
-                  Mic2 아이콘은 등록 문의/수련회 준비물 드롭다운에서도 외부사역팀을 나타낼 때 쓰는 것과 동일. */}
-              <Link
-                to="/teams"
-                className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all shrink-0 group ${isTeamsTabActive ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}
+              {/* 탭2: 찬양팀 섭외 - 목적지가 하나라 드롭다운 없이 바로 이동하는 단일 링크.
+                  라벨만 보면 범위가 뭔지 애매해서, 호버 시 작게 뜨는 툴팁으로 "찬양팀·찬양사역자·
+                  음향/조명 섭외 등"을 부가 설명한다(상시 노출하면 2줄이 되어 옆 버튼들과 높이가
+                  어긋나므로 호버 전용으로 처리). */}
+              <div
+                className="relative shrink-0"
+                onMouseEnter={() => setIsTeamsMenuOpen(true)}
+                onMouseLeave={() => setIsTeamsMenuOpen(false)}
               >
-                외부사역팀
-                <Mic2 className={`w-3.5 h-3.5 transition-opacity ${isTeamsTabActive ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`} />
-              </Link>
+                <Link
+                  to="/teams"
+                  className={`flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap transition-all shrink-0 group ${isTeamsTabActive ? "text-[#3182F6] bg-[#F2F8FF]" : "text-[#4E5968] hover:bg-[#F9FAFB]"}`}
+                >
+                  찬양팀 섭외
+                  <Mic2 className={`w-3.5 h-3.5 transition-opacity ${isTeamsTabActive ? "opacity-100" : "opacity-40 group-hover:opacity-100"}`} />
+                </Link>
+                <AnimatePresence>
+                  {isTeamsMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
+                    >
+                      찬양팀 · 찬양사역자 · 음향/조명 섭외 등
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* 음향 시공 문의 - 기능 준비 중이라 임시로 비활성화. 클릭/이동 안 되게 Link 대신
+                  div로 바꾸고, 자물쇠 아이콘 + "준비중" 배지 + 낮은 불투명도로 비활성 상태임을
+                  표시한다. 호버 툴팁도 안내 문구로 교체(기존 설명 문구는 다시 켤 때 참고용으로
+                  주석에 남겨둔다: "교회·수양관 등 다양한 장소 음향 시공 문의"). */}
+              <div
+                className="relative shrink-0"
+                onMouseEnter={() => setIsSoundMenuOpen(true)}
+                onMouseLeave={() => setIsSoundMenuOpen(false)}
+              >
+                <div
+                  aria-disabled="true"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap shrink-0 text-[#ADB5BD] cursor-not-allowed opacity-50 select-none"
+                >
+                  음향 시공 문의
+                  <span className="px-1.5 py-0.5 bg-[#E5E8EB] text-[#8B95A1] rounded-full text-[10px] font-black">준비중</span>
+                  <Lock className="w-3 h-3" />
+                </div>
+                <AnimatePresence>
+                  {isSoundMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
+                    >
+                      준비 중인 서비스예요. 조금만 기다려주세요!
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <div className="w-[1px] h-4 bg-[#E5E8EB] mx-2 shrink-0" />
 
@@ -660,40 +718,56 @@ export function Header() {
           {mobileMenuOpen && (
             <motion.nav initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-white border-t border-[#F2F4F6] overflow-hidden">
               <div className="px-4 py-4 flex flex-col gap-2.5">
-                {/* 둘러보기: 장소/외부 사역팀/합주실/교회 찾기 - 등록 문의보다 방문자가 먼저 찾는 동작이라 최상단에 배치.
-                    교회 찾기가 꺼져있으면(churchDirectoryEnabled=false) 항목이 3개라 2열로는 마지막 줄에
-                    빈 칸이 하나 남아 어색해 보여서, 그때는 3열로 한 줄에 꽉 채운다.
-                    굿즈/단체티/차량 렌트 3종은 서비스 오픈 전이라 일단 타일 자체를 감춤 (아래 주석 처리분,
-                    라우트는 살아있어서 /goods, /shirts, /vehicles로 직접 접근은 계속 가능). */}
-                <div className={`grid gap-2 ${churchDirectoryEnabled ? "grid-cols-2" : "grid-cols-3"}`}>
+                {/* 둘러보기: 장소/외부 사역팀/합주실/굿즈/단체티/온라인 주보 - 등록 문의보다 방문자가
+                    먼저 찾는 동작이라 최상단에 배치. 3열 고정이라 보통 2줄(장소/외부사역팀/합주실,
+                    굿즈몰/티셔츠몰/온라인 주보)로 꽉 차고, 교회 찾기가 켜져있을 때만(churchDirectoryEnabled)
+                    마지막 줄에 1칸짜리 교회 타일이 추가로 붙는다. 온라인 주보는 다른 서브도메인 앱이라
+                    react-router Link가 아니라 외부 링크(a 태그)로 연결한다 - 데스크톱 GNB의 같은
+                    링크(위쪽 "온라인 주보" 항목)와 동일한 target="_blank" 패턴. */}
+                <div className="grid grid-cols-3 gap-2">
                   <Link to="/venues" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F8FF] rounded-xl text-center active:scale-95 transition-all">
                     <MapPin className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight">장소 찾기</span>
                   </Link>
                   <Link to="/teams" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F5F3FF] rounded-xl text-center active:scale-95 transition-all">
                     <Mic2 className="w-5 h-5 text-[#8B5CF6]" />
-                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">외부 사역팀</span>
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">찬양팀 섭외</span>
                   </Link>
+                  {/* 음향 시공 문의 - 데스크톱과 동일하게 준비 중이라 비활성화 */}
+                  <div aria-disabled="true" className="flex flex-col items-center gap-1 py-3 bg-[#F9FAFB] rounded-xl text-center opacity-50 cursor-not-allowed select-none">
+                    <Lock className="w-5 h-5 text-[#ADB5BD]" />
+                    <span className="text-[11px] font-black text-[#8B95A1] leading-tight break-keep">음향 시공 문의</span>
+                  </div>
                   <Link to="/teams?category=bandroom" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F0F9FF] rounded-xl text-center active:scale-95 transition-all">
                     <Music className="w-5 h-5 text-[#0EA5E9]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">합주실·연습실</span>
                   </Link>
+                  <Link to="/goods" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FFFBEB] rounded-xl text-center active:scale-95 transition-all">
+                    <Gift className="w-5 h-5 text-[#F59E0B]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">굿즈몰</span>
+                  </Link>
+                  <Link to="/shirts" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FDF2F8] rounded-xl text-center active:scale-95 transition-all">
+                    <Shirt className="w-5 h-5 text-[#EC4899]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">티셔츠몰</span>
+                  </Link>
+                  <a
+                    href="https://bulletin.stayon-platform.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex flex-col items-center gap-1 py-3 bg-[#EEF2FF] rounded-xl text-center active:scale-95 transition-all"
+                  >
+                    <ExternalLink className="w-5 h-5 text-[#6366F1]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">온라인 주보</span>
+                  </a>
                   {churchDirectoryEnabled && (
                     <Link to="/churches" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#ECFDF5] rounded-xl text-center active:scale-95 transition-all">
                       <Church className="w-5 h-5 text-[#10B981]" />
                       <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">전국 교회</span>
                     </Link>
                   )}
-                  {/* <Link to="/goods" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FFFBEB] rounded-xl text-center active:scale-95 transition-all">
-                    <Gift className="w-5 h-5 text-[#F59E0B]" />
-                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">굿즈 매장</span>
-                  </Link>
-                  <Link to="/shirts" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FDF2F8] rounded-xl text-center active:scale-95 transition-all">
-                    <Shirt className="w-5 h-5 text-[#EC4899]" />
-                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">단체티·기념품</span>
-                  </Link>
-                  <Link to="/vehicles" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#EEF2FF] rounded-xl text-center active:scale-95 transition-all">
-                    <Bus className="w-5 h-5 text-[#6366F1]" />
+                  {/* <Link to="/vehicles" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F9FAFB] rounded-xl text-center active:scale-95 transition-all">
+                    <Bus className="w-5 h-5 text-[#6B7684]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">차량·버스 대여</span>
                   </Link> */}
                 </div>
@@ -728,7 +802,8 @@ export function Header() {
                   </Link> */}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                {/* 게시판 - 데스크톱과 동일하게 지금은 노출만 막는다. */}
+                {/* <div className="grid grid-cols-2 gap-2">
                   {boardItems.map((item) => (
                     <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 p-2.5 bg-[#F9FAFB] rounded-xl">
                       <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm">{item.icon}</div>
@@ -738,7 +813,7 @@ export function Header() {
                       </div>
                     </Link>
                   ))}
-                </div>
+                </div> */}
 
                 {isLoggedIn && (
                   <div className="flex flex-col gap-2.5 p-3.5 bg-[#F9FAFB] rounded-2xl border border-[#F2F4F6]">

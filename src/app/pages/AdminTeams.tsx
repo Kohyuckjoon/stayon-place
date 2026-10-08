@@ -4,7 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Mic2, Users, Speaker, PlaySquare,
   Phone, Mail, Church, User, ClipboardCheck, CalendarCheck, MapPinned, MapPin,
   CreditCard, Calendar, Trash2, X, RotateCcw, Share2, Edit3, Save, ShieldOff, Lock, ImagePlus, ChevronDown, TrendingUp,
-  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban,
+  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban, Volume2,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
@@ -659,6 +659,12 @@ export function AdminTeams() {
             { id: "vh_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/vehicles?tab=pending" },
             { id: "vh_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/vehicles?tab=approved" },
             { id: "vh_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/vehicles?tab=rejected" },
+          ],
+        },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
           ],
         },
       ]}

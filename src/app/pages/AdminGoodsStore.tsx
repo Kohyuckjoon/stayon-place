@@ -5,7 +5,7 @@ import {
   Phone, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, Tag, Banknote, FileText, MessageCircle, Building2, Link2,
-  Plus, ChevronLeft, Download, ChevronUp, ChevronDown, Ban,
+  Plus, ChevronLeft, Download, ChevronUp, ChevronDown, Ban, Volume2,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
@@ -189,6 +189,29 @@ export function AdminGoodsStore() {
     } finally {
       setPhotoReplacingIdx(null);
     }
+  };
+
+  // 카드뷰에서 object-cover로 잘릴 때 보여줄 위치(0~100% 좌표)를 드래그로 지정한다.
+  // 포인터를 누른 채 움직이는 동안 window에 move/up을 붙였다가 떼는 전형적인 드래그 패턴.
+  const coverPreviewRef = useRef<HTMLDivElement>(null);
+  const handleCoverPositionDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isEditMode) return;
+    const container = coverPreviewRef.current;
+    if (!container) return;
+    const updatePosition = (clientX: number, clientY: number) => {
+      const rect = container.getBoundingClientRect();
+      const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+      const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
+      setEditedGoods((prev: any) => ({ ...prev, coverPosition: { x, y } }));
+    };
+    updatePosition(e.clientX, e.clientY);
+    const handleMove = (moveEvent: PointerEvent) => updatePosition(moveEvent.clientX, moveEvent.clientY);
+    const handleUp = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
   };
 
   const addProduct = () => {
@@ -466,6 +489,12 @@ export function AdminGoodsStore() {
             { id: "vh_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/vehicles?tab=rejected" },
           ],
         },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
+          ],
+        },
       ]}
       activeId={activeTab}
       onSelect={(id) => setActiveTab(id as GoodsTab)}
@@ -615,6 +644,43 @@ export function AdminGoodsStore() {
                     </div>
                   ))}
                 </div>
+                {(isEditMode ? editedGoods.photos : selectedGoods.photos)?.[0] && (() => {
+                  const coverPhoto = (isEditMode ? editedGoods.photos : selectedGoods.photos)[0];
+                  const pos = (isEditMode ? editedGoods.coverPosition : selectedGoods.coverPosition) || { x: 50, y: 50 };
+                  return (
+                    <div className="pt-1">
+                      <div className="flex items-center justify-between px-1 mb-2">
+                        <p className="text-[12px] font-bold text-[#8B95A1]">카드뷰에 보일 위치{isEditMode ? " (이미지를 드래그하세요)" : ""}</p>
+                        {isEditMode && (
+                          <button
+                            type="button"
+                            onClick={() => setEditedGoods((prev: any) => ({ ...prev, coverPosition: { x: 50, y: 50 } }))}
+                            className="text-[11px] font-black text-[#3182F6] hover:underline"
+                          >
+                            가운데로 초기화
+                          </button>
+                        )}
+                      </div>
+                      <div
+                        ref={coverPreviewRef}
+                        onPointerDown={handleCoverPositionDrag}
+                        className={`relative aspect-video w-full max-w-xs rounded-xl overflow-hidden bg-[#F2F4F6] ${isEditMode ? "cursor-move select-none" : ""}`}
+                      >
+                        <img
+                          src={coverPhoto}
+                          className="w-full h-full object-cover pointer-events-none"
+                          style={{ objectPosition: `${pos.x}% ${pos.y}%` }}
+                        />
+                        {isEditMode && (
+                          <div
+                            className="absolute w-4 h-4 rounded-full bg-white border-2 border-[#3182F6] shadow-md -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </section>
 
               <section className="space-y-2">

@@ -3,7 +3,7 @@ import {
   Search, Shield, CheckCircle, Heart, TrendingDown,
   LayoutGrid, FileText, Sparkles, Lock, BookOpen, Coffee, Utensils,
   ChevronRight, AlertCircle, ShieldCheck, Umbrella, Zap, Star, MapPin,
-  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, Plus, CreditCard, PlusCircle, CalendarDays, Play, CheckCircle2, Calendar, Mic2
+  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, Plus, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -14,15 +14,15 @@ import { MainBanner } from "../components/MainBanner";
 import { Helmet } from 'react-helmet-async';
 
 const bannerData = [
-  {
-    "id": 1,
-    "title": "STAYON 유튜브 출연! 📺",
-    "desc": "사역자들을 위한 스테이온 활용 가이드와 생생한 소개 영상을 확인해보세요.",
-    "tag": "MEDIA",
-    "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
-    "textColor": "text-white",
-    "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
-  },
+  // {
+  //   "id": 1,
+  //   "title": "STAYON 유튜브 출연! 📺",
+  //   "desc": "사역자들을 위한 스테이온 활용 가이드와 생생한 소개 영상을 확인해보세요.",
+  //   "tag": "MEDIA",
+  //   "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
+  //   "textColor": "text-white",
+  //   "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+  // },
   {
     "id": 2,
     "title": "카드 결제 정식 오픈 🎉",
@@ -426,10 +426,12 @@ export function Home() {
                   <div className="lg:col-span-8 relative h-[220px] md:h-[250px] overflow-hidden rounded-[32px] shadow-[0_16px_40px_rgba(0,0,0,0.03)] border border-slate-100 cursor-pointer transition-all duration-400 active:scale-[0.995]"
                     // onClick={() => navigate(`/notice/${bannerData[currentNoticeIndex].id}`)}
                     onClick={() => {
-                      const index = currentNoticeIndex % bannerData.length;
-                      if (index === 0) {
-                        window.open("https://youtu.be/VqkVecqG_Sg?si=V-cyya7xSkRK-Fp1", "_blank", "noopener,noreferrer");
-                      } else if (index === 1) {
+                      const index = currentNoticeIndex % bannerData.length + 1;
+                      // if (index === 0) {
+                      //   window.open("https://youtu.be/VqkVecqG_Sg?si=V-cyya7xSkRK-Fp1", "_blank", "noopener,noreferrer");
+                      // } else 
+                        
+                        if (index === 1) {
                         navigate("/notice/1");
                       } else if (index === 2) {
                         navigate("/notice/2");
@@ -463,35 +465,36 @@ export function Home() {
                         {/* 우측 그래픽/썸네일 일러스트 반응형 영역 */}
                         <div className="relative w-[40%] h-full hidden sm:flex items-center justify-end overflow-hidden select-none pointer-events-none">
                           {(() => {
-                            const index = currentNoticeIndex % bannerData.length;
+                            const index = currentNoticeIndex % bannerData.length + 1;
 
                             // 1. 유튜브 슬라이드 (index 0)
-                            if (index === 0) {
-                              return (
-                                <div className="relative w-full h-full flex items-center justify-end transform rotate-[-6deg] transition-transform duration-500 hover:rotate-0">
-                                  <div className="w-[270px] h-[155px] bg-slate-950 rounded-2xl p-1 shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-white/25 overflow-hidden relative">
-                                    <div
-                                      className="w-full h-full bg-cover bg-center rounded-xl relative flex flex-col justify-between"
-                                      style={{ backgroundImage: `url('/youtube_cover.png')`, backgroundColor: '#111' }}
-                                    >
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10 rounded-xl z-10" />
-                                      <div className="absolute inset-0 flex items-center justify-center z-20">
-                                        <div className="w-14 h-14 bg-black/25 backdrop-blur-md rounded-full flex items-center justify-center p-1.5 transition-transform duration-300 hover:scale-115">
-                                          <div className="w-full h-full bg-red-600 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(220,38,38,0.4)] border border-white/20">
-                                            <Play className="w-6 h-6 text-white fill-white translate-x-[2px]" />
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="absolute bottom-2 right-2 bg-black/85 px-1.5 py-0.5 rounded text-[10px] text-white font-mono z-20 tracking-wider">
-                                        12:40
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            }
+                            // if (index === 0) {
+                            //   return (
+                            //     <div className="relative w-full h-full flex items-center justify-end transform rotate-[-6deg] transition-transform duration-500 hover:rotate-0">
+                            //       <div className="w-[270px] h-[155px] bg-slate-950 rounded-2xl p-1 shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-white/25 overflow-hidden relative">
+                            //         <div
+                            //           className="w-full h-full bg-cover bg-center rounded-xl relative flex flex-col justify-between"
+                            //           style={{ backgroundImage: `url('/youtube_cover.png')`, backgroundColor: '#111' }}
+                            //         >
+                            //           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10 rounded-xl z-10" />
+                            //           <div className="absolute inset-0 flex items-center justify-center z-20">
+                            //             <div className="w-14 h-14 bg-black/25 backdrop-blur-md rounded-full flex items-center justify-center p-1.5 transition-transform duration-300 hover:scale-115">
+                            //               <div className="w-full h-full bg-red-600 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(220,38,38,0.4)] border border-white/20">
+                            //                 <Play className="w-6 h-6 text-white fill-white translate-x-[2px]" />
+                            //               </div>
+                            //             </div>
+                            //           </div>
+                            //           <div className="absolute bottom-2 right-2 bg-black/85 px-1.5 py-0.5 rounded text-[10px] text-white font-mono z-20 tracking-wider">
+                            //             12:40
+                            //           </div>
+                            //         </div>
+                            //       </div>
+                            //     </div>
+                            //   );
+                            // }
                             // 🔴 2. 신용카드 오픈 슬라이드 (index 1) - 요청하신 코드로 구현된 카드 뭉치
-                            else if (index === 1) {
+                            // else 
+                              if (index === 1) {
                               return (
                                 <div className="relative w-full h-full flex items-center justify-end transform transition-transform duration-500 hover:scale-105">
                                   <div className="relative w-[240px] h-[150px] mr-4">

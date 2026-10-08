@@ -56,9 +56,22 @@ export function GoodsStoreList() {
           <h1 className="text-[26px] font-black text-[#191F28] mb-2 tracking-tight break-keep">
             굿즈 매장을 찾아보세요
           </h1>
-          <p className="text-[14px] text-[#8B95A1] font-bold break-keep">
+          <p className="text-[14px] text-[#8B95A1] font-bold break-keep mb-4">
             관리자 검토를 거쳐 등록된 업체만 소개돼요.
           </p>
+
+          {/* 굿즈몰/티셔츠몰 전환 토글. /venues의 "수련회/국내선교" 토글과 생김새는 같지만,
+              굿즈·단체티는 완전히 분리된 별도 페이지(별도 컬렉션·함수)라 한 화면 안에서
+              데이터만 바꿔치기하지 않고 /shirts로 실제 이동한다. */}
+          <div className="inline-flex items-center gap-1 bg-[#F2F4F6] p-1 rounded-full">
+            <button type="button" className="relative px-5 py-2.5 rounded-full text-[14px] font-black whitespace-nowrap">
+              <div className="absolute inset-0 bg-white rounded-full shadow-sm" />
+              <span className="relative z-10 text-[#3182F6]">굿즈몰</span>
+            </button>
+            <button type="button" onClick={() => navigate("/shirts")} className="relative px-5 py-2.5 rounded-full text-[14px] font-black whitespace-nowrap">
+              <span className="relative z-10 text-[#8B95A1]">티셔츠몰</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -152,6 +165,7 @@ export function GoodsStoreList() {
                 {filteredGoods.map((goods) => {
                   const photo = goods.photos?.[0];
                   const priceLabel = goods.minPrice ? `${Number(goods.minPrice).toLocaleString()}원부터` : "가격 문의";
+                  const photoPosition = goods.coverPosition ? `${goods.coverPosition.x}% ${goods.coverPosition.y}%` : undefined;
 
                   if (viewMode === "list") {
                     return (
@@ -162,7 +176,7 @@ export function GoodsStoreList() {
                       >
                         <div className="relative w-24 h-20 sm:w-32 sm:h-24 rounded-xl overflow-hidden shrink-0 bg-[#F2F4F6]">
                           {photo ? (
-                            <img src={photo} className="w-full h-full object-cover" />
+                            <img src={photo} className="w-full h-full object-cover" style={{ objectPosition: photoPosition }} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center"><Gift className="w-6 h-6 text-[#D1D6DB]" /></div>
                           )}
@@ -198,7 +212,7 @@ export function GoodsStoreList() {
                     >
                       <div className="relative aspect-video overflow-hidden bg-[#F2F4F6]">
                         {photo ? (
-                          <img src={photo} className="w-full h-full object-cover" />
+                          <img src={photo} className="w-full h-full object-cover" style={{ objectPosition: photoPosition }} />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center"><Gift className="w-8 h-8 text-[#D1D6DB]" /></div>
                         )}

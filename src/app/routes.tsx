@@ -44,6 +44,9 @@ import { GroupShirtsList } from "./pages/GroupShirtsList";
 import { GroupShirtsDetail } from "./pages/GroupShirtsDetail";
 import VehicleRentalRegistrationForm from "./pages/VehicleRentalRegistrationForm";
 import { AdminVehicleRentals } from "./pages/AdminVehicleRentals";
+import { SoundConstructionGuide } from "./pages/SoundConstructionGuide";
+import SoundConstructionRegistrationForm from "./pages/SoundConstructionRegistrationForm";
+import { AdminSoundConstruction } from "./pages/AdminSoundConstruction";
 import { AdminMissionVenues } from "./pages/AdminMissionVenues";
 import { VehicleRentalList } from "./pages/VehicleRentalList";
 import { VehicleRentalDetail } from "./pages/VehicleRentalDetail";
@@ -197,6 +200,14 @@ export const router = createBrowserRouter([
         element: <VehicleRentalRegistrationForm />,
       },
       {
+        path: "sound-guide", // 음향 시공 문의 안내 (온라인 신청/전화 문의 중 선택)
+        element: <SoundConstructionGuide />,
+      },
+      {
+        path: "sound-register", // 음향 시공 견적 신청
+        element: <SoundConstructionRegistrationForm />,
+      },
+      {
         path: "vehicles", // 차량·버스 대여 목록
         element: <VehicleRentalList />,
       },
@@ -338,6 +349,7 @@ export const router = createBrowserRouter([
       { path: "shirts", element: <AdminGroupShirts /> },
       { path: "vehicles", element: <AdminVehicleRentals /> },
       { path: "mission-venues", element: <AdminMissionVenues /> },
+      { path: "sound-construction", element: <AdminSoundConstruction /> },
     ],
   },
 ]);

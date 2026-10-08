@@ -6,7 +6,7 @@ import {
   User, MapPin, Phone, Info,
   Users, CreditCard, MessageSquare,
   RotateCcw, ChevronRight, Mail, ClipboardCheck,
-  CalendarCheck, Trash2, Check, MapPinned, Tent, Receipt, Coins, ShieldOff, BarChart3, Megaphone, Ban
+  CalendarCheck, Trash2, Check, MapPinned, Tent, Receipt, Coins, ShieldOff, BarChart3, Megaphone, Ban, Volume2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, functions } from "../lib/firebase";
@@ -227,6 +227,12 @@ export function AdminDashboard2() {
             { id: "vh_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/vehicles?tab=pending" },
             { id: "vh_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/vehicles?tab=approved" },
             { id: "vh_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/vehicles?tab=rejected" },
+          ],
+        },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
           ],
         },
       ]}

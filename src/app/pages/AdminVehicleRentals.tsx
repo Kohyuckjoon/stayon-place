@@ -5,7 +5,7 @@ import {
   Phone, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, FileText, Church, Building2, Hash, ShieldCheck,
-  Minus, Plus, ChevronLeft, Ban,
+  Minus, Plus, ChevronLeft, Ban, Volume2,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
@@ -735,6 +735,12 @@ export function AdminVehicleRentals() {
             { id: "s_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/shirts?tab=pending" },
             { id: "s_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/shirts?tab=approved" },
             { id: "s_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/shirts?tab=rejected" },
+          ],
+        },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
           ],
         },
       ]}

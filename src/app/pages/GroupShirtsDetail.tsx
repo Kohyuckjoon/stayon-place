@@ -217,7 +217,7 @@ export function GroupShirtsDetail() {
 
           {/* 취급 품목 / 가격 */}
           {(itemTags.length > 0 || shirt.minPrice) && (
-            <section className="bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
+            <section className="lg:col-span-2 bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
               <h3 className="text-[15px] md:text-[16px] font-black text-[#191f28] mb-2.5 md:mb-3 flex items-center gap-2 md:gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 취급 품목 &amp; 가격
               </h3>
@@ -238,7 +238,7 @@ export function GroupShirtsDetail() {
 
           {/* 상세 설명 */}
           {shirt.description && (
-            <section className="bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
+            <section className="lg:col-span-2 bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
               <h3 className="text-[15px] md:text-[16px] font-black text-[#191f28] mb-2.5 md:mb-3 flex items-center gap-2 md:gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 상세 설명
               </h3>

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
-  Eye, Copy, PhoneCall, BarChart3, ArrowUpDown, Megaphone, CreditCard, Ban,
+  Eye, Copy, PhoneCall, BarChart3, ArrowUpDown, Megaphone, CreditCard, Ban, Volume2,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -168,6 +168,12 @@ export function AdminTeamInquiries() {
             { id: "vh_pending", label: "검토 대기", icon: Clock, accentColor: "#FF9500", href: "/admin/vehicles?tab=pending" },
             { id: "vh_approved", label: "승인 완료", icon: CheckCircle, href: "/admin/vehicles?tab=approved" },
             { id: "vh_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/vehicles?tab=rejected" },
+          ],
+        },
+        {
+          label: "음향 시공 관리",
+          items: [
+            { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
           ],
         },
       ]}
