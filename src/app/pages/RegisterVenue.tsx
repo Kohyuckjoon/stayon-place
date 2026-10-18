@@ -17,11 +17,12 @@ import { loginWithGoogle } from "../lib/auth";
 import {
   VENUE_IMAGE_CATEGORIES, VENUE_IMAGE_TOTAL_MAX, VenueImageCategoryKey, emptyVenueImagesByCategory, flattenVenueImages,
 } from "../lib/venueImageCategories";
+import { VENUE_PURPOSE_OPTIONS } from "../lib/venuePurposes";
 
 /**
  * [Input Component] - 스타일의 깔끔한 입력창
  */
-const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffix = "", error = "", autoFocus = false, multiline = false }: any) => {
+const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffix = "", error = "", autoFocus = false, multiline = false, hint = "" }: any) => {
   // const displayValue = (type === "number" && value !== 0) ? value.toLocaleString() : value;
   const getDisplayValue = () => {
     if (type === "number" && value !== null && value !== undefined && value !== "") {
@@ -36,6 +37,7 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", suffi
       <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1 group-focus-within:text-[#3182f6] transition-colors tracking-tight">
         {label}
       </label>
+      {hint && <p className="text-[12px] font-medium text-[#adb5bd] mb-2 ml-1 -mt-1 break-keep">{hint}</p>}
       <div className="relative flex items-center">
         {multiline ? (
           // 보유 악기/음향 시스템/영상 장비/주차 시설/샤워실 화장실처럼 항목을 여러 개
@@ -118,7 +120,14 @@ interface VenueFormData {
   images: string[];
   mealNote?: string;
   tags: string[];
+  purposes: string[];
+  referralSource: string;
+  referralDetail: string;
+  agreedToDataUse: boolean;
+  agreedToCancellationPolicy: boolean;
 }
+
+const REFERRAL_SOURCE_OPTIONS = ["지인 소개", "쓰레드", "인스타그램", "STAYON 측에서 등록 제안", "기타"] as const;
 
 export function RegisterVenue() {
   const navigate = useNavigate();
@@ -132,6 +141,9 @@ export function RegisterVenue() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isCustomDeno, setIsCustomDeno] = useState(false);
+  // 평수를 모르는 신청자를 위해 "면적" 대신 "수용 인원"으로 입력받는 모드 전환 체크박스.
+  // hallSize 필드 자체는 그대로 재사용하고, 단위(suffix)와 안내 문구만 바꾼다.
+  const [hallSizeByCapacity, setHallSizeByCapacity] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   // 사진을 카테고리(예배당/입구, 예배당 전체, 예배 셋팅 ... 기타)별로 나눠서 받는다.
@@ -181,6 +193,11 @@ export function RegisterVenue() {
     images: [],
     mealNote: "",
     tags: [],
+    purposes: [],
+    referralSource: "",
+    referralDetail: "",
+    agreedToDataUse: false,
+    agreedToCancellationPolicy: false,
   });
 
   // const [errors, setErrors] = useState({ contact: "", price: "", mealPrice: "" });
@@ -230,12 +247,18 @@ export function RegisterVenue() {
         formData.capacity > 0 &&
         formData.price > 0 &&
         (isCustomDeno ? formData.denomination.trim() !== "" : formData.denomination !== "") &&
+        formData.purposes.length > 0 &&
         !errors.contact && !errors.price && !errors.email
       );
     }
     if (currentStep === 2) {
-      const totalPhotoCount = Object.values(categoryFiles).reduce((sum, files) => sum + files.length, 0);
-      return totalPhotoCount > 0 && formData.mealOption.length > 0;
+      // 전체 중 아무 사진이나 1장이 아니라, "예배당/입구"와 "예배당 전체" 카테고리에
+      // 각각 최소 1장씩은 반드시 있어야 한다 - 이 두 장이 카드뷰 대표 사진으로 가장
+      // 먼저 쓰이기 때문.
+      return categoryFiles.entrance.length > 0 && categoryFiles.mainHall.length > 0 && formData.mealOption.length > 0;
+    }
+    if (currentStep === 3) {
+      return formData.agreedToDataUse && formData.agreedToCancellationPolicy;
     }
     return true;
   }, [currentStep, formData, errors, categoryFiles, isCustomDeno]);
@@ -274,6 +297,15 @@ export function RegisterVenue() {
     setCategoryFiles(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
     URL.revokeObjectURL(categoryPreviewUrls[key][index]);
     setCategoryPreviewUrls(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
+  };
+
+  const togglePurpose = (purpose: string) => {
+    setFormData(prev => ({
+      ...prev,
+      purposes: prev.purposes.includes(purpose)
+        ? prev.purposes.filter(p => p !== purpose)
+        : [...prev.purposes, purpose],
+    }));
   };
 
   const toggleMealOption = (option: 'provided' | 'self' | 'none') => {
@@ -340,7 +372,9 @@ export function RegisterVenue() {
         payload: {
           venueName: formData.venueName,
           userPhone: phoneRequest.phone || formData.applicantContact, // 둘 중 존재하는 값으로 매칭
-          applicant: formData.applicantName
+          applicant: formData.applicantName,
+          referralSource: formData.referralSource,
+          referralDetail: formData.referralDetail,
         }
       });
 
@@ -836,20 +870,53 @@ export function RegisterVenue() {
                   <CustomInput label="연락처" value={formData.applicantContact} error={errors.contact} onChange={(v: any) => setFormData({ ...formData, applicantContact: formatPhoneNumber(v) })} placeholder="010-0000-0000" />
                 </div>
 
-                <CustomInput 
-                  label="안내받으실 이메일 주소" 
-                  type="email" 
-                  value={formData.applicantEmail} 
+                <CustomInput
+                  label="안내받으실 이메일 주소"
+                  type="email"
+                  value={formData.applicantEmail}
                   error={errors.email}
-                  onChange={(v: any) => setFormData({ ...formData, applicantEmail: v })} 
-                  placeholder="example@stayon.com" 
+                  onChange={(v: any) => setFormData({ ...formData, applicantEmail: v })}
+                  placeholder="example@stayon.com"
+                  hint="실제로 사용하시는 이메일 주소를 입력해주세요. 심사 결과 안내 메일이 이 주소로 전송돼요."
                 />
 
                 <CustomInput label="장소 이름 (교회명/센터명)" value={formData.venueName} onChange={(v: any) => setFormData({ ...formData, venueName: v })} placeholder="예: 평화 수양관" />
 
+                {/* 장소 제공 목적 - 복수 선택. /venues 카드뷰 뱃지로 노출되므로 반드시 하나 이상 선택해야 한다. */}
+                <div className="mb-6 md:mb-10">
+                  <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1">
+                    어떤 목적으로 장소를 제공하고 싶으신가요? <span className="text-[#3182f6]">*</span>
+                    <span className="block text-[11px] font-medium text-[#adb5bd] mt-0.5">여러 개 선택 가능해요</span>
+                  </label>
+                  <div className="grid gap-2.5 md:gap-3">
+                    {VENUE_PURPOSE_OPTIONS.map((purpose) => {
+                      const isSelected = formData.purposes.includes(purpose);
+                      return (
+                        <div
+                          key={purpose}
+                          onClick={() => togglePurpose(purpose)}
+                          className={`p-4 md:p-5 rounded-[18px] md:rounded-[20px] cursor-pointer border-2 flex items-center justify-between transition-all duration-300 ${isSelected ? 'bg-[#f2f8ff] border-[#3182f6] shadow-sm' : 'bg-[#f9fafb] border-transparent hover:border-[#e5e8eb]'}`}
+                        >
+                          <span className={`font-bold text-[14px] md:text-[16px] break-keep ${isSelected ? 'text-[#191f28]' : 'text-[#4e5968]'}`}>{purpose}</span>
+                          <div className={`w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${isSelected ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
+                            {isSelected && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={4} />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 교단 선택 섹션 */}
                 <div className="mb-6 md:mb-10 relative" ref={dropdownRef}>
                   <label className="block text-[13px] font-bold text-[#6b7684] mb-2 ml-1">소속 교단</label>
+                  {/* "소그룹 모임" 목적을 고르면 이 장소 자체의 교단이 아니라 신청자가 출석하는
+                      교회 기준으로 입력하는 경우가 많아서 안내 문구를 다르게 보여준다 */}
+                  {formData.purposes.includes("소그룹 모임·기도 모임·MT·LT 등") && (
+                    <p className="text-[12px] font-medium text-[#adb5bd] mb-2 ml-1 -mt-1 break-keep">
+                      신청자분의 출석교회의 소속교단을 선택해주세요
+                    </p>
+                  )}
                   <div
                     onClick={() => setIsDenoOpen(!isDenoOpen)}
                     className={`flex justify-between items-center text-[16px] md:text-[20px] font-bold py-3 md:py-4 border-b-2 transition-all cursor-pointer ${isDenoOpen ? 'border-[#3182f6]' : 'border-[#f2f4f6] hover:border-[#e5e8eb]'}`}
@@ -925,11 +992,14 @@ export function RegisterVenue() {
                 <section>
                   <div className="flex justify-between items-end mb-1.5 px-1">
                     <label className="text-[13px] font-bold text-[#6b7684] uppercase tracking-wider">
-                      공간 사진 (전체 {Object.values(categoryFiles).reduce((sum, files) => sum + files.length, 0)}/{VENUE_IMAGE_TOTAL_MAX})
+                      공간 사진 (전체 {Object.values(categoryFiles).reduce((sum, files) => sum + files.length, 0)}/{VENUE_IMAGE_TOTAL_MAX}) <span className="text-[#3182f6] normal-case">*</span>
                     </label>
                     <span className="text-[11px] font-bold text-[#3182f6] bg-[#f2f8ff] px-2 py-1 rounded-md">다중 선택 가능</span>
                   </div>
-                  <p className="text-[12.5px] text-[#8b95a1] font-medium mb-6 px-1">카테고리별로 나눠서 올려주시면 사역팀이 장소를 더 정확히 파악할 수 있어요.</p>
+                  <p className="text-[12.5px] text-[#8b95a1] font-medium mb-1 px-1">카테고리별로 나눠서 올려주시면 사역팀이 장소를 더 정확히 파악할 수 있어요.</p>
+                  <p className="text-[12.5px] text-[#8b95a1] font-medium mb-6 px-1">
+                    사진은 추후에도 등록할 수 있어요. 다만 <strong className="text-[#4e5968]">&apos;예배당 / 입구&apos; 1장</strong>과 <strong className="text-[#4e5968]">&apos;예배당 전체&apos; 1장</strong>은 지금 필수로 등록해주세요.
+                  </p>
 
                   <div className="space-y-9">
                     {VENUE_IMAGE_CATEGORIES.map((category) => (
@@ -1013,13 +1083,22 @@ export function RegisterVenue() {
                   </header>
 
                   <div className="flex flex-col gap-y-2">
+                    <div
+                      onClick={() => setHallSizeByCapacity(!hallSizeByCapacity)}
+                      className="flex items-center gap-2.5 p-3 bg-[#f9fafb] rounded-xl cursor-pointer select-none w-fit mb-1"
+                    >
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${hallSizeByCapacity ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
+                        {hallSizeByCapacity && <Check className="w-3 h-3 text-white" strokeWidth={4} />}
+                      </div>
+                      <span className="text-[13px] font-bold text-[#4e5968]">평수를 몰라요, 커버 가능한 명수로 입력할게요</span>
+                    </div>
                     <CustomInput
-                      label="주강당 면적(대략적으로 기재)"
+                      label={hallSizeByCapacity ? "주강당 수용 인원(대략적으로 기재)" : "주강당 면적(대략적으로 기재)"}
                       value={formData.hallSize}
                       onChange={(v: any) => setFormData({ ...formData, hallSize: v })}
-                      placeholder="예: 80"
+                      placeholder={hallSizeByCapacity ? "예: 100" : "예: 80"}
                       type="number"
-                      suffix="평"
+                      suffix={hallSizeByCapacity ? "명" : "평"}
                     />
 
                     <CustomInput
@@ -1051,6 +1130,7 @@ export function RegisterVenue() {
                 <section className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-1.5 px-1">
                     <h3 className="text-[12px] md:text-[13px] font-bold text-[#6b7684] uppercase tracking-wider">식사 제공 가이드</h3>
+                    <span className="text-[11px] font-bold text-[#3182f6] bg-[#f2f8ff] px-2 py-1 rounded-md normal-case">여러 개 선택 가능</span>
                     <div
                       className="relative"
                       onMouseEnter={() => setIsMealGuideOpen(true)}
@@ -1166,6 +1246,8 @@ export function RegisterVenue() {
                     <SummaryItem label="핵심 시설" value={`${formData.airConditioner ? '에어컨 보유' : '에어컨 없음'} / ${formData.beddingAvailable ? '침구 보유' : '침구 없음'}`} />
                   </div> */}
                     <SummaryItem label="안내 이메일" value={formData.applicantEmail || "미입력"} />
+                    <SummaryItem label="제공 목적" value={formData.purposes.length > 0 ? formData.purposes.join(", ") : "미선택"} />
+                    <SummaryItem label="등록 사진" value={`사진이 ${Object.values(categoryFiles).reduce((sum, files) => sum + files.length, 0)}장 등록되었어요`} />
                     <SummaryItem label="소속 교단" value={isCustomDeno ? `${formData.denomination}` : (formData.denomination || "미선택")} />
                     <SummaryItem label="최대 인원" value={`${formData.capacity.toLocaleString()}명`} />
                     <SummaryItem label="1박 이용료" value={`${formData.price.toLocaleString()}원`} />
@@ -1174,6 +1256,90 @@ export function RegisterVenue() {
                     <SummaryItem label="태그" value={formData.tags.length > 0 ? formData.tags.map((t) => `#${t}`).join(", ") : "미등록"} />
                   </div>
                 </div>
+
+                {/* 유입 경로 설문 - 전체가 선택 항목, 고른 경우에만 단일 선택 */}
+                <section className="space-y-3">
+                  <label className="block text-[13px] font-bold text-[#6b7684] ml-1">
+                    어떤 경로로 STAYON을 알게 되어 등록하게 되셨나요? <span className="text-[11px] font-medium text-[#adb5bd]">(선택)</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {REFERRAL_SOURCE_OPTIONS.map((opt) => {
+                      const isSelected = formData.referralSource === opt;
+                      return (
+                        <div
+                          key={opt}
+                          onClick={() => setFormData({
+                            ...formData,
+                            referralSource: isSelected ? "" : opt,
+                            referralDetail: isSelected ? formData.referralDetail : "",
+                          })}
+                          className={`p-3.5 rounded-xl cursor-pointer border-2 text-center transition-all ${isSelected ? 'bg-[#f2f8ff] border-[#3182f6]' : 'bg-[#f9fafb] border-transparent hover:border-[#e5e8eb]'}`}
+                        >
+                          <span className={`text-[13px] font-bold ${isSelected ? 'text-[#3182f6]' : 'text-[#4e5968]'}`}>{opt}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <AnimatePresence>
+                    {(formData.referralSource === "지인 소개" || formData.referralSource === "기타") && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                        <CustomInput
+                          label={formData.referralSource === "지인 소개" ? "소개해주신 분의 성함(교회/직분)" : "직접 입력"}
+                          value={formData.referralDetail}
+                          onChange={(v: any) => setFormData({ ...formData, referralDetail: v })}
+                          placeholder={formData.referralSource === "지인 소개" ? "예: OO교회 김목사님" : "예: 블로그, 카페 등"}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <p className="text-[12px] text-[#8b95a1] font-medium leading-relaxed break-keep px-1">
+                    🎁 플랫폼 등록 추천을 통해 실제 게시가 열리면, 소개해주신 분과 등록하신 분 모두에게 소정의 선물을 드려요!
+                  </p>
+                </section>
+
+                {/* 정보 사용 동의 + 직거래 경고 (필수) */}
+                <section className="space-y-3">
+                  <div
+                    onClick={() => setFormData({ ...formData, agreedToDataUse: !formData.agreedToDataUse })}
+                    className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+                  >
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.agreedToDataUse ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
+                      {formData.agreedToDataUse && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
+                    </div>
+                    <div>
+                      <span className="text-[14px] font-bold text-[#191f28] block mb-1">
+                        장소 정보 플랫폼 게시 및 활용에 동의합니다 <span className="text-[#3182f6]">(필수)</span>
+                      </span>
+                      <span className="text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
+                        입력하신 장소 정보와 사진이 STAYON 플랫폼에 게시되어 다른 교회와 사역자분들에게 노출되는 것에 동의합니다.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 md:p-5 bg-[#fff0f0] border-2 border-[#f04452]/20 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-[#f04452] shrink-0 mt-0.5" />
+                    <p className="text-[13px] font-bold text-[#f04452] leading-relaxed break-keep">
+                      ⚠️ 등록 완료 후 STAYON을 거치지 않은 직거래가 확인되면, 사전 경고 없이 게시글이 즉시 비공개 처리될 수 있습니다.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setFormData({ ...formData, agreedToCancellationPolicy: !formData.agreedToCancellationPolicy })}
+                    className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none"
+                  >
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.agreedToCancellationPolicy ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
+                      {formData.agreedToCancellationPolicy && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
+                    </div>
+                    <div>
+                      <span className="text-[14px] font-bold text-[#191f28] block mb-1">
+                        부적합 시 등록 취소 가능성에 동의합니다 <span className="text-[#3182f6]">(필수)</span>
+                      </span>
+                      <span className="text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
+                        플랫폼의 취지와 맞지 않거나 부적합한 환경(이단·신천지 관련, 허위 정보 등)인 경우, 등록이 취소될 수 있음을 인지했습니다.
+                      </span>
+                    </div>
+                  </div>
+                </section>
 
                 <div className="p-4 bg-[#f2f8ff] rounded-2xl border border-[#3182f6]/10">
                   <p className="text-[13px] text-[#3182f6] font-bold leading-relaxed text-center">

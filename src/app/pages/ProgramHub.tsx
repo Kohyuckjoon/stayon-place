@@ -160,6 +160,9 @@ export default function ProgramHub() {
 
     // [기능 추가] 상세보기 진입 시 조회수(views) 증가 트랜잭션 함수
     const handleSelectPost = async (post: ProgramPost) => {
+        // 목록에서 상세화면으로 전환될 때 라우트 변경이 없는 단일 컴포넌트 구조라
+        // <ScrollRestoration />이 동작하지 않는다 - 수동으로 맨 위로 스크롤한다.
+        window.scrollTo(0, 0);
         setSelectedPost(post);
         try {
             const postRef = doc(db, 'programs', post.id);

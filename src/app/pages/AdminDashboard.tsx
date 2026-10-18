@@ -9,7 +9,7 @@ import {
   Maximize2, Video, Utensils, Plus, Image as ImageIcon,
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
-  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone, Ban, Church
+  Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone, Ban, Church, Mail
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, storage, functions } from "../lib/firebase";
@@ -20,6 +20,7 @@ import { getAuth } from "firebase/auth";
 import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
 import { VenueScheduleModal } from "../components/admin/VenueScheduleModal";
 import { TagEditor } from "../components/TagEditor";
+import { VENUE_PURPOSE_OPTIONS } from "../lib/venuePurposes";
 import {
   VENUE_IMAGE_CATEGORIES, VENUE_IMAGE_TOTAL_MAX, VenueImageCategoryKey, emptyVenueImagesByCategory,
   flattenVenueImages, toDisplayImagesByCategory,
@@ -302,6 +303,14 @@ export function AdminDashboard() {
     setEditedVenue({ ...editedVenue, badges: updatedBadges });
   };
 
+  const handleTogglePurpose = (purpose: string) => {
+    const current = editedVenue.purposes || [];
+    const updated = current.includes(purpose)
+      ? current.filter((p: string) => p !== purpose)
+      : [...current, purpose];
+    setEditedVenue({ ...editedVenue, purposes: updated });
+  };
+
   // 8개 카테고리 + "전체"(pending) 미분류 보관함, 총 9개 칸을 같은 방식으로 다루기
   // 위한 헬퍼들. 드래그 이동/삭제/순서변경이 소스가 카테고리든 "전체"든 동일하게
   // 동작하게 한다.
@@ -544,6 +553,20 @@ export function AdminDashboard() {
     try {
       const venueRef = doc(db, "venues", id);
       await updateDoc(venueRef, { status: newStatus });
+
+      // 승인/반려 결과를 신청자 본인 이메일로 안내한다 (기존엔 안내 문구만 있고
+      // 실제로 보내는 코드가 없었음).
+      if (newStatus === "approved" || newStatus === "rejected") {
+        const target = venues.find((v) => v.id === id);
+        if (target?.applicantEmail) {
+          const sendVenueApplicantStatusEmail = httpsCallable(functions, "sendVenueApplicantStatusEmail");
+          sendVenueApplicantStatusEmail({
+            applicantEmail: target.applicantEmail,
+            venueName: target.venueName,
+            status: newStatus,
+          }).catch((error) => console.error("승인/반려 안내 이메일 전송 실패:", error));
+        }
+      }
     } catch (error) {
       console.error("Error updating status:", error);
     }
@@ -1499,6 +1522,28 @@ export function AdminDashboard() {
 
                   <div className="p-5 bg-[#FAFAFB] rounded-[24px] border border-[#F2F4F6] mt-6">
                     <p className="text-[12px] font-black text-[#8B95A1] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <ClipboardCheck className="w-4 h-4 text-[#3182F6]" /> 장소 제공 목적
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {VENUE_PURPOSE_OPTIONS.map((purpose) => {
+                        const isActive = (editedVenue.purposes || []).includes(purpose);
+                        return (
+                          <button
+                            key={purpose}
+                            disabled={!isEditMode}
+                            onClick={() => handleTogglePurpose(purpose)}
+                            className={`px-4 py-2.5 rounded-full text-[13px] font-bold border flex items-center gap-2 transition-all ${isActive ? "border-[#3182F6] bg-[#F2F8FF] text-[#3182F6]" : "border-[#E5E8EB] bg-white text-[#6B7684]"} ${isEditMode ? "cursor-pointer active:scale-95" : "cursor-default opacity-80"}`}
+                          >
+                            {purpose}
+                            {isEditMode && isActive && <Check className="w-3.5 h-3.5 ml-0.5" strokeWidth={3} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-[#FAFAFB] rounded-[24px] border border-[#F2F4F6] mt-4">
+                    <p className="text-[12px] font-black text-[#8B95A1] uppercase tracking-wider mb-3 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-[#3182F6]" /> 장소 부여 뱃지 관리
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1549,6 +1594,36 @@ export function AdminDashboard() {
                       <InfoRow icon={Utensils} label="식당 인원" name="cafeteriaCapacity" value={editedVenue.cafeteriaCapacity} isEdit={isEditMode} onChange={handleEditChange} />
                       <InfoRow icon={CreditCard} label="기본 1박 요금" name="price" value={editedVenue.price} isEdit={isEditMode} onChange={handleEditChange} />
                       <InfoRow icon={Maximize2} label="주강당 면적" name="hallSize" value={editedVenue.hallSize} isEdit={isEditMode} onChange={handleEditChange} />
+                    </div>
+                  </section>
+
+                  {/* 신청/소개 정보 - 승인·반려 안내 메일을 받을 주소, 유입 경로, 정보 사용 동의 여부 */}
+                  <section className="space-y-4">
+                    <h3 className="text-[16px] font-black text-[#191F28] flex items-center gap-2 px-1">
+                      <Mail className="w-4 h-4 text-[#3182F6]" /> 신청/소개 정보
+                    </h3>
+                    <div className="bg-[#FAFAFB] rounded-3xl p-3 border border-[#F2F4F6] grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow icon={Mail} label="안내 이메일" name="applicantEmail" value={editedVenue.applicantEmail} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow
+                        icon={Megaphone}
+                        label="유입 경로"
+                        value={editedVenue.referralSource
+                          ? (editedVenue.referralDetail ? `${editedVenue.referralSource} (${editedVenue.referralDetail})` : editedVenue.referralSource)
+                          : "미응답"}
+                        isEdit={false}
+                      />
+                      <InfoRow
+                        icon={ClipboardCheck}
+                        label="정보 사용 동의"
+                        value={editedVenue.agreedToDataUse ? "동의함" : "미동의"}
+                        isEdit={false}
+                      />
+                      <InfoRow
+                        icon={Ban}
+                        label="부적합 시 취소 동의"
+                        value={editedVenue.agreedToCancellationPolicy ? "동의함" : "미동의"}
+                        isEdit={false}
+                      />
                     </div>
                   </section>
 

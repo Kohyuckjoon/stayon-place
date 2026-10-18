@@ -26,6 +26,82 @@ export const sendAdminEmail = async (subject: string, htmlContent: string) => {
   }
 };
 
+// 관리자 자신이 아니라 외부(신청자)에게 보내는 이메일 - 수신자를 직접 지정한다.
+export const sendApplicantEmail = async (
+  to: string, subject: string, htmlContent: string
+) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: `"STAYON" <${process.env.GMAIL_USER}>`,
+    to,
+    subject,
+    html: htmlContent,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`[신청자 이메일 전송 성공] ${subject} -> ${to}`);
+  } catch (err) {
+    console.error("❌ 신청자 이메일 전송 오류 상세:", err);
+    throw err;
+  }
+};
+
+// 장소 등록 승인/반려 결과를 신청자 본인 이메일로 안내한다. 기존 sendMailNotification은
+// 전부 관리자 자신에게만 가는 알림이라(TEAM_APPROVE 등도 포함), 신청자에게 실제로 결과를
+// 보내는 건 이 함수가 처음이다.
+export const sendVenueStatusEmail = async (
+  data: {
+    applicantEmail: string;
+    venueName: string;
+    status: "approved" | "rejected";
+  }
+) => {
+  const isApproved = data.status === "approved";
+  const title = isApproved ?
+    `🎉 "${data.venueName}" 장소 등록이 승인되었습니다` :
+    `"${data.venueName}" 장소 등록 신청 결과 안내`;
+  const color = isApproved ? "#00d082" : "#8b95a1";
+  const bodyText = isApproved ?
+    "신청해주신 장소가 검토를 거쳐 정식으로 등록되었습니다. " +
+      "이제 STAYON에서 많은 사역자분들이 이 장소를 찾아보실 수 있어요." :
+    "아쉽게도 이번 신청은 정식 등록으로 이어지지 못했습니다. " +
+      "사유가 궁금하시면 고객센터(0502-1937-0615)로 문의해주세요.";
+
+  const timeStr = new Date().toLocaleString("ko-KR", {timeZone: "Asia/Seoul"});
+  const emailHtml = `
+    <div style="background-color: #f2f4f6; padding: 30px 15px;
+                font-family: sans-serif;">
+      <div style="max-width: 500px; margin: 0 auto; background: #fff;
+                  border-radius: 24px; padding: 32px;">
+        <div style="width: 40px; height: 4px; background-color: ${color};
+                    margin-bottom: 20px;"></div>
+        <h2 style="font-size: 22px; margin: 0 0 16px 0;">${title}</h2>
+        <p style="font-size: 15px; color: #333d4b; line-height: 1.6;">
+          ${bodyText}
+        </p>
+        <div style="margin-top: 32px; font-size: 12px; color: #b0b8c1;
+                    text-align: center;">
+          STAYON 수련회 장소 플랫폼 • ${timeStr}
+        </div>
+      </div>
+    </div>
+  `;
+
+  await sendApplicantEmail(
+    data.applicantEmail,
+    `[STAYON] ${title}`,
+    emailHtml
+  );
+};
+
 const bizRegStatus = (num: unknown) =>
   typeof num === "string" && num.trim() !== "" ? `등록완료 (${num})` : "미등록";
 
@@ -73,6 +149,12 @@ export const sendMailNotification = async (
     fields = [
       {title: "장소명", value: data.venueName},
       {title: "신청자", value: data.applicant},
+      ...(data.referralSource ? [{
+        title: "유입 경로",
+        value: data.referralDetail ?
+          `${data.referralSource} (${data.referralDetail})` :
+          data.referralSource,
+      }] : []),
     ];
     break;
 

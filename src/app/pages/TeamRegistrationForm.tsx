@@ -34,7 +34,7 @@ interface TeamFormData {
   applicantEmail: string;
   pastorDifferent: boolean;
   pastorName: string;
-  pastorConsentAgreed: boolean;
+  pastorConsentType: "agreed" | "not_needed" | "";
   hasChurch: boolean | null;
   churchName: string;
   denomination: string;
@@ -78,7 +78,7 @@ export default function TeamRegistrationForm() {
     applicantEmail: "",
     pastorDifferent: false,
     pastorName: "",
-    pastorConsentAgreed: false,
+    pastorConsentType: "",
     hasChurch: true,
     churchName: "",
     denomination: "",
@@ -165,7 +165,7 @@ export default function TeamRegistrationForm() {
     return (
       formData.applicantName.trim() !== "" &&
       formData.applicantContact.length >= 12 &&
-      (!formData.pastorDifferent || (formData.pastorName.trim() !== "" && formData.pastorConsentAgreed)) &&
+      (!formData.pastorDifferent || (formData.pastorName.trim() !== "" && formData.pastorConsentType !== "")) &&
       formData.churchName.trim() !== "" &&
       formData.denomination.trim() !== "" &&
       formData.churchAddress.trim() !== "" &&
@@ -335,18 +335,31 @@ export default function TeamRegistrationForm() {
                   <div className="pt-8 pl-2 border-l-2 border-[#f2f4f6] ml-3 mt-2">
                     <div className="pl-6">
                       <CustomInput label="담임목사님 성함" required value={formData.pastorName} onChange={(v) => setFormData({ ...formData, pastorName: v })} placeholder="김목사" />
-                      <div
-                        onClick={() => setFormData({ ...formData, pastorConsentAgreed: !formData.pastorConsentAgreed })}
-                        className="flex items-start gap-3 p-4 md:p-5 bg-[#f9fafb] rounded-2xl cursor-pointer select-none mb-8"
-                      >
-                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5 ${formData.pastorConsentAgreed ? "bg-[#3182f6] border-[#3182f6]" : "bg-white border-[#e5e8eb]"}`}>
-                          {formData.pastorConsentAgreed && <Check className="w-4 h-4 text-white" strokeWidth={4} />}
+                      {/* 상의 여부 - 팀 대표자와 담임목사님이 다를 때, "상의 후 동의" / "상의 불필요"
+                          둘 중 하나를 반드시 고르는 라디오 형태(체크박스 1개 → 2지선다로 확장). */}
+                      <div className="space-y-2.5 mb-8">
+                        <div
+                          onClick={() => setFormData({ ...formData, pastorConsentType: "agreed" })}
+                          className={`flex items-start gap-3 p-4 md:p-5 rounded-2xl cursor-pointer select-none border-2 transition-all ${formData.pastorConsentType === "agreed" ? "bg-[#F2F8FF] border-[#3182f6]" : "bg-[#f9fafb] border-transparent"}`}
+                        >
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${formData.pastorConsentType === "agreed" ? "border-[#3182f6]" : "border-[#d1d6db]"}`}>
+                            {formData.pastorConsentType === "agreed" && <div className="w-2.5 h-2.5 rounded-full bg-[#3182f6]" />}
+                          </div>
+                          <div>
+                            <span className="text-[14px] font-bold text-[#191f28] block mb-1">담임(대표) 목사님과 상의 후 등록하는 것에 동의합니다.</span>
+                            <span className="text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
+                              스테이온은 등록 사실을 별도로 확인하지 않습니다.
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-[14px] font-bold text-[#191f28] block mb-1">담임(대표) 목사님과 상의 후 등록하는 것에 동의합니다.</span>
-                          <span className="text-[12px] font-bold text-[#8b95a1] leading-relaxed break-keep">
-                            스테이온은 등록 사실을 별도로 확인하지 않습니다.
-                          </span>
+                        <div
+                          onClick={() => setFormData({ ...formData, pastorConsentType: "not_needed" })}
+                          className={`flex items-center gap-3 p-4 md:p-5 rounded-2xl cursor-pointer select-none border-2 transition-all ${formData.pastorConsentType === "not_needed" ? "bg-[#F2F8FF] border-[#3182f6]" : "bg-[#f9fafb] border-transparent"}`}
+                        >
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${formData.pastorConsentType === "not_needed" ? "border-[#3182f6]" : "border-[#d1d6db]"}`}>
+                            {formData.pastorConsentType === "not_needed" && <div className="w-2.5 h-2.5 rounded-full bg-[#3182f6]" />}
+                          </div>
+                          <span className="text-[14px] font-bold text-[#191f28]">별도로 담임 목사님과 상의가 필요하지 않습니다</span>
                         </div>
                       </div>
                     </div>

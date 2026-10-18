@@ -9,7 +9,7 @@ import { httpsCallable } from "firebase/functions";
 // import { getFunctions, httpsCallable } from "firebase/functions";
 
 import {
-  Calendar, Church, Phone, Shield, CheckCircle2, ChevronLeft, Info, ChevronRight, X, CalendarDays, ChevronDown, AlertCircle, Clock, Settings, Check
+  Calendar, Church, Phone, CheckCircle2, ChevronLeft, Info, ChevronRight, X, CalendarDays, ChevronDown, AlertCircle, Clock, Settings, Check
 } from "lucide-react";
 
 // --- 커스텀 메테리얼 캘린더 컴포넌트 ---
@@ -1018,83 +1018,79 @@ export function Booking() {
           </div>
 
           <div className="pt-4">
-            <div className="bg-[#191F28] rounded-[32px] p-6 sm:p-8 shadow-2xl transition-all duration-300">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div className="bg-[#191F28] rounded-[28px] sm:rounded-[32px] p-5 sm:p-8 shadow-2xl transition-all duration-300">
+              {/* 상단 라벨 */}
+              <span className="text-[#8B95A1] font-bold text-[12px] sm:text-[13px] tracking-wide">
+                {isInspection ? "답사 장소 예약금" : `${nights}박 총 합계`} · {getDepositLabel()}
+              </span>
 
-                {/* 왼쪽 : 다이나믹 산출 금액 요약 영역 (토스 스타일의 직관적인 위계 구조로 개선) */}
-                <div className="flex flex-col gap-2">
-                  {/* 상단 라벨: 텍스트 굵기를 약간 조절하고 자간을 넓혀 가독성 및 세련미 확보 */}
-                  <span className="text-[#8B95A1] font-bold text-[13px] tracking-wider uppercase">
-                    {isInspection ? "답사 장소 예약금" : `${nights}박 총 합계`} — {getDepositLabel()}
+              {/* 금액 블록 - 세로로 쌓아 모바일에서도 한눈에 들어오게 */}
+              <div className="mt-2.5">
+                <p className="text-[13px] sm:text-[14px] text-[#ADB5BD] font-bold">결제 예정 예약금</p>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-[30px] sm:text-[36px] font-black text-[#3182F6] tracking-tight leading-none">
+                    {depositPrice.toLocaleString()}
                   </span>
-
-                  {/* 실시간 계산 처리 데이터 금액 바인딩 */}
-                  <div className="flex flex-col gap-1.5">
-                    {/* 1) 장소 예약금 (depositPrice) 표시 단락: 금액을 토스 블루 컬러로 변경하고 폰트 크기를 키워 시선을 집중시킴 */}
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[14px] text-[#ADB5BD] font-medium mr-1">결제할 예약금</span>
-                      <span className="text-[32px] font-black text-[#3182F6] tracking-tight leading-none">
-                        {depositPrice.toLocaleString()}
-                      </span>
-                      <span className="text-[18px] font-bold text-[#3182F6]">원</span>
-                    </div>
-
-                    {/* 2) 전체 총 금액 (totalPrice) 서브 텍스트 표기: 가독성을 위해 배경 색상 칩(Badge) 형태로 감싸 시각적 분리 제공 */}
-                    {!isInspection && (
-                      <div className="inline-flex items-center bg-[#202937] px-3 py-1.5 rounded-xl w-fit mt-1">
-                        <span className="text-[13px] text-[#ADB5BD] font-medium">
-                          현장 정산 잔금 포함 총액: <strong className="text-white font-semibold">{totalPrice.toLocaleString()}원</strong>
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  <span className="text-[17px] sm:text-[18px] font-bold text-[#3182F6]">원</span>
                 </div>
-
-                {/* 오른쪽: 메인 액션 버튼 레이아웃 */}
-                <div className="w-full sm:w-auto flex items-center gap-4 flex-1 sm:flex-none justify-end">
-                  <button
-                    type="submit"
-                    // disabled={isSubmitting || !!dateError || (!isInspection && (!formData.startDate || !formData.endDate))}
-                    // className={`w-full sm:w-[240px] h-[60px] rounded-[20px] font-black text-[16px] transition-all duration-200 flex items-center justify-center gap-2
-                    //   ${(isSubmitting || !!dateError || (!isInspection && (!formData.startDate || !formData.endDate)))
-                    //     ? "bg-[#333D4B] text-[#6B7684] cursor-not-allowed opacity-50"
-                    //     : "bg-[#3182F6] text-white hover:bg-[#1b64da] active:scale-[0.97] shadow-[0_8px_24px_rgba(49,130,246,0.25)]"}`}
-                    disabled={
-                      isSubmitting ||
-                      !!dateError ||
-                      (!isInspection && (!formData.startDate || !formData.endDate)) ||
-                      (venue.timeSlotOptions && venue.timeSlotOptions.length > 0 && selectedOptionIndex === null)
-                    }
-                    className={`w-full sm:w-[240px] h-[60px] rounded-[20px] font-black text-[16px] transition-all duration-200 flex items-center justify-center gap-2
-            ${(isSubmitting || !!dateError || (!isInspection && (!formData.startDate || !formData.endDate)) || (venue.timeSlotOptions && venue.timeSlotOptions.length > 0 && selectedOptionIndex === null))
-                        ? "bg-[#333D4B] text-[#6B7684] cursor-not-allowed opacity-50"
-                        : "bg-[#3182F6] text-white hover:bg-[#1b64da] active:scale-[0.97] shadow-[0_8px_24px_rgba(49,130,246,0.25)]"}`}
-
-                  >
-                    {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        {isInspection ? "사전답사 신청하기" : "예약 신청 완료하기"}
-                        <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-                      </>
-                    )}
-                  </button>
-                </div>
-
               </div>
 
-              {/* 하단 안내 가이드 문구: 가독성을 위해 투명도를 낮추고 깔끔한 레이아웃 유지 */}
-              <div className="mt-6 pt-5 border-t border-white/[0.04] text-center text-[#8B95A1] text-[13px] font-medium space-y-1.5">
-                <div className="flex items-center gap-2 justify-center">
-                  <Shield className="w-4 h-4 text-[#3182F6] shrink-0" />
-                  <p className="leading-relaxed">
+              {/* "지금 당장 결제해야 한다"는 오해를 막기 위한 안내 박스 - 금액 바로 아래, 버튼 바로 위에
+                  배치해서 결제 버튼을 누르기 전에 반드시 읽히도록 한다. */}
+              <div className="mt-5 bg-[#242C38] rounded-2xl p-4 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-[#8B95A1] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[14px] font-bold text-white">지금 결제되지 않습니다.</p>
+                  <p className="text-[12.5px] sm:text-[13px] text-[#8B95A1] font-medium mt-0.5 leading-relaxed break-keep">
                     {isInspection
-                      ? "답사 신청 후 담당자가 확인하여 신속하게 연락을 드립니다."
-                      : "신청 완료 후 담당자 확인 과정을 거쳐 예약이 최종 확정됩니다."}
+                      ? "답사 신청만으로는 결제되지 않아요. 담당자 확인 후 일정이 조율됩니다."
+                      : "사전답사 후 예약을 최종 확정할 때 예약금이 결제됩니다."}
                   </p>
                 </div>
-                <p className="leading-relaxed">예약금은 사전답사 이후 최종 확정단계에서 진행하게 됩니다.</p>
+              </div>
+
+              {/* 메인 액션 버튼 - 가로폭 전체를 쓰도록 바꿔 모바일에서 눌림 영역을 키움 */}
+              <button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  !!dateError ||
+                  (!isInspection && (!formData.startDate || !formData.endDate)) ||
+                  (venue.timeSlotOptions && venue.timeSlotOptions.length > 0 && selectedOptionIndex === null)
+                }
+                className={`mt-5 w-full h-[58px] sm:h-[60px] rounded-[20px] font-black text-[16px] transition-all duration-200 flex items-center justify-center gap-2
+            ${(isSubmitting || !!dateError || (!isInspection && (!formData.startDate || !formData.endDate)) || (venue.timeSlotOptions && venue.timeSlotOptions.length > 0 && selectedOptionIndex === null))
+                    ? "bg-[#333D4B] text-[#6B7684] cursor-not-allowed opacity-50"
+                    : "bg-[#3182F6] text-white hover:bg-[#1b64da] active:scale-[0.97] shadow-[0_8px_24px_rgba(49,130,246,0.25)]"}`}
+              >
+                {isSubmitting ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {isInspection ? "사전답사 신청하기" : "예약 신청하기"}
+                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                  </>
+                )}
+              </button>
+
+              {/* 예약 진행 절차 + 총액 안내 */}
+              <div className="mt-6 pt-5 border-t border-white/[0.06] space-y-3">
+                <div>
+                  <div className="flex items-center gap-1.5 text-[#8B95A1] text-[12px] sm:text-[13px] font-bold mb-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#3182F6]" />
+                    예약 진행 절차
+                  </div>
+                  <p className="text-[12.5px] sm:text-[13px] text-[#B0B8C1] font-medium leading-relaxed break-keep">
+                    {isInspection
+                      ? "답사 신청 → 담당자 확인 → 일정 조율"
+                      : "예약 신청 → 사전답사 → 예약 최종 확정 및 예약금 결제"}
+                  </p>
+                </div>
+                {!isInspection && (
+                  <p className="text-[12.5px] sm:text-[13px] text-[#8B95A1] font-medium">
+                    현장 정산 잔금 포함 총액: <strong className="text-white font-bold">{totalPrice.toLocaleString()}원</strong>
+                  </p>
+                )}
               </div>
             </div>
           </div>

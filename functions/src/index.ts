@@ -108,6 +108,8 @@ export {
   expireStaleVenueBlockRequests,
 } from "./venueBlockRequest";
 
+export {sendVenueApplicantStatusEmail} from "./venueStatusEmail";
+
 export {dynamicSitemap} from "./dynamicSitemap";
 export {reviewsPreview} from "./reviewsPreview";
 export {venuePreview} from "./venuePreview";

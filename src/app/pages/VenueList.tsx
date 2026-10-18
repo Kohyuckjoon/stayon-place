@@ -1014,6 +1014,9 @@ export function VenueList() {
                             )}
                             <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${getDenominationStyle(venue.denomination)}`}>{venue.denomination?.split("(")[0] || "기타"}</span>
                             <div className="flex items-center gap-1 text-[#4E5968] font-black text-[12px]"><Users className="w-3 h-3 opacity-40" /> 최대 {venue.capacity}명</div>
+                            {venue.purposes?.map((purpose: string) => (
+                              <span key={purpose} className="text-[10px] font-black text-[#8B5CF6] bg-[#F5F3FF] px-1.5 py-0.5 rounded-md whitespace-nowrap">{purpose}</span>
+                            ))}
                             {venue.tags?.slice(0, 2).map((tag: string) => (
                               <span key={tag} className="text-[10px] font-bold text-[#3182F6] bg-[#F2F8FF] px-1.5 py-0.5 rounded-md whitespace-nowrap">#{tag}</span>
                             ))}
@@ -1069,6 +1072,14 @@ export function VenueList() {
                               <span className="text-[9.5px] md:text-[11px] font-black text-[#191F28]">StayOn 인증</span>
                             </div>
                           )}
+
+                          {/* 장소 제공 목적 - StayOn 인증과 동일한 이미지 오버레이 뱃지 스타일로 노출 */}
+                          {venue.purposes?.map((purpose: string) => (
+                            <div key={purpose} className="bg-white/95 backdrop-blur-md px-2 py-1 md:px-3 md:py-1.5 rounded-full flex items-center gap-1 border border-[#8B5CF6]/10 shadow-sm whitespace-nowrap">
+                              <Tag className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#8B5CF6]" strokeWidth={2.5} />
+                              <span className="text-[9.5px] md:text-[11px] font-black text-[#191F28]">{purpose}</span>
+                            </div>
+                          ))}
 
                           {/* 3. 리포미디어 인증 (새 관리자 페이지에서 추가된 동적 뱃지 - 시안 피드백 그린 아이덴티티 반영) */}
                           {/* {venue.badges?.includes("repomedia") && (

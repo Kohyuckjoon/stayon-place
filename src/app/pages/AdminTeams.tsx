@@ -4,7 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Mic2, Users, Speaker, PlaySquare,
   Phone, Mail, Church, User, ClipboardCheck, CalendarCheck, MapPinned, MapPin,
   CreditCard, Calendar, Trash2, X, RotateCcw, Share2, Edit3, Save, ShieldOff, Lock, ImagePlus, ChevronDown, TrendingUp,
-  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban, Volume2,
+  Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban, Volume2, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
@@ -312,6 +312,44 @@ const ToggleRow = ({ label, icon: Icon, isEdit, value, onChange, trueLabel = "�
   </div>
 );
 
+// 담임목사님 상의 여부 - "상의 후 동의" / "상의 불필요" 2지선다. 이 필드 추가 전 제출된
+// 구버전 신청서는 pastorConsentAgreed(boolean)만 있으므로 표시할 때 그 값으로 대체 표기한다.
+const PastorConsentRow = ({ isEdit, value, legacyValue, onChange }: any) => {
+  const label = value === "agreed" ? "상의 후 동의함"
+    : value === "not_needed" ? "상의 필요 없음"
+    : legacyValue === true ? "상의 후 동의함 (구버전)"
+    : "정보 없음";
+  return (
+    <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-colors">
+      <div className="mt-0.5 p-2.5 bg-white border border-gray-100 rounded-xl shrink-0 shadow-sm">
+        <ClipboardCheck className="w-4 h-4 text-[#ADB5BD]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-black text-[#8B95A1] uppercase tracking-widest mb-1">담임목사님 상의 여부</p>
+        {isEdit ? (
+          <div className="flex gap-2">
+            {[{ label: "상의 후 동의", val: "agreed" }, { label: "상의 불필요", val: "not_needed" }].map((opt) => (
+              <button
+                key={opt.val}
+                type="button"
+                onClick={() => onChange(opt.val)}
+                className={`flex-1 py-2 text-[13px] font-bold rounded-xl border transition-all ${value === opt.val
+                  ? "border-[#3182F6] bg-[#E8F3FF] text-[#3182F6]"
+                  : "border-[#E5E8EB] bg-white text-[#8B95A1]"
+                  }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[15px] font-bold text-[#333D4B] leading-snug">{label}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 type TeamTab = "pending" | "approved" | "rejected";
 const VALID_TABS: TeamTab[] = ["pending", "approved", "rejected"];
 const MAX_TEAM_IMAGES = 3;
@@ -391,6 +429,17 @@ export function AdminTeams() {
   const removePosterImageAt = (idx: number) => {
     setEditedTeam((prev: any) => {
       const images = getPosterImages(prev).filter((_: string, i: number) => i !== idx);
+      return { ...prev, posterImages: images, posterImage: images[0] || "" };
+    });
+  };
+
+  // 순서 변경 - 첫 번째 사진이 곧 대표 이미지라 자리를 맞바꾸면 대표도 같이 바뀐다.
+  const movePosterImageAt = (idx: number, direction: -1 | 1) => {
+    setEditedTeam((prev: any) => {
+      const images = [...getPosterImages(prev)];
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= images.length) return prev;
+      [images[idx], images[targetIdx]] = [images[targetIdx], images[idx]];
       return { ...prev, posterImages: images, posterImage: images[0] || "" };
     });
   };
@@ -863,6 +912,27 @@ export function AdminTeams() {
                         >
                           <Download className="w-3 h-3" />
                         </button>
+                        {/* 순서 변경 - 첫 장이 대표 이미지라 자리를 바꾸면 대표도 같이 바뀐다 */}
+                        <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => movePosterImageAt(idx, -1)}
+                            disabled={idx === 0}
+                            className="w-6 h-6 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                            title="앞으로 이동"
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => movePosterImageAt(idx, 1)}
+                            disabled={idx === getPosterImages(editedTeam).length - 1}
+                            className="w-6 h-6 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                            title="뒤로 이동"
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => removePosterImageAt(idx)}
@@ -1004,7 +1074,7 @@ export function AdminTeams() {
                   <h3 className="text-[13px] font-black text-[#8B95A1] uppercase tracking-widest px-1">담임목사님 정보</h3>
                   <div className="bg-[#FAFAFB] rounded-2xl divide-y divide-[#F2F4F6]">
                     <InfoRow icon={User} label="성함" name="pastorName" value={editedTeam.pastorName} isEdit={isEditMode} onChange={handleEditChange} />
-                    <ToggleRow icon={ClipboardCheck} label="담임목사님 상의 동의" value={editedTeam.pastorConsentAgreed} isEdit={isEditMode} onChange={(v: boolean) => setEditedTeam({ ...editedTeam, pastorConsentAgreed: v })} trueLabel="동의함" falseLabel="미동의" />
+                    <PastorConsentRow value={editedTeam.pastorConsentType} legacyValue={editedTeam.pastorConsentAgreed} isEdit={isEditMode} onChange={(v: string) => setEditedTeam({ ...editedTeam, pastorConsentType: v })} />
                     <InfoRow icon={Phone} label="연락처" name="pastorContact" value={editedTeam.pastorContact} isEdit={isEditMode} onChange={handleEditChange} />
                     <InfoRow icon={Mail} label="이메일" name="pastorEmail" value={editedTeam.pastorEmail} isEdit={isEditMode} onChange={handleEditChange} />
                   </div>
