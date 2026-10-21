@@ -4,6 +4,7 @@ import {
   Users, UserX, UserCheck, Search, Clock, CheckCircle, XCircle,
   Calendar, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   ShieldOff, ShieldCheck, Trash2, AlertTriangle, Mail, BarChart3, Megaphone, Ban, Volume2,
+  LayoutDashboard,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -168,6 +169,12 @@ export function AdminUsers() {
     <AdminSidebarLayout
       brandSubtitle="회원 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

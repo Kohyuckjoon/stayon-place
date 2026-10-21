@@ -15,6 +15,7 @@ import { BudgetPlanner } from "./pages/BudgetPlanner";
 import { SmartSchedulePlanner } from "./pages/SmartSchedulePlanner";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminDashboard2 } from "./pages/AdminDashboard2";
+import { AdminAnalytics } from "./pages/AdminAnalytics";
 import { AdminHub } from "./pages/AdminHub";
 import { AdminUsers } from "./pages/AdminUsers";
 import { AdminTeams } from "./pages/AdminTeams";
@@ -337,6 +338,7 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminHub /> },
       { path: "venues", element: <AdminDashboard /> },
       { path: "bookings", element: <AdminDashboard2 /> },
+      { path: "dashboard", element: <AdminAnalytics /> },
       { path: "users", element: <AdminUsers /> },
       { path: "teams", element: <AdminTeams /> },
       { path: "team-inquiries", element: <AdminTeamInquiries /> },

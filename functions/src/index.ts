@@ -45,7 +45,7 @@ export const logTeamContactEvent = onCall({
   region: "asia-northeast3",
   cors: true,
 }, async (request: CallableRequest<any>) => {
-  const {teamId, type} = request.data ?? {};
+  const {teamId, type, ref} = request.data ?? {};
   const field = typeof type === "string" ?
     CONTACT_EVENT_FIELDS[type] : undefined;
   if (!teamId || typeof teamId !== "string" || !field) {
@@ -56,12 +56,48 @@ export const logTeamContactEvent = onCall({
       [field]: admin.firestore.FieldValue.increment(1),
       lastContactAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    // ?ref= 링크를 타고 들어온 방문자가 같은 세션에서 연락처를 열람/복사/통화한
+    // 경우에만 ref가 같이 전달된다 (프론트의 sessionStorage 기반). 유입 추적용
+    // 집계라 teamId 기록과 별개로 실패해도 전체 요청은 성공 처리한다.
+    if (ref && typeof ref === "string" && ref.trim() !== "") {
+      await admin.firestore().collection("referralStats").doc(ref.trim()).set({
+        ref: ref.trim(),
+        contactCount: admin.firestore.FieldValue.increment(1),
+        lastContactAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+    }
     return {success: true};
   } catch (error) {
     console.error("문의 이벤트 기록 에러:", error);
     return {success: false, error: "기록 실패"};
   }
 });
+
+// 릴스/SNS 홍보 링크(예: /teams?ref=jueun)로 들어온 유입을 집계한다. 방문당 한 번만
+// 호출되도록 프론트(TeamList.tsx)에서 세션당 중복 방지 처리를 한다.
+export const logReferralVisit = onCall({
+  region: "asia-northeast3",
+  cors: true,
+}, async (request: CallableRequest<any>) => {
+  const {ref} = request.data ?? {};
+  if (!ref || typeof ref !== "string" || ref.trim() === "") {
+    return {success: false, error: "잘못된 요청"};
+  }
+  try {
+    await admin.firestore().collection("referralStats").doc(ref.trim()).set({
+      ref: ref.trim(),
+      visitCount: admin.firestore.FieldValue.increment(1),
+      lastVisitAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+    return {success: true};
+  } catch (error) {
+    console.error("유입 기록 에러:", error);
+    return {success: false, error: "기록 실패"};
+  }
+});
+
+// 추천 링크로 들어온 신규 가입 집계는 analytics.ts의 onUserRegistered 트리거가 담당한다
+// (users/{uid} 문서가 생성되는 순간 referredBy 필드를 읽어서 처리 - 별도 callable 불필요).
 
 // 굿즈/단체티 상세페이지 조회수 및 "온라인몰 바로가기" 클릭수 기록 - logTeamContactEvent와
 // 동일한 이유(익명 방문자가 호출하는 단순 카운터라 소유권 검사가 필요 없음)로 컬렉션·필드를
@@ -109,6 +145,23 @@ export {
 } from "./venueBlockRequest";
 
 export {sendVenueApplicantStatusEmail} from "./venueStatusEmail";
+
+// 관리자 대시보드("대시보드" 탭) 집계 전용 - functions/src/analytics.ts
+export {
+  logSiteVisit,
+  logKakaoClick,
+  onUserRegistered,
+  onBookingRegistered,
+  onVenueRegistered,
+  onMissionVenueRegistered,
+  onTeamRegistered,
+  onBandRoomRegistered,
+  onChurchRegistered,
+  onGoodsStoreRegistered,
+  onGroupShirtsRegistered,
+  onVehicleRentalRegistered,
+  onSoundConstructionRegistered,
+} from "./analytics";
 
 export {dynamicSitemap} from "./dynamicSitemap";
 export {reviewsPreview} from "./reviewsPreview";

@@ -6,6 +6,7 @@ import {
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, FileText, Church, Building2, Hash, ShieldCheck,
   Minus, Plus, ChevronLeft, Ban, Volume2,
+  LayoutDashboard,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
@@ -649,6 +650,12 @@ export function AdminVehicleRentals() {
     <AdminSidebarLayout
       brandSubtitle="차량 대여 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

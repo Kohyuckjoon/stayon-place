@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { REGION_OPTIONS as ALL_REGIONS } from "../lib/regions";
 import { getEquipmentBadges, getIndividualBadgeLabel } from "../lib/teamDisplay";
+import { getStoredReferral } from "../lib/referral";
 
 // 처음 보는 사람도 바로 이해할 수 있도록, 값만 보여주지 않고 쉬운 설명을 함께 붙인다.
 const EQUIPMENT_DESCRIPTIONS: Record<string, string> = {
@@ -43,7 +44,10 @@ const videoSlideVariants = {
 // 문의 집계용 이벤트 기록. 사용자 경험에 영향 없이 조용히 실패해도 무방하다.
 function logContactEvent(teamId: string, type: "reveal" | "copy" | "call") {
   const fn = httpsCallable(functions, "logTeamContactEvent");
-  fn({ teamId, type }).catch(() => { /* 집계 실패는 무시 */ });
+  // 같은 세션에서 ?ref= 링크로 들어온 적이 있으면 같이 보내서, 어떤 홍보 경로로
+  // 유입된 사람이 실제로 연락처까지 열어봤는지 referralStats에서 구분할 수 있게 한다.
+  const ref = getStoredReferral();
+  fn({ teamId, type, ...(ref ? { ref } : {}) }).catch(() => { /* 집계 실패는 무시 */ });
 }
 
 function maskPhone(phone: string): string {

@@ -4,6 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   Megaphone, GripVertical, X, Plus, Music, Save, CreditCard,
   Zap, Ban, PartyPopper, TrendingUp, BarChart3, Calendar, ClipboardCheck, CalendarCheck, MapPinned, Volume2,
+  LayoutDashboard,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
@@ -265,6 +266,12 @@ export function AdminBandRoomAds() {
     <AdminSidebarLayout
       brandSubtitle="합주실 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

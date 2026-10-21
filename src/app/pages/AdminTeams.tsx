@@ -5,6 +5,7 @@ import {
   Phone, Mail, Church, User, ClipboardCheck, CalendarCheck, MapPinned, MapPin,
   CreditCard, Calendar, Trash2, X, RotateCcw, Share2, Edit3, Save, ShieldOff, Lock, ImagePlus, ChevronDown, TrendingUp,
   Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban, Volume2, ChevronLeft, ChevronRight,
+  LayoutDashboard,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
@@ -378,6 +379,16 @@ export function AdminTeams() {
   const [managerEmailInput, setManagerEmailInput] = useState("");
   const [boostAmount, setBoostAmount] = useState("7");
   const [boostUnit, setBoostUnit] = useState<"일" | "개월">("일");
+  // ?ref= 홍보 링크 유입/문의 집계 (referralStats 컬렉션). 기존 검토 탭(대기/승인/반려)과
+  // 무관한 별개 모니터링 위젯이라 TeamTab에 섞지 않고 항상 보이는 섹션으로 둔다.
+  const [referralStats, setReferralStats] = useState<any[]>([]);
+  const [referralLinkName, setReferralLinkName] = useState(""); // 링크 생성기 입력값
+  const [referralLinkCopied, setReferralLinkCopied] = useState(false);
+  const [referralLinkPath, setReferralLinkPath] = useState<"" | "teams">(""); // 목적지 - 홈페이지("") 또는 외부사역팀 찾기 페이지
+  // ref 값("test" 등)은 이미 공유된 링크·과거 집계 데이터의 키라서 바꿀 수 없으니,
+  // 통계 화면에서만 알아보기 편하게 보여줄 별칭을 referralStats/{ref}.label에 따로 저장한다.
+  const [editingRefId, setEditingRefId] = useState<string | null>(null);
+  const [editingRefLabel, setEditingRefLabel] = useState("");
 
   const getPosterImages = (team: any): string[] =>
     team.posterImages?.length ? team.posterImages : (team.posterImage ? [team.posterImage] : []);
@@ -514,7 +525,10 @@ export function AdminTeams() {
     const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
       setSuspendedCount(snap.docs.filter((d) => d.data().status === "suspended").length);
     });
-    return () => { unsubVenues(); unsubBookings(); unsubUsers(); };
+    const unsubReferral = onSnapshot(collection(db, "referralStats"), (snap) => {
+      setReferralStats(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => { unsubVenues(); unsubBookings(); unsubUsers(); unsubReferral(); };
   }, []);
 
   const adminEmail = getAuth().currentUser?.email || "admin@stayon.com";
@@ -582,6 +596,15 @@ export function AdminTeams() {
     }
   };
 
+  const handleSaveRefLabel = async (refId: string) => {
+    try {
+      await updateDoc(doc(db, "referralStats", refId), { label: editingRefLabel.trim() });
+      setEditingRefId(null);
+    } catch (error) {
+      alert("별칭 저장 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!window.confirm("이 신청 내역을 완전히 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) return;
     try {
@@ -622,6 +645,12 @@ export function AdminTeams() {
     <AdminSidebarLayout
       brandSubtitle="외부 사역팀 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [
@@ -745,6 +774,114 @@ export function AdminTeams() {
           <div className="mb-5">
             <h1 className="text-[22px] md:text-[26px] font-black tracking-tight leading-tight mb-1">외부 사역팀 관리</h1>
             <p className="text-[#4E5968] font-bold text-[13px] md:text-[14px]">찬양팀/찬양사역자/세션 등 사역팀 등록 신청을 검토하고 승인하세요.</p>
+          </div>
+
+          {/* ?ref= 홍보 링크 생성 + 유입/문의 집계 - 검토 대기/승인/반려 탭과 무관하게 항상 노출. */}
+          <div className="mb-5 bg-white rounded-[20px] border border-[#F2F4F6] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Megaphone className="w-4 h-4 text-[#3182F6]" />
+              <h3 className="text-[14px] font-black text-[#191F28]">홍보 링크 만들기 / 유입 추적</h3>
+            </div>
+
+            {/* 링크 생성기 - 이름 + 목적지 페이지만 고르면 공유할 전체 주소를 만들어서
+                클립보드로 복사해준다. 유입 집계는 어느 페이지에 떨어지든(Layout.tsx에서
+                전역으로 처리) 다 잡히므로, 목적지는 순전히 "방문자가 처음 보는 화면"
+                선택일 뿐이다. */}
+            <div className="flex items-center gap-1.5 mb-2">
+              {[{ id: "" as const, label: "홈페이지" }, { id: "teams" as const, label: "외부사역팀 찾기" }].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => { setReferralLinkPath(opt.id); setReferralLinkCopied(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all ${referralLinkPath === opt.id ? "bg-[#191F28] text-white" : "bg-[#F2F4F6] text-[#6B7684]"}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 mb-2">
+              <input
+                type="text"
+                value={referralLinkName}
+                onChange={(e) => { setReferralLinkName(e.target.value); setReferralLinkCopied(false); }}
+                placeholder="예: jueun"
+                className="flex-1 h-11 bg-[#FAFAFB] rounded-xl px-4 text-[14px] font-bold outline-none border border-[#E5E8EB] focus:border-[#3182F6] transition-all"
+              />
+              <button
+                type="button"
+                disabled={!referralLinkName.trim()}
+                onClick={async () => {
+                  const url = `${window.location.origin}/${referralLinkPath}?ref=${encodeURIComponent(referralLinkName.trim())}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                  } catch {
+                    window.prompt("아래 링크를 복사하세요", url);
+                  }
+                  setReferralLinkCopied(true);
+                }}
+                className="h-11 px-5 bg-[#3182F6] text-white rounded-xl font-black text-[13px] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1B64DA] transition-all whitespace-nowrap"
+              >
+                {referralLinkCopied ? "복사 완료 ✓" : "링크 복사"}
+              </button>
+            </div>
+            {referralLinkName.trim() && (
+              <p className="text-[12px] font-bold text-[#8B95A1] mb-4 break-all">
+                {window.location.origin}/{referralLinkPath}?ref={encodeURIComponent(referralLinkName.trim())}
+              </p>
+            )}
+
+            {referralStats.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-[#F2F4F6]">
+                {referralStats
+                  .sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0))
+                  .map((r) => (
+                    <div key={r.id} className="bg-[#FAFAFB] rounded-2xl p-4 border border-[#F2F4F6] mt-3">
+                      {editingRefId === r.id ? (
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editingRefLabel}
+                            onChange={(e) => setEditingRefLabel(e.target.value)}
+                            placeholder="별칭 입력 (예: 테스트용)"
+                            className="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-[#E5E8EB] rounded-lg text-[13px] font-bold focus:outline-none focus:border-[#3182F6]"
+                          />
+                          <button onClick={() => handleSaveRefLabel(r.id)} className="p-1.5 text-[#3182F6] shrink-0"><Save className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingRefId(null)} className="p-1.5 text-[#ADB5BD] shrink-0"><X className="w-4 h-4" /></button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <p className="text-[13px] font-black text-[#191F28]">
+                            {r.label || r.ref}
+                            {r.label && <span className="text-[11px] font-bold text-[#ADB5BD] ml-1.5">({r.ref})</span>}
+                          </p>
+                          <button
+                            onClick={() => { setEditingRefId(r.id); setEditingRefLabel(r.label || ""); }}
+                            className="p-1 text-[#ADB5BD] hover:text-[#3182F6] transition-colors shrink-0"
+                            aria-label="별칭 수정"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-bold text-[#8B95A1]">유입</p>
+                          <p className="text-[18px] font-black text-[#3182F6]">{r.visitCount || 0}<span className="text-[12px] font-bold text-[#8B95A1]">명</span></p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-[#8B95A1]">신규 가입</p>
+                          <p className="text-[18px] font-black text-[#00D082]">{r.registrationCount || 0}<span className="text-[12px] font-bold text-[#8B95A1]">명</span></p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-[#8B95A1]">문의(연락처 열람)</p>
+                          <p className="text-[18px] font-black text-[#191F28]">{r.contactCount || 0}<span className="text-[12px] font-bold text-[#8B95A1]">회</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           <div className="relative mb-5 max-w-md">

@@ -3,6 +3,7 @@ import { useNavigate, ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   Eye, Copy, PhoneCall, BarChart3, ArrowUpDown, Megaphone, CreditCard, Ban, Volume2,
+  LayoutDashboard,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -87,6 +88,12 @@ export function AdminTeamInquiries() {
     <AdminSidebarLayout
       brandSubtitle="외부 사역팀 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

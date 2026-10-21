@@ -4,6 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   BarChart3, Megaphone, CreditCard, Ban, Volume2, Phone, MapPin,
   Lightbulb, Church, Check, RotateCcw,
+  LayoutDashboard,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
@@ -67,6 +68,12 @@ export function AdminSoundConstruction() {
     <AdminSidebarLayout
       brandSubtitle="음향 시공 관리"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

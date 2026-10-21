@@ -2,7 +2,7 @@ import { Header } from "../components/Header";
 import {
   Calendar, MapPin, CheckCircle2, Clock, ChevronRight, Heart, Wallet, ArrowRight,
   Users, LogOut, Settings, AlertTriangle, PlusCircle, UserCircle, MessageCircle, FileText, History as HistoryIcon, Building2, CreditCard, Check, Phone, MapPinned, Sparkles,
-  Pencil, ClipboardList, Tent,
+  Pencil, ClipboardList, Tent, CalendarCheck,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -521,6 +521,15 @@ export function MyPage() {
                                 </div>
                               </div>
 
+                              {booking.confirmedInspectionDate && (
+                                <div className="w-full mt-3 md:mt-4 flex items-center gap-2 bg-[#F2F8FF] border border-blue-100 rounded-xl md:rounded-2xl px-3.5 md:px-5 py-2.5 md:py-3">
+                                  <CalendarCheck className="w-4 h-4 text-[#3182F6] shrink-0" />
+                                  <span className="text-[12.5px] md:text-[13.5px] font-black text-[#3182F6] break-keep">
+                                    사전답사 일정이 {booking.confirmedInspectionDate} {booking.confirmedInspectionTime}로 확정됐어요
+                                  </span>
+                                </div>
+                              )}
+
                               {(booking.status === 'inspection_confirmed' || booking.status === 'approved' || booking.status === 'deposit_paid') && (
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
@@ -562,7 +571,7 @@ export function MyPage() {
                                     onClick={() => handleConfirmInspection(booking)}
                                     className="w-full py-3.5 md:py-4 bg-[#3182F6] text-white rounded-xl font-black hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-[14px] md:text-[15px] shadow-lg shadow-blue-100"
                                   >
-                                    <Check className="w-5 h-5" /> 답사 확정하기
+                                    <Check className="w-5 h-5" /> 답사 정보 확인
                                   </button>
                                 </div>
                               )}

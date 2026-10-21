@@ -5,6 +5,7 @@ import {
   Phone, Mail, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus, ChevronDown,
   BarChart3, Megaphone, PlaySquare, FileText, Power, Ban, Volume2,
+  LayoutDashboard,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, setDoc } from "firebase/firestore";
@@ -384,6 +385,12 @@ export function AdminChurches() {
     <AdminSidebarLayout
       brandSubtitle="교회 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

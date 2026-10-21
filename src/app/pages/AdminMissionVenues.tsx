@@ -6,6 +6,7 @@ import {
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, Church, Building2, ChevronLeft,
   Wind, Bed, Car, Bath, Volume2, Tag as TagIcon, Ban,
+  LayoutDashboard,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayRemove, arrayUnion } from "firebase/firestore";
@@ -283,6 +284,12 @@ export function AdminMissionVenues() {
     <AdminSidebarLayout
       brandSubtitle="국내 선교 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

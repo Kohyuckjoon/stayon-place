@@ -3,6 +3,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from './firebase';
+import { getStoredReferral } from './referral';
 
 // 1. 상태 타입 정의
 interface AuthContextType {
@@ -20,6 +21,10 @@ async function ensureUserProfileDoc(currentUser: User) {
     const userRef = doc(db, "users", currentUser.uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
+      // 추천 링크(?ref=이름)로 들어온 세션에서 가입하는 거면 누구 추천인지 같이 저장해둔다.
+      // 이 값을 functions/src/analytics.ts의 onUserRegistered 트리거가 읽어서
+      // referralStats 가입 수를 올려주므로, 여기서 별도로 집계 함수를 호출할 필요가 없다.
+      const ref = getStoredReferral();
       await setDoc(userRef, {
         uid: currentUser.uid,
         email: currentUser.email,
@@ -27,6 +32,7 @@ async function ensureUserProfileDoc(currentUser: User) {
         displayName: currentUser.displayName,
         photoURL: currentUser.photoURL,
         createdAt: serverTimestamp(),
+        ...(ref ? { referredBy: ref } : {}),
       });
 
       // 신규 가입 판단(=문서를 지금 처음 만드는 순간)을 여기서 단일하게 처리한다.

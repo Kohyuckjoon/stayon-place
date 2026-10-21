@@ -3,10 +3,13 @@ import { Outlet, useLocation } from "react-router-dom"; // useLocation 추가
 // import { Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, AtSign } from "lucide-react";
+import { httpsCallable } from "firebase/functions";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { BoardSwitcher } from "./BoardSwitcher";
 import { getPageTitle } from "../lib/pageTitles";
+import { functions } from "../lib/firebase";
+import { storeReferral } from "../lib/referral";
 
 export function Layout() {
   const location = useLocation(); // 현재 경로 감지
@@ -20,6 +23,37 @@ export function Layout() {
   useEffect(() => {
     document.title = getPageTitle(location.pathname);
   }, [location.pathname]);
+
+  // 홍보 링크(?ref=이름)로 어느 페이지에 떨어지든 유입을 잡기 위해, 특정 페이지가 아니라
+  // 이 루트 레이아웃에서 한 번만 처리한다. 원래 TeamList.tsx에만 있었는데, 만나패밀리
+  // 유튜브처럼 /teams가 아닌 홈페이지 등으로 링크를 드리는 경우도 생겨서 전역으로 옮겼다.
+  useEffect(() => {
+    const ref = new URLSearchParams(location.search).get("ref");
+    if (!ref) return;
+    storeReferral(ref);
+    const loggedKey = `stayon_ref_visit_logged_${ref}`;
+    try {
+      if (sessionStorage.getItem(loggedKey)) return;
+      sessionStorage.setItem(loggedKey, "1");
+    } catch {
+      // sessionStorage 접근 불가 시 매 방문 기록 시도(최악의 경우 중복 집계, 치명적이지 않음)
+    }
+    const logReferralVisit = httpsCallable(functions, "logReferralVisit");
+    logReferralVisit({ ref }).catch(() => { /* 집계 실패는 무시 */ });
+  }, [location.search]);
+
+  // 추천 링크 유무와 무관하게, 사이트 전체 "오늘/이번 주/이번 달/누적 방문자" 집계용.
+  // 탭(세션)당 1번만 세서, 페이지를 이동하거나 새로고침해도 중복으로 올라가지 않는다.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("stayon_site_visit_logged")) return;
+      sessionStorage.setItem("stayon_site_visit_logged", "1");
+    } catch {
+      // sessionStorage 접근 불가 시 그냥 진행 (최악의 경우 중복 집계, 치명적이지 않음)
+    }
+    const logSiteVisit = httpsCallable(functions, "logSiteVisit");
+    logSiteVisit().catch(() => { /* 집계 실패는 무시 */ });
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -91,6 +125,11 @@ export function Layout() {
           href="https://pf.kakao.com/_AtexfX/chat"
           target="_blank"
           rel="noreferrer"
+          onClick={() => {
+            // 채팅창 이동은 그대로 두고, 집계만 조용히 같이 보낸다 (실패해도 이동엔 영향 없음).
+            const logKakaoClick = httpsCallable(functions, "logKakaoClick");
+            logKakaoClick().catch(() => { /* 집계 실패는 무시 */ });
+          }}
           className={`fixed z-[999] flex items-center justify-center md:justify-start gap-0 md:gap-3 w-14 h-14 md:w-auto md:h-auto px-0 md:px-6 py-0 md:py-4 bg-[#FEE500] hover:bg-[#FDD800] text-[#373206] rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-105 active:scale-95 group ${
             isVenuesPage ? "bottom-[88px] md:bottom-[110px] right-4 md:right-10" : "bottom-4 md:bottom-10 right-4 md:right-10"
           }`}

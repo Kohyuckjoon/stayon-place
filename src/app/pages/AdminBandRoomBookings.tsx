@@ -3,6 +3,7 @@ import { ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   BarChart3, Megaphone, CreditCard, RotateCcw, Ban, Volume2,
+  LayoutDashboard,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
@@ -94,6 +95,12 @@ export function AdminBandRoomBookings() {
     <AdminSidebarLayout
       brandSubtitle="합주실 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [

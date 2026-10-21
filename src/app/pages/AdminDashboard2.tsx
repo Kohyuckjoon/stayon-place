@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ScrollRestoration, useSearchParams } from "react-router-dom";
 import {
   CheckCircle, XCircle, Clock, Eye,
   Search, Building2, Calendar, AlertTriangle,
   User, MapPin, Phone, Info,
   Users, CreditCard, MessageSquare,
-  RotateCcw, ChevronRight, Mail, ClipboardCheck,
-  CalendarCheck, Trash2, Check, MapPinned, Tent, Receipt, Coins, ShieldOff, BarChart3, Megaphone, Ban, Volume2
+  RotateCcw, ChevronRight, ChevronLeft, Mail, ClipboardCheck,
+  CalendarCheck, Trash2, Check, MapPinned, Tent, Receipt, Coins, ShieldOff, BarChart3, Megaphone, Ban, Volume2, CalendarDays,
+  LayoutDashboard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, functions } from "../lib/firebase";
@@ -44,6 +45,118 @@ const InfoRow = ({ label, value, icon: Icon }: any) => (
 type BookingTab = "pending" | "confirmed" | "inspection_confirmed" | "approved" | "deposit_paid" | "cancelled";
 const VALID_TABS: BookingTab[] = ["pending", "confirmed", "inspection_confirmed", "approved", "deposit_paid", "cancelled"];
 
+// "답사 가능 승인" 시 관리자가 고를 수 있는 시간대 목록 (09:00~18:00, 30분 단위)
+const INSPECTION_TIME_SLOTS: string[] = (() => {
+  const slots: string[] = [];
+  for (let totalMin = 9 * 60; totalMin <= 18 * 60; totalMin += 30) {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
+  return slots;
+})();
+
+// Booking.tsx의 MaterialCalendar(토스 스타일 달력)와 동일한 디자인을 그대로 복제한 것.
+// Booking.tsx(결제 흐름 보호 파일)는 절대 건드리지 않기 위해 여기서 별도로 둔다.
+function MaterialCalendar({ value, onChange, label }: { value: string, onChange: (date: string) => void, label: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+  const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+  const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+
+  const days = [];
+  const totalDays = daysInMonth(currentDate.getFullYear(), currentDate.getMonth());
+  const startDay = firstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
+
+  for (let i = 0; i < startDay; i++) days.push(null);
+  for (let i = 1; i <= totalDays; i++) days.push(i);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // 이 달력은 스크롤 가능한 모달 안에서 열리는데, 팝업이 입력창 아래로 펼쳐지다 보니
+  // 입력창이 모달 하단 쪽에 있으면 펼쳐진 달력이 보이는 영역 밖으로 내려가서 사용자가
+  // 직접 스크롤해야만 보였다. 열릴 때 자동으로 스크롤해서 바로 보이게 한다.
+  useEffect(() => {
+    if (isOpen) {
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative flex-1 space-y-2.5" ref={containerRef}>
+      <label className="text-[13px] font-black ml-1 text-[#6B7684]">{label}</label>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full h-[56px] px-5 bg-[#F9FAFB] border-2 flex items-center justify-between rounded-[20px] transition-all cursor-pointer
+          ${isOpen ? "border-[#3182F6] bg-white shadow-[0_0_0_1px_#3182F6]" : "border-transparent hover:bg-[#F2F4F6]"}`}
+      >
+        <span className={`font-black text-[15px] leading-tight ${value ? "text-[#191F28]" : "text-[#ADB5BD]"}`}>
+          {value || "날짜 선택"}
+        </span>
+        <CalendarDays className={`w-5 h-5 ${isOpen ? "text-[#3182F6]" : "text-[#B0B8C1]"}`} />
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            className="absolute z-[100] top-[100%] left-0 w-full sm:w-[340px] mt-2 bg-white rounded-[24px] p-6 shadow-[0_24px_54px_rgba(0,0,0,0.12)] border border-[#F2F4F6]"
+          >
+            <div className="flex items-center justify-between mb-5 px-1">
+              <span className="text-[17px] font-black text-[#191F28]">
+                {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
+              </span>
+              <div className="flex gap-1">
+                <button type="button" onClick={handlePrevMonth} className="p-2 hover:bg-[#F2F4F6] rounded-full transition-colors"><ChevronLeft className="w-5 h-5 text-[#4E5968]" /></button>
+                <button type="button" onClick={handleNextMonth} className="p-2 hover:bg-[#F2F4F6] rounded-full transition-colors"><ChevronRight className="w-5 h-5 text-[#4E5968]" /></button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 mb-2">
+              {['일', '월', '화', '수', '목', '금', '토'].map(d => (
+                <div key={d} className="text-center text-[12px] font-bold text-[#B0B8C1] py-2">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((day, idx) => {
+                if (!day) return <div key={`empty-${idx}`} />;
+                const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isSelected = value === dateStr;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => { onChange(dateStr); setIsOpen(false); }}
+                    className={`aspect-square flex items-center justify-center text-[14px] font-black rounded-[14px] transition-all
+                      ${isSelected ? "bg-[#3182F6] text-white" : "text-[#4E5968] hover:bg-[#F2F8FF] hover:text-[#3182F6]"}`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function AdminDashboard2() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = VALID_TABS.includes(searchParams.get("tab") as BookingTab) ? (searchParams.get("tab") as BookingTab) : "pending";
@@ -58,6 +171,20 @@ export function AdminDashboard2() {
   const [suspendedCount, setSuspendedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  // 교회 내부 일정이 아직 안 정해진 채로 일단 신청부터 하는 경우가 있어서, 신청자가
+  // 사전답사 희망일을 안 넣었어도 관리자가 나중에 직접 추가/삭제할 수 있게 한다.
+  const [newInspectionDateInput, setNewInspectionDateInput] = useState("");
+  // "답사 가능 승인" 시 신청자가 제출한 희망 날짜 중 최종 1건 + 시간을 같이 확정한다.
+  const [confirmDateChoice, setConfirmDateChoice] = useState("");
+  const [confirmTimeChoice, setConfirmTimeChoice] = useState("");
+
+  // 다른 예약 카드를 선택할 때마다 이전 선택이 남아있지 않도록 초기화하고,
+  // 이미 희망 날짜가 하나뿐이면 편의상 기본으로 선택해둔다.
+  useEffect(() => {
+    if (!selectedBooking) return;
+    setConfirmDateChoice(selectedBooking.confirmedInspectionDate || (selectedBooking.inspectionDate?.length === 1 ? selectedBooking.inspectionDate[0] : ""));
+    setConfirmTimeChoice(selectedBooking.confirmedInspectionTime || "");
+  }, [selectedBooking?.id]);
 
   useEffect(() => {
     const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
@@ -132,6 +259,66 @@ export function AdminDashboard2() {
     }
   };
 
+  // "답사 가능 승인"은 일반 상태 변경과 달리, 신청자가 제출(또는 관리자가 직접 추가)한
+  // 희망 날짜 중 최종 1건과 시간을 같이 확정해서 저장해야 해서 별도 핸들러로 분리했다.
+  const handleConfirmInspectionApproval = async () => {
+    if (!selectedBooking || !confirmDateChoice || !confirmTimeChoice) return;
+    try {
+      const bookingRef = doc(db, "bookings", selectedBooking.id);
+      await updateDoc(bookingRef, {
+        status: "confirmed",
+        confirmedInspectionDate: confirmDateChoice,
+        confirmedInspectionTime: confirmTimeChoice,
+      });
+
+      const triggerAdminNotification = httpsCallable(functions, "triggerAdminNotification");
+      await triggerAdminNotification({
+        type: 'APPROVE',
+        payload: {
+          status: "사전답사 가능 승인",
+          venueName: selectedBooking?.venueName || "장소 정보 없음",
+          userName: `${selectedBooking?.churchName} (${selectedBooking?.contactName})`
+        }
+      });
+
+      alert(`답사 일정이 [${confirmDateChoice} ${confirmTimeChoice}]로 확정되어 승인되었습니다.`);
+      setSelectedBooking(null);
+    } catch (error) {
+      console.error("답사 승인 처리 실패:", error);
+      alert("답사 승인 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleAddInspectionDate = async () => {
+    if (!newInspectionDateInput || !selectedBooking) return;
+    const current: string[] = selectedBooking.inspectionDate || [];
+    if (current.includes(newInspectionDateInput)) {
+      setNewInspectionDateInput("");
+      return;
+    }
+    const updated = [...current, newInspectionDateInput].sort();
+    try {
+      await updateDoc(doc(db, "bookings", selectedBooking.id), { inspectionDate: updated });
+      setSelectedBooking((prev: any) => prev ? { ...prev, inspectionDate: updated } : prev);
+      setNewInspectionDateInput("");
+    } catch (error) {
+      console.error("답사 일정 추가 실패:", error);
+      alert("답사 일정 추가 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleRemoveInspectionDate = async (targetDate: string) => {
+    if (!selectedBooking) return;
+    const updated: string[] = (selectedBooking.inspectionDate || []).filter((d: string) => d !== targetDate);
+    try {
+      await updateDoc(doc(db, "bookings", selectedBooking.id), { inspectionDate: updated });
+      setSelectedBooking((prev: any) => prev ? { ...prev, inspectionDate: updated } : prev);
+    } catch (error) {
+      console.error("답사 일정 삭제 실패:", error);
+      alert("답사 일정 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   const filteredData = bookings.filter(b => b.status === activeTab && (b.churchName?.includes(searchQuery) || b.contactName?.includes(searchQuery)));
   const pendingCount = bookings.filter(b => b.status === "pending").length;
   const inspectionReadyCount = bookings.filter(b => b.status === "inspection_confirmed").length;
@@ -141,6 +328,12 @@ export function AdminDashboard2() {
     <AdminSidebarLayout
       brandSubtitle="예약 및 답사 문의 관리자"
       sections={[
+        {
+          label: "개요",
+          items: [
+            { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+          ],
+        },
         {
           label: "회원 관리",
           items: [
@@ -495,12 +688,69 @@ export function AdminDashboard2() {
                   <h4 className="text-[12px] sm:text-[13px] font-black text-[#ADB5BD] mb-2.5 sm:mb-4 ml-1 tracking-widest uppercase">사전답사 희망 일자</h4>
                   <div className="bg-[#F2F8FF] p-4 sm:p-6 rounded-[20px] sm:rounded-[28px] border border-blue-50">
                     <div className="flex flex-wrap gap-2">
-                      {selectedBooking.inspectionDate?.map((date: any, i: number) => (
-                        <div key={i} className="px-4 sm:px-5 py-2.5 sm:py-3 bg-white rounded-xl sm:rounded-2xl text-[13px] sm:text-[15px] font-black text-[#3182F6] shadow-sm flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 shrink-0" /> {date}
-                        </div>
-                      )) || <p className="text-sm font-bold text-[#8B95A1]">희망 날짜 정보가 없습니다.</p>}
+                      {selectedBooking.inspectionDate?.length > 0 ? (
+                        selectedBooking.inspectionDate.map((date: any, i: number) => (
+                          <div key={i} className="px-4 sm:px-5 py-2.5 sm:py-3 bg-white rounded-xl sm:rounded-2xl text-[13px] sm:text-[15px] font-black text-[#3182F6] shadow-sm flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 shrink-0" /> {date}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveInspectionDate(date)}
+                              className="ml-1 text-[#ADB5BD] hover:text-[#F04452] transition-colors"
+                              aria-label="이 날짜 삭제"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm font-bold text-[#8B95A1]">희망 날짜 정보가 없습니다. 신청자가 교회 내부 일정이 아직 안 정해져 비워둔 경우, 아래에서 관리자가 직접 추가할 수 있습니다.</p>
+                      )}
                     </div>
+                    <div className="flex items-end gap-2 mt-4 pt-4 border-t border-blue-100">
+                      <MaterialCalendar
+                        label="날짜 추가"
+                        value={newInspectionDateInput}
+                        onChange={setNewInspectionDateInput}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddInspectionDate}
+                        disabled={!newInspectionDateInput}
+                        className="h-[56px] px-4 sm:px-5 bg-[#3182F6] text-white rounded-[20px] font-black text-[13px] sm:text-[15px] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2272eb] transition-colors active:scale-95 shrink-0"
+                      >
+                        추가
+                      </button>
+                    </div>
+
+                    {selectedBooking.status === 'pending' && (
+                      <div className="mt-4 pt-4 border-t border-blue-100 space-y-3">
+                        <p className="text-[12px] sm:text-[13px] font-black text-[#3182F6] ml-1">답사 가능 승인 시 최종 날짜·시간 확정</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedBooking.inspectionDate?.length > 0 ? (
+                            selectedBooking.inspectionDate.map((date: any, i: number) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => setConfirmDateChoice(date)}
+                                className={`px-4 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-black border-2 transition-all ${confirmDateChoice === date ? "bg-[#3182F6] text-white border-[#3182F6]" : "bg-white text-[#4E5968] border-[#E5E8EB] hover:border-[#3182F6]"}`}
+                              >
+                                {date}
+                              </button>
+                            ))
+                          ) : (
+                            <p className="text-sm font-bold text-[#8B95A1]">위에서 날짜를 먼저 추가해주세요.</p>
+                          )}
+                        </div>
+                        <select
+                          value={confirmTimeChoice}
+                          onChange={(e) => setConfirmTimeChoice(e.target.value)}
+                          className="w-full h-[48px] px-4 bg-white border-2 border-[#E5E8EB] rounded-xl text-[14px] font-bold text-[#191F28] focus:outline-none focus:border-[#3182F6]"
+                        >
+                          <option value="">시간 선택</option>
+                          {INSPECTION_TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>
@@ -514,7 +764,13 @@ export function AdminDashboard2() {
                   {selectedBooking.status === 'pending' && (
                     <>
                       <button onClick={() => handleStatusChange(selectedBooking.id, "cancelled")} className="flex-1 py-3.5 sm:py-5 bg-[#E5E8EB] text-[#6B7684] rounded-[18px] sm:rounded-[24px] font-black text-[13px] sm:text-base hover:bg-gray-300 transition-all">반려</button>
-                      <button onClick={() => handleStatusChange(selectedBooking.id, "confirmed")} className="flex-[2] py-3.5 sm:py-5 bg-[#3182F6] text-white rounded-[18px] sm:rounded-[24px] font-black text-[13px] sm:text-base shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all break-keep">답사 가능 승인</button>
+                      <button
+                        onClick={handleConfirmInspectionApproval}
+                        disabled={!confirmDateChoice || !confirmTimeChoice}
+                        className="flex-[2] py-3.5 sm:py-5 bg-[#3182F6] text-white rounded-[18px] sm:rounded-[24px] font-black text-[13px] sm:text-base shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all break-keep disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      >
+                        답사 가능 승인{!confirmDateChoice || !confirmTimeChoice ? " (날짜·시간 선택 필요)" : ""}
+                      </button>
                     </>
                   )}
 
