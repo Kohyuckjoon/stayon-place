@@ -1,6 +1,6 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 
@@ -48,6 +48,22 @@ export function AdminSidebarLayout({
   // 슬라이드 드로어로 바꿨다 — 공개 사이트 Header.tsx의 모바일 메뉴와 같은 패턴.
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // 섹션이 12개 가까이 쌓이면서 전체를 다 펼쳐두면 스크롤해야만 아래쪽 메뉴가 보였다.
+  // 한 번에 하나만 펼쳐지는 순수 아코디언 - 다른 섹션을 열면 열려있던 섹션은 자동으로
+  // 닫히고, 항상 최소 하나는 펼쳐져 있다(이미 펼쳐진 섹션을 다시 눌러도 닫히지 않음).
+  const [expandedLabel, setExpandedLabel] = useState<string>(() => {
+    const activeSection = sections.find((s) => s.items.some((i) => i.id === activeId));
+    return activeSection?.label ?? sections[0]?.label ?? "";
+  });
+
+  // 로컬 탭 전환(같은 페이지 안에서 activeId만 바뀌는 경우)으로 활성 섹션이 달라지면
+  // 그 섹션을 펼친다.
+  useEffect(() => {
+    const activeSection = sections.find((s) => s.items.some((i) => i.id === activeId));
+    if (activeSection) setExpandedLabel(activeSection.label);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
   const renderNavItem = (item: AdminNavItem, onNavigate?: () => void) => {
     const isActive = item.id === activeId;
     const Icon = item.icon;
@@ -56,12 +72,12 @@ export function AdminSidebarLayout({
     const content = (
       <>
         <span className="flex items-center gap-3">
-          <Icon className="w-[18px] h-[18px]" />
+          <Icon className="w-5 h-5" />
           {item.label}
         </span>
         {typeof item.count === "number" && (
           <span
-            className={`text-[12px] font-black px-2 py-0.5 rounded-full min-w-[26px] text-center ${
+            className={`text-[13px] font-black px-2 py-0.5 rounded-full min-w-[28px] text-center ${
               isActive ? "bg-white/20 text-white" : hasAlert ? "text-white" : "bg-[#F2F4F6] text-[#8B95A1]"
             }`}
             style={hasAlert ? { backgroundColor: item.accentColor } : undefined}
@@ -72,7 +88,7 @@ export function AdminSidebarLayout({
       </>
     );
 
-    const className = `flex items-center justify-between px-4 py-3.5 rounded-2xl text-[15px] font-bold transition-all ${
+    const className = `flex items-center justify-between px-4 py-3.5 rounded-2xl text-[16px] font-bold transition-all ${
       isActive ? "bg-[#3182F6] text-white shadow-md shadow-[#3182F6]/20" : "text-[#4E5968] hover:bg-[#F2F4F6]"
     }`;
 
@@ -111,12 +127,40 @@ export function AdminSidebarLayout({
           </div>
         </Link>
 
-        {sections.map((section) => (
-          <nav key={section.label} className="flex flex-col gap-1.5">
-            <p className="px-3 mb-1 text-[11px] font-black text-[#ADB5BD] uppercase tracking-widest">{section.label}</p>
-            {section.items.map((item) => renderNavItem(item, onNavigate))}
-          </nav>
-        ))}
+        {sections.map((section) => {
+          // "개요"(대시보드 바로가기)만 예외 - 다른 모든 메뉴로 넘어갈 때도 기준점
+          // 역할을 하는 고정 앵커라서 접지 않는다. 항목이 하나뿐인 다른 일반 섹션
+          // (음향 시공 관리 등)은 여기 해당 안 되고 아래의 보통 아코디언을 그대로 쓴다.
+          if (section.label === "개요") {
+            return (
+              <nav key={section.label} className="flex flex-col gap-1.5">
+                <p className="px-3 mb-1 text-[12px] font-black text-[#ADB5BD] uppercase tracking-widest">{section.label}</p>
+                {section.items.map((item) => renderNavItem(item, onNavigate))}
+              </nav>
+            );
+          }
+
+          const isExpanded = expandedLabel === section.label;
+          const sectionHasAlert = !isExpanded && section.items.some(
+            (item) => item.id !== activeId && (item.count ?? 0) > 0 && !!item.accentColor
+          );
+          return (
+            <nav key={section.label} className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => setExpandedLabel(section.label)}
+                className="flex items-center justify-between px-3 py-2 -my-1 text-[12px] font-black text-[#ADB5BD] uppercase tracking-widest hover:text-[#6B7684] transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  {section.label}
+                  {sectionHasAlert && <span className="w-1.5 h-1.5 rounded-full bg-[#FF4545]" />}
+                </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+              </button>
+              {isExpanded && section.items.map((item) => renderNavItem(item, onNavigate))}
+            </nav>
+          );
+        })}
       </div>
 
       <div className="p-6 border-t border-[#F2F4F6]">

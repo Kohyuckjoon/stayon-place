@@ -57,7 +57,7 @@ export default function SafetyGuide() {
             className="min-h-screen bg-[#F2F4F6] pb-20 font-sans tracking-tight"
         >
             {/* Hero Section */}
-            <section className="pt-16 pb-12 px-6 bg-white rounded-b-[40px] shadow-sm relative overflow-hidden">
+            <section className="pt-8 pb-8 px-5 sm:pt-16 sm:pb-12 sm:px-6 bg-white rounded-b-[40px] shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[120px] -mr-40 -mt-40 opacity-60 pointer-events-none" />
                 <div className="max-w-3xl mx-auto relative z-10 text-center md:text-left">
                     <motion.div
@@ -202,28 +202,29 @@ export default function SafetyGuide() {
             </section> */}
 
             {/* 2. 사용자용 환불 정책 (강력한 규정) */}
-            <section className="px-5 py-8">
+            <section className="px-4 py-6 sm:px-5 sm:py-8">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         {...fadeInUp}
-                        className="bg-white rounded-[28px] p-6 md:p-10 shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-white"
+                        className="bg-white rounded-[28px] p-4 sm:p-6 md:p-10 shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-white"
                     >
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-xl md:text-2xl font-black text-[#191F28] flex items-center gap-3">
-                                <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center shrink-0">
-                                    <Clock className="w-5 h-5 text-orange-500" />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+                            <h2 className="text-lg sm:text-xl md:text-2xl font-black text-[#191F28] flex items-center gap-2.5 sm:gap-3 break-keep">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 rounded-2xl flex items-center justify-center shrink-0">
+                                    <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-orange-500" />
                                 </div>
                                 스테이온 환불 규정(사용자)
                             </h2>
-                            <span className="text-red-500 text-sm font-black px-3 py-1 bg-red-50 rounded-lg shrink-0">신중 예약 필수</span>
+                            <span className="text-red-500 text-sm font-black px-3 py-1 bg-red-50 rounded-lg shrink-0 w-fit">신중 예약 필수</span>
                         </div>
 
-                        {/* 환불 바 차트: 표의 기준에 맞춰 업데이트 */}
+                        {/* 환불 바 차트: 표의 기준에 맞춰 업데이트. 라벨 3개를 한 줄에 욱여넣으면
+                            모바일에서 줄바꿈이 지저분해져서, 좁은 화면에선 점(범례)과 함께 세로로 쌓는다. */}
                         <div className="mb-8 px-2">
-                            <div className="flex justify-between mb-3 font-black text-[14px]">
-                                <span className="text-[#3182F6]">결제 후 3일 내 (100%)</span>
-                                <span className="text-[#F2994A]">3일 초과 ~ 30일 전 (50%)</span>
-                                <span className="text-[#F04452]">행사 30일 전 ~ 당일</span>
+                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between mb-3 font-black text-[13px] sm:text-[14px]">
+                                <span className="flex items-center gap-1.5 text-[#3182F6]"><span className="w-2 h-2 rounded-full bg-[#3182F6] shrink-0" />결제 후 3일 내 (100%)</span>
+                                <span className="flex items-center gap-1.5 text-[#F2994A]"><span className="w-2 h-2 rounded-full bg-[#F2994A] shrink-0" />3일 초과 ~ 30일 전 (50%)</span>
+                                <span className="flex items-center gap-1.5 text-[#F04452]"><span className="w-2 h-2 rounded-full bg-[#F04452] shrink-0" />행사 30일 전 ~ 당일</span>
                             </div>
                             <div className="h-5 w-full bg-[#F2F4F6] rounded-full flex overflow-hidden p-1 shadow-inner">
                                 {/* 안심 구간 (100%) */}
@@ -251,7 +252,7 @@ export default function SafetyGuide() {
                             <p className="text-right text-[#8B95A1] text-[11px] mt-3 font-bold">* 특수 상황(천재지변)은 별도 협의</p>
                         </div>
 
-                        <div className="mb-8 p-5 bg-red-50/30 rounded-2xl border border-red-100/50">
+                        <div className="mb-6 sm:mb-8 p-4 sm:p-5 bg-red-50/30 rounded-2xl border border-red-100/50">
                             <div className="flex items-center gap-2 text-red-600 mb-3 font-black">
                                 <AlertTriangle className="w-5 h-5" />
                                 <span>필독 사항</span>
@@ -298,7 +299,49 @@ export default function SafetyGuide() {
                         <div className="w-full max-w-4xl mx-auto mb-8">
                             {/* 토스·머티리얼풍 라운드 카드 컨테이너 */}
                             <div className="overflow-hidden bg-white rounded-2xl border border-[#F2F4F6] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-                                <div className="overflow-x-auto">
+                                {/* 모바일: 표를 억지로 가로 스크롤시키면 글자가 화면 밖으로 잘려서
+                                    잘 안 보였다 - 세로로 쌓이는 카드 리스트로 대신 보여준다. */}
+                                <div className="md:hidden divide-y divide-[#F2F4F6] text-[14px]">
+                                    <div className="p-4 bg-[#E8F3FF]/30">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="inline-flex items-center gap-1.5 font-semibold text-[#191F28]">
+                                                결제 후 3일 이내 <Clock className="w-4 h-4 text-[#3182F6] shrink-0" />
+                                            </span>
+                                            <span className="font-bold text-[#3182F6] shrink-0">100% 환불</span>
+                                        </div>
+                                        <p className="mt-1.5 text-[12.5px] font-medium text-[#8B95A1]">단순 변심 및 예약 실수 보호</p>
+                                    </div>
+
+                                    <div className="p-4">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-medium text-[#191F28]">결제 후 4일차 ~ 행사 30일 이전</span>
+                                            <span className="font-semibold text-[#4E5968] shrink-0">50% 환불</span>
+                                        </div>
+                                        <p className="mt-1.5 text-[12.5px] font-medium text-[#8B95A1]">카드사 수수료 별도 공제 · 카드사 정책 보호</p>
+                                    </div>
+
+                                    <div className="p-4 bg-[#FFF0F1]/40">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="inline-flex items-center gap-1.5 font-bold text-[#191F28]">
+                                                행사 30일 전 ~ 당일 <AlertTriangle className="w-4 h-4 text-[#F04452] shrink-0" />
+                                            </span>
+                                            <span className="font-bold text-[#F04452] shrink-0">환불 불가</span>
+                                        </div>
+                                        <p className="mt-1.5 text-[12.5px] font-bold text-[#D0303D]">예약 확정 보호</p>
+                                    </div>
+
+                                    <div className="p-4">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="inline-flex items-center gap-1.5 font-medium text-[#4E5968]">
+                                                천재지변 등 특수 상황 <HelpCircle className="w-4 h-4 text-[#8B95A1] shrink-0" />
+                                            </span>
+                                            <span className="font-medium text-[#4E5968] shrink-0 text-right">최소 50% 환불</span>
+                                        </div>
+                                        <p className="mt-1.5 text-[12.5px] font-medium text-[#8B95A1]">고객센터 문의 필요 · 장소 제공자 협의 시 진행</p>
+                                    </div>
+                                </div>
+
+                                <div className="hidden md:block overflow-x-auto">
                                     <table className="w-full min-w-[700px] border-collapse text-left table-fixed">
                                         {/* 헤더 비율 조정: 텍스트가 긴 첫 번째, 두 번째 열 확보 */}
                                         <thead>

@@ -3,7 +3,7 @@ import {
   Search, Shield, CheckCircle, Heart, TrendingDown,
   LayoutGrid, FileText, Sparkles, Lock, BookOpen, Coffee, Utensils,
   ChevronRight, AlertCircle, ShieldCheck, Umbrella, Zap, Star, MapPin,
-  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, Plus, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play
+  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -21,7 +21,22 @@ const bannerData = [
     "tag": "MEDIA",
     "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
     "textColor": "text-white",
+    image: "/main_image_02.png" as string | undefined,
     "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+  },
+  {
+    id: 5,
+    title: "STAYON 만나패밀리 출연! 📺",
+    desc: "만나패밀리 채널에서 스테이온을 소개해주셨어요. 영상으로 만나보세요.",
+    tag: "MEDIA",
+    // 카드 1(유튜브 출연)과 같은 "영상" 느낌이지만, 둘 다 똑같은 빨강이면 헷갈려서
+    // 톤을 다르게(짙은 네이비/블랙) 줬다. 리포미디어(카드 1) 바로 다음 순서로 두기로
+    // 해서, id는 5지만 배열 순서는 두 번째로 옮겨뒀다 - 클릭 라우팅은 id 기준이라
+    // 순서를 옮겨도 안전하다.
+    bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
+    textColor: "text-white",
+    image: "/main_image_05.png" as string | undefined,
+    icon: <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
   },
   {
     "id": 2,
@@ -30,6 +45,7 @@ const bannerData = [
     "tag": "오픈",
     "bgColor": "bg-gradient-to-br from-[#3182F6] via-[#2370E0] to-[#1253B3]",
     "textColor": "text-white",
+    image: "/main_image_03.png" as string | undefined,
     "icon": <CreditCard className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
   {
@@ -39,6 +55,7 @@ const bannerData = [
     tag: "EVENT",
     bgColor: "bg-gradient-to-br from-[#FF5A5F] via-[#E14B50] to-[#C83C41]",
     textColor: "text-white",
+    image: "/main_image_01.png",
     "icon": <Sparkles className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 -rotate-12 stroke-[1.5]" />
   },
   {
@@ -48,6 +65,7 @@ const bannerData = [
     tag: "NEW",
     bgColor: "bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#5B21B6]",
     textColor: "text-white",
+    image: "/main_image_04.png" as string | undefined,
     icon: <Mic2 className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
 ];
@@ -234,6 +252,50 @@ export function Home() {
     e.preventDefault();
     navigate(`/venues?search=${searchQuery}`);
   };
+
+  // 배너 카드 1개를 눌렀을 때 어디로 보낼지 - 기존 "큰 배너 1개" 버전 onClick에 있던
+  // 배열 순서(index)가 아니라 각 배너의 고유 id로 분기한다. 처음엔 배열 위치(0,1,2..)로
+  // 분기했었는데, 만나패밀리 카드를 리포미디어 바로 뒤로 옮기면서 순서가 바뀌면 엉뚱한
+  // 링크로 연결되는 문제가 있어서 - id는 순서를 바꿔도 안 변하니 이걸 기준으로 고쳤다.
+  const handleBannerClick = (bannerId: number) => {
+    if (bannerId === 1) {
+      window.open("https://youtu.be/VqkVecqG_Sg?si=V-cyya7xSkRK-Fp1", "_blank", "noopener,noreferrer");
+    } else if (bannerId === 2) {
+      navigate("/notice/1");
+    } else if (bannerId === 3) {
+      navigate("/notice/2");
+    } else if (bannerId === 4) {
+      navigate("/teams");
+    } else if (bannerId === 5) {
+      window.open("https://www.youtube.com/watch?v=Y6j8fm9NGxo", "_blank", "noopener,noreferrer");
+    }
+  };
+
+  // 배너 카드 1개의 "속" 내용(이미지 또는 아이콘+태그+제목) - 데스크톱 3개뷰/모바일 스와이프뷰
+  // 둘 다 똑같은 카드 내용을 쓰므로 공통 함수로 뺐다.
+  const renderBannerCardContent = (banner: typeof bannerData[number]) => (
+    banner.image ? (
+      // 직접 올려주신 이미지 자체에 제목/설명이 이미 디자인돼 있어서,
+      // 이미지 하나만 꽉 채우고 태그/제목 텍스트는 겹치지 않게 뺀다.
+      <img
+        src={banner.image}
+        alt={banner.title}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    ) : (
+      <>
+        <div className="absolute inset-0 scale-[0.75] origin-bottom-right pointer-events-none">
+          {banner.icon}
+        </div>
+        <span className="relative z-10 inline-flex w-fit px-2.5 py-1 bg-white/15 rounded-full text-[10px] md:text-[11px] font-bold text-white tracking-wide backdrop-blur-sm">
+          {banner.tag}
+        </span>
+        <h3 className="relative z-10 text-[15px] md:text-[20px] font-black text-white leading-snug tracking-tight break-keep">
+          {banner.title}
+        </h3>
+      </>
+    )
+  );
 
   const scrollToInsurance = () => {
     console.log("보험 섹션으로 이동 시도..."); // 작동 확인용 콘솔
@@ -422,9 +484,11 @@ export function Home() {
               <div className="max-w-[1280px] mx-auto px-4">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
 
-                  {/* 좌측: 배너 슬라이더 영역 (높이를 h-[220px] md:h-[250px]로 대폭 확장) */}
+                  {/* 좌측: 배너 슬라이더 영역 - 기존 "큰 배너 1개가 통째로 넘어가는" 버전은
+                      보관용으로 주석 처리만 해두고 지우지 않았다. 롤백하려면 아래 주석 블록을
+                      풀고, 바로 다음에 있는 신한카드 스타일 3개 카드 버전을 지우면 된다. */}
+                  {/*
                   <div className="lg:col-span-8 relative h-[220px] md:h-[250px] overflow-hidden rounded-[32px] shadow-[0_16px_40px_rgba(0,0,0,0.03)] border border-slate-100 cursor-pointer transition-all duration-400 active:scale-[0.995]"
-                    // onClick={() => navigate(`/notice/${bannerData[currentNoticeIndex].id}`)}
                     onClick={() => {
                       const index = currentNoticeIndex % bannerData.length;
                       if (index === 0) {
@@ -447,7 +511,6 @@ export function Home() {
                         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] }}
                         className={`absolute inset-0 ${bannerData[currentNoticeIndex % bannerData.length].bgColor} px-5 md:px-9 flex items-center justify-between`}
                       >
-                        {/* 텍스트 디테일 정돈 */}
                         <div className="space-y-2 md:space-y-3 z-10 max-w-[60%] text-left">
                           <span className="inline-flex px-3 py-1 bg-white/15 rounded-full text-[11px] md:text-xs font-bold text-white tracking-wide backdrop-blur-sm">
                             {bannerData[currentNoticeIndex % bannerData.length].tag}
@@ -460,12 +523,10 @@ export function Home() {
                           </p>
                         </div>
 
-                        {/* 우측 그래픽/썸네일 일러스트 반응형 영역 */}
                         <div className="relative w-[40%] h-full hidden sm:flex items-center justify-end overflow-hidden select-none pointer-events-none">
                           {(() => {
                             const index = currentNoticeIndex % bannerData.length;
 
-                            // 1. 유튜브 슬라이드 (index 0)
                             if (index === 0) {
                               return (
                                 <div className="relative w-full h-full flex items-center justify-end transform rotate-[-6deg] transition-transform duration-500 hover:rotate-0">
@@ -490,27 +551,22 @@ export function Home() {
                                 </div>
                               );
                             }
-                            // 🔴 2. 신용카드 오픈 슬라이드 (index 1) - 요청하신 코드로 구현된 카드 뭉치
                             else if (index === 1) {
                               return (
                                 <div className="relative w-full h-full flex items-center justify-end transform transition-transform duration-500 hover:scale-105">
                                   <div className="relative w-[240px] h-[150px] mr-4">
-                                    {/* 1번 카드: 신한카드 (맨 뒤) */}
                                     <div className="absolute top-2 right-16 w-[140px] h-[85px] bg-gradient-to-br from-[#0046FF] to-[#0033CC] rounded-xl shadow-lg border border-white/20 transform -rotate-[15deg] flex flex-col justify-between p-3 opacity-90 backdrop-blur-sm">
                                       <span className="text-white/90 text-[11px] font-black tracking-tight">신한카드</span>
                                       <div className="w-6 h-4 bg-white/30 rounded-[3px]" />
                                     </div>
-                                    {/* 2번 카드: 현대카드 */}
                                     <div className="absolute top-5 right-10 w-[140px] h-[85px] bg-slate-900 rounded-xl shadow-xl border border-slate-700 transform -rotate-[5deg] flex flex-col justify-between p-3 opacity-95">
                                       <span className="text-white text-[11px] font-black tracking-widest">HYUNDAI</span>
                                       <div className="w-6 h-4 bg-slate-400 rounded-[3px]" />
                                     </div>
-                                    {/* 3번 카드: 삼성카드 */}
                                     <div className="absolute top-9 right-4 w-[140px] h-[85px] bg-[#034EA2] rounded-xl shadow-2xl border border-blue-400 transform rotate-[5deg] flex flex-col justify-between p-3 opacity-95">
                                       <span className="text-white text-[11px] font-black italic tracking-tighter">SAMSUNG</span>
                                       <div className="w-6 h-4 bg-blue-300/80 rounded-[3px]" />
                                     </div>
-                                    {/* 4번 카드: KB국민카드 (맨 앞) */}
                                     <div className="absolute top-12 -right-2 w-[140px] h-[85px] bg-[#FFCC00] rounded-xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] border border-yellow-200 transform rotate-[15deg] flex flex-col justify-between p-3">
                                       <span className="text-[#5B5A5A] text-[12px] font-black tracking-tighter">KB국민카드</span>
                                       <div className="w-6 h-4 bg-[#D1B875] rounded-[3px]" />
@@ -519,7 +575,6 @@ export function Home() {
                                 </div>
                               );
                             }
-                            // 3. 장소 등록 이벤트 슬라이드 (index 2)
                             else if (index === 2) {
                               return (
                                 <div className="relative w-full h-full flex items-center justify-end select-none pointer-events-none pr-3 md:pr-6">
@@ -533,7 +588,6 @@ export function Home() {
                                 </div>
                               );
                             }
-                            // 4. 외부 사역팀 페이지 오픈 슬라이드 (index 3)
                             else {
                               return (
                                 <div className="relative w-full h-full flex items-center justify-end select-none pointer-events-none pr-3 md:pr-6">
@@ -551,7 +605,6 @@ export function Home() {
                       </motion.div>
                     </AnimatePresence>
 
-                    {/* 슬라이드 넘버 인디케이터 수치바 */}
                     <div className="absolute bottom-5 right-6 flex items-center gap-1.5 bg-black/15 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-[11px] font-bold z-20 select-none">
                       <span className="opacity-90">{(currentNoticeIndex % bannerData.length) + 1}</span>
                       <span className="text-white/30 text-[9px]">/</span>
@@ -565,23 +618,108 @@ export function Home() {
                       </button>
                     </div>
                   </div>
+                  */}
 
-                  {/* 우측: KB Pay 스타일 로그인/시작하기 공간 유도 유닛 (높이 자동 동기화 매칭) */}
-                  <div className="lg:col-span-4 bg-[#F9FAFB] border border-slate-100 rounded-[32px] p-7 flex flex-col justify-between items-start text-left gap-5 lg:gap-0 shadow-[0_16px_40px_rgba(0,0,0,0.01)]">
-                    <div className="space-y-1.5 mt-2">
-                      <p className="text-blue-600 text-xs font-black tracking-tight uppercase">Smart Platform</p>
-                      <h3 className="text-xl font-black text-[#191F28] leading-tight break-keep">
-                        STAYON 플랫폼에서<br />안전하고 빠르게 시작하세요.
-                      </h3>
+                  {/* 좌측(신한카드 스타일): 카드 3개가 동시에 보이고, 기존과 똑같이 6초마다
+                      (currentNoticeIndex 그대로 재사용) 한 칸씩 밀려 넘어간다. 신한카드
+                      사이트는 페이지 전체가 블랙 테마라 카드가 그 위에 자연스럽게 얹히는
+                      거였는데, 스테이온은 화이트 배경이라 똑같이 검은 박스를 씌웠더니 붕
+                      떠 보였다 - 박스 없이 카드 각자가 자기 그림자를 갖고 흰 배경 위에 바로
+                      놓이도록 고쳤다(원래 큰 배너 1개 버전과 동일한 방식). 카드는 설명문 없이
+                      태그+제목만 - 박스가 없어진 만큼 패딩/글자 크기는 더 넉넉하게 키웠다. */}
+                  <div className="lg:col-span-8 relative h-[360px] lg:h-[400px]">
+                    {/* 데스크톱(lg 이상, 오른쪽 "지금 시작하기" 패널과 나란히 놓이는 구간): 카드
+                        3개 동시 노출 + 6초 자동 슬라이드. 그 아래 폭(태블릿·모바일, 어차피 오른쪽
+                        패널과 세로로 쌓이는 구간)에서는 카드 3개를 욱여넣으면 너무 좁아져서(신한
+                        카드 참고 이미지처럼), 카드 1개가 크게 보이고 다음 카드가 살짝 비치는
+                        가로 스와이프 목록으로 대신 보여준다. */}
+                    <div className="hidden lg:block absolute inset-0">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.div
+                          key={currentNoticeIndex}
+                          initial={{ opacity: 0, x: 24 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -24 }}
+                          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1.0] }}
+                          className="absolute inset-0 grid grid-cols-3 gap-4"
+                        >
+                          {[0, 1, 2].map((offset) => {
+                            const idx = (currentNoticeIndex + offset) % bannerData.length;
+                            const banner = bannerData[idx];
+                            return (
+                              <div
+                                key={offset}
+                                onClick={() => handleBannerClick(banner.id)}
+                                className={`relative ${banner.bgColor} rounded-[28px] p-7 flex flex-col justify-between cursor-pointer overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.1)] transition-all active:scale-[0.97] hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(0,0,0,0.16)]`}
+                              >
+                                {renderBannerCardContent(banner)}
+                              </div>
+                            );
+                          })}
+                        </motion.div>
+                      </AnimatePresence>
+
+                      {/* 슬라이드 넘버 인디케이터 - 맨 오른쪽 카드 위에 살짝 얹히는 자리는 동일 */}
+                      <div className="absolute bottom-4.5 right-5 flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold z-20 select-none">
+                        <span className="opacity-90">{(currentNoticeIndex % bannerData.length) + 1}</span>
+                        <span className="text-white/30 text-[9px]">/</span>
+                        <span className="text-white/50">{bannerData.length}</span>
+                        <div className="w-[1px] h-2.5 bg-white/20 mx-0.5" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setCurrentNoticeIndex(prev => (prev + 1) % bannerData.length); }}
+                          className="p-0.5 hover:bg-white/10 rounded-full transition-colors"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={() => navigate('/venues')}
-                      className="w-full mb-2 py-4 bg-[#3182F6] hover:bg-[#2370E0] text-white font-bold text-[15px] rounded-2xl transition-all shadow-md shadow-blue-500/10 flex items-center justify-center gap-1 active:scale-[0.99]"
+                    {/* 태블릿/모바일: 카드가 전부(bannerData 전체) 가로로 나열되고, 하나가 크게
+                        보이면서 오른쪽에 다음 카드가 살짝 비친다 - 손가락으로 넘기는 방식. */}
+                    <div className="flex lg:hidden absolute inset-0 gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pr-10">
+                      {bannerData.map((banner) => (
+                        <div
+                          key={banner.id}
+                          onClick={() => handleBannerClick(banner.id)}
+                          className={`relative ${banner.bgColor} rounded-[24px] shrink-0 w-[80%] sm:w-[62%] snap-center p-5 flex flex-col justify-between cursor-pointer overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.1)] active:scale-[0.98] transition-transform`}
+                        >
+                          {renderBannerCardContent(banner)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 우측: KB Pay 스타일 로그인/시작하기 유닛 + 바로 아래 카드 1개 더(내용 미정,
+                      일단 틀만) - 세로로 2개 쌓는 구조로 바꿔서 왼쪽 카드뷰가 커진 높이에 맞췄다. */}
+                  <div className="lg:col-span-4 flex flex-col gap-3 md:gap-4">
+                    <div className="flex-1 bg-[#F9FAFB] border border-slate-100 rounded-[28px] md:rounded-[32px] p-6 md:p-7 flex flex-col justify-between items-start text-left shadow-[0_16px_40px_rgba(0,0,0,0.01)]">
+                      <div className="space-y-1.5">
+                        <p className="text-blue-600 text-xs font-black tracking-tight uppercase">Smart Platform</p>
+                        <h3 className="text-lg md:text-xl font-black text-[#191F28] leading-tight break-keep">
+                          STAYON 플랫폼에서<br />안전하고 빠르게 시작하세요.
+                        </h3>
+                      </div>
+
+                      <button
+                        onClick={() => navigate('/venues')}
+                        className="w-full py-3.5 md:py-4 bg-[#3182F6] hover:bg-[#2370E0] text-white font-bold text-[14px] md:text-[15px] rounded-2xl transition-all shadow-md shadow-blue-500/10 flex items-center justify-center gap-1 active:scale-[0.99]"
+                      >
+                        장소 찾으러 가기
+                        <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+                    </div>
+
+                    {/* 장소 등록 유도 카드 - 올려주신 이미지로 채우고 /register로 연결 */}
+                    <div
+                      onClick={() => navigate('/register')}
+                      className="flex-1 relative rounded-[28px] md:rounded-[32px] overflow-hidden cursor-pointer shadow-[0_16px_40px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98] hover:-translate-y-0.5"
                     >
-                      지금 시작하기
-                      <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                    </button>
+                      <img
+                        src="/main_image_06.png"
+                        alt="우리 수련회 장소, 스테이온에 등록하세요"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    </div>
                   </div>
 
                 </div>

@@ -233,7 +233,42 @@ export function AdminBandRoomBookings() {
           </div>
 
           <div className="bg-white rounded-[24px] border border-[#F2F4F6] shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* 모바일: 카드 리스트 (테이블은 좁은 화면에서 옆으로 밀려 읽기 힘들어서 아예 다른 레이아웃을 씀) */}
+            <div className="md:hidden divide-y divide-[#F2F4F6]">
+              {loading ? (
+                <div className="text-center py-16 text-[#ADB5BD] font-bold">불러오는 중...</div>
+              ) : rows.length === 0 ? (
+                <div className="text-center py-16 text-[#ADB5BD] font-bold">해당하는 예약이 없어요.</div>
+              ) : (
+                rows.map((b) => {
+                  const status = STATUS_LABEL[b.status] || STATUS_LABEL.pending_payment;
+                  return (
+                    <div key={b.id} className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[14px] font-black text-[#191F28] leading-tight">{b.bandRoomName || "-"}</p>
+                        <span className={`shrink-0 px-2.5 py-1 text-[11px] font-black rounded-lg ${status.bg} ${status.text}`}>{status.label}</span>
+                      </div>
+                      <p className="text-[12.5px] font-bold text-[#4E5968] mt-1">{b.userName || "-"} · {b.userContact || "-"}</p>
+                      <div className="flex items-center justify-between gap-2 mt-2.5">
+                        <p className="text-[12.5px] font-bold text-[#8B95A1]">{b.date} {b.startTime}~{b.endTime}</p>
+                        <p className="text-[14px] font-black text-[#191F28]">{formatHourlyRate(b.totalPrice)}</p>
+                      </div>
+                      {b.status === "paid" && (
+                        <button
+                          onClick={() => handleRefund(b.id)}
+                          className="mt-3 w-full flex items-center justify-center gap-1 px-3 py-2 bg-[#F2F4F6] text-[#4E5968] rounded-lg text-[12.5px] font-black active:scale-95"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" /> 환불 처리
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* 데스크톱: 기존 테이블 그대로 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b border-[#F2F4F6] bg-[#FAFAFB]">

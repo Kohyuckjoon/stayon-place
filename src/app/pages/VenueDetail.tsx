@@ -9,12 +9,33 @@ import {
   Car, Wind, Volume2, Info, Check,
   Square, Layout as LayoutIcon, Calendar, Monitor,
   Home, Coffee, Utensils, Lock, ChefHat, ShoppingBag, Ban, AlertCircle, X,
-  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera
+  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera, BookOpen
 } from "lucide-react";
 import { VENUE_IMAGE_CATEGORIES, toDisplayImagesByCategory } from "../lib/venueImageCategories";
 import { motion, AnimatePresence } from "framer-motion";
 import { loginWithGoogle } from "../lib/auth";
 import AvailabilityCalendar from '../pages/AvailabilityCalendar';
+
+// 사진이 최대 100장 넘게 등록될 수 있게 되면서, "사진" 탭을 처음 누를 때 수십 장이
+// 한꺼번에 다운로드되느라 버튼을 눌러도 한동안 반응이 없는 것처럼 보이는 문제가 있었다.
+// 1) loading="lazy"로 화면에 실제로 보이는 사진만 그때그때 불러오게 하고,
+// 2) 로딩 중엔 회색 스켈레톤을 보여줘서 "눌렸는데 멈췄나?" 하는 불안감을 없앤다.
+function LazyImg({ src, alt, className, eager }: { src: string; alt: string; className?: string; eager?: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-full h-full">
+      {!loaded && <div className="absolute inset-0 bg-[#e9ecef] animate-pulse rounded-[inherit]" />}
+      <img
+        src={src}
+        alt={alt}
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full ${className || ""} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </div>
+  );
+}
 
 export function VenueDetail() {
   const { user } = useAuth();
@@ -48,8 +69,18 @@ export function VenueDetail() {
   const reviewSectionRef = useRef<HTMLDivElement>(null);
   const [venueReviews, setVenueReviews] = useState<any[]>([]);
 
+  // "사진" 탭을 눌렀을 때 사진이 아직 다 안 불러와졌어도 "버튼이 눌렸다"는 걸 바로
+  // 알 수 있게, 개별 사진의 회색 스켈레톤과는 별도로 화면 중앙에 뚜렷한 로딩 팝업을
+  // 잠깐 띄운다. 실제 로딩 완료 시점을 정확히 추적하는 대신 짧은 고정 시간만
+  // 보여주는 단순한 방식 - 그 이후로도 덜 불러와진 사진은 각자의 스켈레톤이 대신한다.
+  const [showPhotosLoadingPopup, setShowPhotosLoadingPopup] = useState(false);
+
   const goToTab = (tab: "info" | "photos" | "reviews") => {
     setActiveInfoTab(tab);
+    if (tab === "photos") {
+      setShowPhotosLoadingPopup(true);
+      window.setTimeout(() => setShowPhotosLoadingPopup(false), 800);
+    }
     if (tab === "reviews") {
       reviewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
@@ -314,29 +345,41 @@ export function VenueDetail() {
         {/* 장소 상세 정보 / 장소 리뷰 보기 탭 - 리뷰 탭 클릭 시 하단 리뷰 섹션으로 스크롤 이동.
             모바일 좁은 화면에서 버튼 안 글자가 중간에 줄바꿈되던 문제 - 라벨을 짧게 줄이고
             패딩/글자 크기를 모바일 기준으로 줄이고 whitespace-nowrap으로 줄바꿈 자체를 막았다. */}
-        <div className="flex bg-[#f2f4f6] p-1.5 rounded-2xl w-fit mb-5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-5">
+          <div className="flex bg-[#f2f4f6] p-1.5 rounded-2xl w-fit">
+            <button
+              onClick={() => goToTab("info")}
+              className={`px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "info" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+                }`}
+            >
+              상세정보
+            </button>
+            <button
+              onClick={() => goToTab("photos")}
+              className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "photos" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+                }`}
+            >
+              <Camera className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              사진
+            </button>
+            <button
+              onClick={() => goToTab("reviews")}
+              className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "reviews" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
+                }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              리뷰{venueReviews.length > 0 ? ` (${venueReviews.length})` : ""}
+            </button>
+          </div>
+
+          {/* 예약 절차 안내 - 탭 바로 옆, 스크롤 없이 바로 보이는 위치에도 눈에 띄게 배치 */}
           <button
-            onClick={() => goToTab("info")}
-            className={`px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "info" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
-              }`}
+            type="button"
+            onClick={() => navigate("/booking-guide")}
+            className="flex items-center gap-1.5 px-3.5 md:px-4 py-2 md:py-2.5 bg-[#F2F8FF] hover:bg-[#E8F3FF] text-[#3182f6] rounded-xl md:rounded-2xl font-bold text-[12px] md:text-[13px] whitespace-nowrap transition-all active:scale-95"
           >
-            상세정보
-          </button>
-          <button
-            onClick={() => goToTab("photos")}
-            className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "photos" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
-              }`}
-          >
-            <Camera className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            사진
-          </button>
-          <button
-            onClick={() => goToTab("reviews")}
-            className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[12px] md:text-[14px] font-bold whitespace-nowrap transition-all ${activeInfoTab === "reviews" ? "bg-white text-[#3182f6] shadow-sm" : "text-[#6b7684]"
-              }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            리뷰{venueReviews.length > 0 ? ` (${venueReviews.length})` : ""}
+            <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            예약이 처음이신가요? 절차 보기
           </button>
         </div>
 
@@ -364,7 +407,22 @@ export function VenueDetail() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="bg-white rounded-[32px] border border-[#f2f4f6] shadow-inner p-5 max-h-[520px] overflow-y-auto">
+                  className="relative bg-white rounded-[32px] border border-[#f2f4f6] shadow-inner p-5 max-h-[520px] overflow-y-auto">
+                  <AnimatePresence>
+                    {showPhotosLoadingPopup && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-[32px]"
+                      >
+                        <div className="flex flex-col items-center gap-3 px-6 py-5 bg-white rounded-2xl shadow-lg border border-[#f2f4f6]">
+                          <div className="w-7 h-7 border-[3px] border-[#e5e8eb] border-t-[#3182f6] rounded-full animate-spin" />
+                          <p className="text-[13px] font-bold text-[#4e5968]">사진을 불러오는 중...</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   {categoriesWithPhotos.length === 0 ? (
                     <p className="text-[13px] text-[#8b95a1] font-bold text-center py-16">등록된 사진이 없어요</p>
                   ) : (
@@ -389,7 +447,7 @@ export function VenueDetail() {
                                   }}
                                   className="shrink-0 w-[104px] h-[80px] rounded-xl overflow-hidden border-2 border-transparent hover:border-[#3182f6] transition-all"
                                 >
-                                  <img src={img} className="w-full h-full object-cover" alt={category.label} />
+                                  <LazyImg src={img} className="object-cover" alt={category.label} />
                                 </button>
                               ))}
                             </div>
@@ -420,8 +478,8 @@ export function VenueDetail() {
                 className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar rounded-[32px] bg-[#e5e8eb] shadow-inner"
               >
                 {venue.images?.map((img: string, idx: number) => (
-                  <div key={idx} className="min-w-full aspect-[4/3] snap-center relative">
-                    <img src={img} className="w-full h-full object-cover" alt="장소 이미지" />
+                  <div key={idx} className="min-w-full aspect-[4/3] snap-center relative overflow-hidden">
+                    <LazyImg src={img} className="object-cover" alt="장소 이미지" eager={idx === 0} />
                     <button
                       onClick={() => { setCurrentImgIdx(idx); setIsModalOpen(true); }}
                       className="absolute top-5 right-5 p-2.5 bg-black/20 backdrop-blur-md text-white rounded-xl hover:bg-black/40 transition-all"
@@ -494,7 +552,7 @@ export function VenueDetail() {
                         : 'border-transparent opacity-70 hover:opacity-100'
                         }`}
                     >
-                      <img src={img} className="w-full h-full object-cover" alt={`썸네일 ${idx + 1}`} />
+                      <LazyImg src={img} className="object-cover" alt={`썸네일 ${idx + 1}`} eager={idx === 0} />
                     </button>
                   ))}
                 </div>
@@ -786,6 +844,17 @@ export function VenueDetail() {
             )}
           </div>
 
+          {/* 예약 절차 안내 - /venues 목록 상단에 뒀더니 다른 배너들과 겹쳐 상단이
+              복잡해져서, 예약을 실제로 결정하는 이 CTA 바로 위로 옮겼다. 회색 텍스트
+              링크로는 눈에 잘 안 띈다는 피드백을 받아, 색 배경이 있는 또렷한 버튼으로 바꿨다. */}
+          <button
+            type="button"
+            onClick={() => navigate("/booking-guide")}
+            className="lg:col-span-2 flex items-center justify-center gap-2 py-3 px-4 bg-[#F2F8FF] hover:bg-[#E8F3FF] text-[#3182f6] rounded-2xl font-bold text-[14px] transition-all active:scale-[0.98] border border-[#E8F3FF]"
+          >
+            <BookOpen className="w-4 h-4" /> 예약이 처음이신가요? 전체 절차 보기 <ChevronRight className="w-4 h-4" />
+          </button>
+
           {/* 예약 상담 CTA - 맨 아래, 전체 폭 */}
           <section className="lg:col-span-2 bg-[#3182f6] rounded-[24px] p-5 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -902,30 +971,13 @@ function CheckItem({ icon, label, value }: any) {
 // }
 
 function InfoRow({ icon, label, value, last }: any) {
-  // 값에 줄바꿈이 들어있으면(악기/음향/영상/주차/샤워실처럼 여러 줄로 입력한 항목)
-  // 라벨-값을 한 줄에 나란히 우측 정렬하던 기존 레이아웃 대신, 라벨을 위로 올리고
-  // 값은 아래에 왼쪽 정렬 + 줄바꿈 그대로 보여주는 세로 배치로 전환한다.
-  const isMultiline = typeof value === "string" && value.includes("\n");
-
-  if (isMultiline) {
-    return (
-      <div className={`px-5 py-3.5 ${!last ? 'border-b border-[#f2f4f6]' : ''}`}>
-        <div className="text-[#8b95a1] font-bold text-[14px] flex items-center gap-2.5 mb-1.5">
-          <div className="opacity-70 shrink-0">{icon}</div>
-          <span className="whitespace-nowrap">{label}</span>
-        </div>
-        <p className="text-[#191f28] font-semibold text-[14px] leading-relaxed whitespace-pre-wrap break-keep">{value}</p>
-      </div>
-    );
-  }
-
   return (
     <div className={`flex items-start justify-between gap-3 px-5 py-3.5 ${!last ? 'border-b border-[#f2f4f6]' : ''}`}>
       <div className="text-[#8b95a1] font-bold text-[14px] flex items-center gap-2.5 shrink-0 pt-0.5">
         <div className="opacity-70 shrink-0">{icon}</div>
         <span className="whitespace-nowrap">{label}</span>
       </div>
-      <span className="text-[#191f28] font-semibold text-[14px] text-right break-keep">{value}</span>
+      <span className="text-[#191f28] font-semibold text-[14px] text-right whitespace-pre-wrap break-keep">{value}</span>
     </div>
   );
 }

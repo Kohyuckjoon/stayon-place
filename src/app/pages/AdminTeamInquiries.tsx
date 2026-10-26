@@ -228,7 +228,47 @@ export function AdminTeamInquiries() {
           </div>
 
           <div className="bg-white rounded-[24px] border border-[#F2F4F6] shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* 모바일: 카드 리스트 (테이블은 좁은 화면에서 옆으로 밀려 읽기 힘들어서 아예 다른 레이아웃을 씀) */}
+            <div className="md:hidden divide-y divide-[#F2F4F6]">
+              {loading ? (
+                <div className="text-center py-16 text-[#ADB5BD] font-bold">불러오는 중...</div>
+              ) : rows.length === 0 ? (
+                <div className="text-center py-16 text-[#ADB5BD] font-bold">등록된 팀이 없습니다.</div>
+              ) : (
+                rows.map((r) => {
+                  const status = STATUS_LABEL[r.status] || STATUS_LABEL.pending;
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => navigate(`/admin/teams?tab=${r.status || "pending"}`)}
+                      className="p-4 active:bg-[#FAFAFB] cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-black text-[#191F28] truncate">{r.teamName || "-"}</p>
+                          <p className="text-[12px] font-bold text-[#8B95A1]">{r.category || "-"}</p>
+                        </div>
+                        <span className={`shrink-0 px-2.5 py-1 text-[11px] font-black rounded-lg ${status.bg} ${status.text}`}>{status.label}</span>
+                      </div>
+                      <div className="flex items-center gap-3.5 mt-2.5 text-[12.5px] font-bold text-[#4E5968]">
+                        <span>확인 {r.reveal}</span>
+                        <span>복사 {r.copy}</span>
+                        <span>통화 {r.call}</span>
+                        <span className="text-[#3182F6] font-black ml-auto">합계 {r.total}</span>
+                      </div>
+                      <p className="text-[11px] font-medium text-[#ADB5BD] mt-1.5">
+                        최근 문의: {r.lastContactAt?.toDate?.()
+                          ? r.lastContactAt.toDate().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })
+                          : "-"}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* 데스크톱: 기존 테이블 그대로 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[760px]">
                 <thead>
                   <tr className="border-b border-[#F2F4F6] bg-[#FAFAFB]">

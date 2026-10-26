@@ -10,7 +10,7 @@ import {
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
   Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone, Ban, Church, Mail,
-  LayoutDashboard,
+  LayoutDashboard, Link2, ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, storage, functions } from "../lib/firebase";
@@ -272,6 +272,10 @@ export function AdminDashboard() {
   const [suspendedCount, setSuspendedCount] = useState(0);
   const [scheduleVenueId, setScheduleVenueId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // 승인 전에도 담임목사님께 미리 보여드릴 상세페이지 링크를 복사할 수 있게 - 버튼 누른
+  // 직후 잠깐 "복사됨" 표시를 하기 위한 상태. VenueDetail.tsx는 status를 따로 검사하지
+  // 않아서(확인 완료, 2026-10-21) 승인 전 pending 상태에서도 이 링크로 바로 들어가진다.
+  const [copiedVenueId, setCopiedVenueId] = useState<string | null>(null);
 
   const [selectedVenue, setSelectedVenue] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -711,6 +715,17 @@ export function AdminDashboard() {
         console.error("Error deleting:", error);
       }
     }
+  };
+
+  const handleCopyVenueUrl = async (venueId: string) => {
+    const url = `${window.location.origin}/venue/${venueId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("아래 링크를 복사하세요", url);
+    }
+    setCopiedVenueId(venueId);
+    setTimeout(() => setCopiedVenueId((prev) => (prev === venueId ? null : prev)), 2000);
   };
 
   const handleToggleBlockedDate = async (venueId: string, dateStr: string, isCurrentlyBlocked: boolean) => {
@@ -1154,7 +1169,79 @@ export function AdminDashboard() {
             </p>
           </div>
 
-          <div className="overflow-x-auto scrollbar-hide">
+          {/* 모바일: 카드 리스트 (테이블은 좁은 화면에서 옆으로 밀려 읽기 힘들어서 아예 다른 레이아웃을 씀) */}
+          <div className="md:hidden divide-y divide-[#F2F4F6]">
+            <AnimatePresence mode="popLayout">
+              {filteredData.length > 0 ? filteredData.map((venue) => (
+                <motion.div
+                  key={venue.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  onClick={() => openEditModal(venue)}
+                  className="p-4 active:bg-[#F9FAFB] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#F2F4F6] overflow-hidden shrink-0 border border-[#F2F4F6]">
+                      {venue.images?.[0] ? <img src={venue.images[0]} className="w-full h-full object-cover" /> : <Building2 className="w-full p-3 text-[#ADB5BD]" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[14px] font-black text-[#191F28] leading-tight truncate">{venue.venueName}</p>
+                        {venue.boostedUntil?.toDate?.() && venue.boostedUntil.toDate() > new Date() && (
+                          <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-[#FFF7ED] text-[#C2410C] rounded text-[10px] font-black">
+                            <TrendingUp className="w-2.5 h-2.5" /> 끌올중
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[12px] font-bold text-[#8B95A1] truncate">{venue.applicantName || "익명"} · {venue.denomination}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#D1D6DB] shrink-0" />
+                  </div>
+
+                  <div className="flex items-center gap-1.5 mt-2.5 pl-[60px] text-[12px] font-bold text-[#4E5968]">
+                    <MapPin className="w-3.5 h-3.5 text-[#3182F6] shrink-0" />
+                    <span className="truncate">{venue.location}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 mt-2.5 pl-[60px]">
+                    <span className="text-[11px] font-bold text-[#ADB5BD] shrink-0">
+                      {venue.createdAt?.toDate?.() ? venue.createdAt.toDate().toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) : "-"}
+                    </span>
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {activeTab === "pending" && (
+                        <>
+                          <button onClick={() => handleStatusChange(venue.id, "approved")} className="px-3 py-1.5 bg-[#3182F6] text-white rounded-lg font-bold text-[12px] active:scale-95">승인</button>
+                          <button onClick={() => handleStatusChange(venue.id, "rejected")} className="px-3 py-1.5 bg-[#F2F4F6] text-[#4E5968] rounded-lg font-bold text-[12px] active:scale-95">반려</button>
+                        </>
+                      )}
+                      {activeTab === "approved" && (
+                        <button onClick={() => handleStatusChange(venue.id, "pending")} className="flex items-center justify-center w-7 h-7 bg-[#FFF0F0] text-[#F04452] rounded-lg active:scale-95">
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {activeTab === "rejected" && (
+                        <>
+                          <button onClick={() => handleStatusChange(venue.id, "pending")} className="px-3 py-1.5 bg-[#E8F3FF] text-[#3182F6] rounded-lg font-black text-[12px] active:scale-95">재검토</button>
+                          <button onClick={() => handleDelete(venue.id)} className="flex items-center justify-center w-7 h-7 bg-[#FFF0F0] text-[#F04452] rounded-lg active:scale-95">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => window.open(`/venue/${venue.id}`, "_blank", "noopener,noreferrer")} title="바로가기" className="flex items-center justify-center w-7 h-7 bg-[#F2F8FF] text-[#3182F6] rounded-lg active:scale-95 shrink-0">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleCopyVenueUrl(venue.id)} title="URL 복사" className={`flex items-center justify-center w-7 h-7 rounded-lg active:scale-95 shrink-0 ${copiedVenueId === venue.id ? "bg-[#E6F9F2] text-[#00D082]" : "bg-[#F2F8FF] text-[#3182F6]"}`}>
+                        {copiedVenueId === venue.id ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )) : (
+                <div className="py-16 text-center text-[#ADB5BD] font-bold text-[13px]">해당 내역이 없습니다.</div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* 데스크톱: 기존 테이블 그대로 */}
+          <div className="hidden md:block overflow-x-auto scrollbar-hide">
             <table className="w-full min-w-[760px] border-collapse">
               <thead>
                 <tr className="bg-[#F9FAFB] text-left">
@@ -1175,37 +1262,38 @@ export function AdminDashboard() {
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <p className="text-[14px] font-black text-[#191F28] mb-0.5 leading-tight whitespace-nowrap">{venue.venueName}</p>
+                              <p className="text-[14px] font-black text-[#191F28] mb-0.5 leading-tight truncate max-w-[170px]" title={venue.venueName}>{venue.venueName}</p>
                               {venue.boostedUntil?.toDate?.() && venue.boostedUntil.toDate() > new Date() && (
                                 <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-[#FFF7ED] text-[#C2410C] rounded text-[10px] font-black">
                                   <TrendingUp className="w-2.5 h-2.5" /> 끌올중
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <span className="text-[12px] font-bold text-[#8B95A1]">{venue.applicantName || "익명"}</span>
+                            <div className="flex items-center gap-1.5 max-w-[220px] overflow-hidden whitespace-nowrap">
+                              <span className="text-[12px] font-bold text-[#8B95A1] shrink-0">{venue.applicantName || "익명"}</span>
                               {venue.applicantContact && (
                                 <>
                                   <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
-                                  <span className="text-[12px] font-bold text-[#8B95A1]">{venue.applicantContact}</span>
+                                  <span className="text-[12px] font-bold text-[#8B95A1] shrink-0">{venue.applicantContact}</span>
                                 </>
                               )}
                               <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
-                              <span className="text-[12px] font-bold text-[#3182F6]">{venue.denomination}</span>
+                              <span className="text-[12px] font-bold text-[#3182F6] truncate">{venue.denomination}</span>
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex items-center gap-1.5 text-[#4E5968] font-bold text-[13px] whitespace-nowrap">
-                          <MapPin className="w-3.5 h-3.5 text-[#3182F6] shrink-0" /> {venue.location}
+                        <div className="flex items-center gap-1.5 text-[#4E5968] font-bold text-[13px] max-w-[170px]">
+                          <MapPin className="w-3.5 h-3.5 text-[#3182F6] shrink-0" />
+                          <span className="truncate" title={venue.location}>{venue.location}</span>
                         </div>
                       </td>
                       <td className="px-5 py-3 text-[13px] font-bold text-[#8B95A1] whitespace-nowrap">
                         {venue.createdAt?.toDate?.() ? venue.createdAt.toDate().toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) : "-"}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
                           <button
                             onClick={() => setScheduleVenueId(venue.id)}
                             title="예약 불가 일정 설정"
@@ -1214,8 +1302,8 @@ export function AdminDashboard() {
                             <Calendar className="w-4 h-4 text-[#F04452]" />
                           </button>
 
-                          <button onClick={() => openEditModal(venue)} className="p-2 bg-white border border-[#E5E8EB] text-[#4E5968] hover:bg-[#F2F4F6] rounded-lg transition-all active:scale-95">
-                            <Eye className="w-4 h-4" />
+                          <button onClick={() => openEditModal(venue)} className="flex items-center gap-1 px-3 py-2 bg-white border border-[#E5E8EB] text-[#4E5968] hover:bg-[#F2F4F6] rounded-lg transition-all active:scale-95 font-bold text-[13px] whitespace-nowrap">
+                            <Eye className="w-4 h-4" /> 보기
                           </button>
 
                           {activeTab === "approved" && (
@@ -1248,6 +1336,24 @@ export function AdminDashboard() {
                               </button>
                             </>
                           )}
+
+                          <button
+                            onClick={() => window.open(`/venue/${venue.id}`, "_blank", "noopener,noreferrer")}
+                            title="바로가기 - 승인 전에도 실제 상세페이지로 바로 이동"
+                            className="flex items-center justify-center w-8 h-8 bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF] rounded-lg transition-all active:scale-95 shrink-0"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleCopyVenueUrl(venue.id)}
+                            title="URL 복사 - 승인 전에도 상세페이지 링크를 미리 복사"
+                            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all active:scale-95 shrink-0 ${
+                              copiedVenueId === venue.id ? "bg-[#E6F9F2] text-[#00D082]" : "bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF]"
+                            }`}
+                          >
+                            {copiedVenueId === venue.id ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+                          </button>
                         </div>
                       </td>
                     </motion.tr>

@@ -21,13 +21,13 @@ export interface VenueImageCategoryDef {
 }
 
 export const VENUE_IMAGE_CATEGORIES: VenueImageCategoryDef[] = [
-  { key: "entrance", label: "예배당 / 입구", max: 3 },
-  { key: "mainHall", label: "예배당 전체", max: 4 },
-  { key: "worshipSetup", label: "예배 셋팅 (음향 / 세션 / 마이크 / 보면대 / 스탠드 등)", max: 20 },
-  { key: "kitchen", label: "주방 및 식당 시설 (에어컨 유무 포함)", max: 12 },
-  { key: "lodging", label: "숙소 (에어컨 유무 포함)", max: 15 },
+  { key: "entrance", label: "예배당 / 입구", max: 4 },
+  { key: "mainHall", label: "예배당 전체", max: 6 },
+  { key: "worshipSetup", label: "예배 셋팅 (음향 / 세션 / 마이크 / 보면대 / 스탠드 등)", max: 25 },
+  { key: "kitchen", label: "주방 및 식당 시설 (에어컨 유무 포함)", max: 20 },
+  { key: "lodging", label: "숙소 (에어컨 유무 포함)", max: 30 },
   { key: "outdoor", label: "야외 및 바베큐장", max: 5 },
-  { key: "restroom", label: "화장실 / 샤워실", max: 5 },
+  { key: "restroom", label: "화장실 / 샤워실", max: 15 },
   { key: "etc", label: "기타", max: 5 },
 ];
 

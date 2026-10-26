@@ -717,7 +717,10 @@ export function Header() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.nav initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-white border-t border-[#F2F4F6] overflow-hidden">
-              <div className="px-4 py-4 flex flex-col gap-2.5">
+              {/* 메뉴를 열면 배경(body) 스크롤을 막는데(아래 useEffect), 정작 이 패널
+                  자체엔 스크롤 영역이 없어서 화면이 작은 폰에서는 하단 항목이 아예
+                  안 보이고 스크롤도 안 됐다. 패널 자체를 뷰포트 높이 기준으로 스크롤되게 한다. */}
+              <div className="px-4 py-4 flex flex-col gap-2.5 max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain">
                 {/* 둘러보기: 장소/외부 사역팀/합주실/굿즈/단체티/온라인 주보 - 등록 문의보다 방문자가
                     먼저 찾는 동작이라 최상단에 배치. 3열 고정이라 보통 2줄(장소/외부사역팀/합주실,
                     굿즈몰/티셔츠몰/온라인 주보)로 꽉 차고, 교회 찾기가 켜져있을 때만(churchDirectoryEnabled)
