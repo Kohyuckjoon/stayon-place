@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom"; // useLocation 추가
 // import { Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,9 @@ export function Layout() {
   // 이후 다른 화면으로 이동해도 안 바뀌고 그대로 남아있던 문제 수정.
   // 이름이 있는 상세 페이지(장소/팀/합주실/교회)는 여기서 일반 제목을 먼저 넣고,
   // 각 상세 페이지가 데이터를 불러온 뒤 더 구체적인 제목으로 한 번 더 덮어쓴다.
-  useEffect(() => {
+  // useLayoutEffect: 상세 페이지(자식)의 useEffect보다 먼저 실행돼야 장소명 제목을
+  // 일반 제목으로 다시 덮어쓰지 않는다. (useEffect는 자식 → 부모 순서라 덮어써졌음)
+  useLayoutEffect(() => {
     document.title = getPageTitle(location.pathname);
   }, [location.pathname]);
 
@@ -31,25 +33,29 @@ export function Layout() {
     const ref = new URLSearchParams(location.search).get("ref");
     if (!ref) return;
     storeReferral(ref);
-    const loggedKey = `stayon_ref_visit_logged_${ref}`;
+    // 사이트 방문자와 같은 기준: 같은 링크로 같은 브라우저는 하루 1번만 센다.
+    const loggedKey = `stayon_ref_visit_day_${ref}`;
+    const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
     try {
-      if (sessionStorage.getItem(loggedKey)) return;
-      sessionStorage.setItem(loggedKey, "1");
+      if (localStorage.getItem(loggedKey) === todayKst) return;
+      localStorage.setItem(loggedKey, todayKst);
     } catch {
-      // sessionStorage 접근 불가 시 매 방문 기록 시도(최악의 경우 중복 집계, 치명적이지 않음)
+      // localStorage 접근 불가 시 매 방문 기록 시도(최악의 경우 중복 집계, 치명적이지 않음)
     }
     const logReferralVisit = httpsCallable(functions, "logReferralVisit");
     logReferralVisit({ ref }).catch(() => { /* 집계 실패는 무시 */ });
   }, [location.search]);
 
   // 추천 링크 유무와 무관하게, 사이트 전체 "오늘/이번 주/이번 달/누적 방문자" 집계용.
-  // 탭(세션)당 1번만 세서, 페이지를 이동하거나 새로고침해도 중복으로 올라가지 않는다.
+  // 브라우저당 하루(한국 시간 기준) 1번만 센다. 예전엔 sessionStorage(탭 단위)라
+  // 새 탭으로 열거나 브라우저를 껐다 켜면 같은 사람이 계속 다시 집계됐다.
   useEffect(() => {
+    const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
     try {
-      if (sessionStorage.getItem("stayon_site_visit_logged")) return;
-      sessionStorage.setItem("stayon_site_visit_logged", "1");
+      if (localStorage.getItem("stayon_site_visit_day") === todayKst) return;
+      localStorage.setItem("stayon_site_visit_day", todayKst);
     } catch {
-      // sessionStorage 접근 불가 시 그냥 진행 (최악의 경우 중복 집계, 치명적이지 않음)
+      // localStorage 접근 불가 시 그냥 진행 (최악의 경우 중복 집계, 치명적이지 않음)
     }
     const logSiteVisit = httpsCallable(functions, "logSiteVisit");
     logSiteVisit().catch(() => { /* 집계 실패는 무시 */ });

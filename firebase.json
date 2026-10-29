@@ -78,6 +78,13 @@
         }
       },
       {
+        "source": "/checklist/new",
+        "function": {
+          "functionId": "checklistPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/goods-register",
         "function": {
           "functionId": "goodsRegisterPreview",

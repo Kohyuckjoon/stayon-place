@@ -428,7 +428,7 @@ export function TeamBoost() {
                   )}
                   {!alreadyActive && alreadyPending && (
                     <div className="flex items-center gap-2 p-3.5 bg-[#FFF7E6] rounded-xl mb-6 text-[13px] font-bold text-[#B45309]">
-                      <Zap className="w-4 h-4 shrink-0" /> 이미 신청이 접수돼서 확인 중이에요.
+                      <Zap className="w-4 h-4 shrink-0" /> 신청 중이에요. 잠시만 기다려주세요..
                     </div>
                   )}
 

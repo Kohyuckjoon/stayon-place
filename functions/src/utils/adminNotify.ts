@@ -126,7 +126,8 @@ export const sendMailNotification = async (
     | "RESERVE" | "APPROVE" | "CONFIRM" | "FINAL_DECISION" | "PAYMENT_COMPLETE"
     | "VENUE_BLOCK_REQUEST" | "VENUE_BLOCK_APPROVED"
     | "VENUE_BLOCK_AUTO_APPROVED"
-    | "SOUND_CONSTRUCTION",
+    | "SOUND_CONSTRUCTION"
+    | "VENUE_SUGGESTION",
   data: any
 ) => {
   let title = "";
@@ -428,6 +429,25 @@ export const sendMailNotification = async (
       {title: "연락처", value: data.applicantContact},
     ];
     break;
+
+  // 사전답사 체크리스트의 "스테이온에 없는 장소인가요?" 제보 - 로그인 없이도
+  // 들어오는 입력이라 HTML로 해석되지 않게 이스케이프해서 넣는다.
+  case "VENUE_SUGGESTION": {
+    const entities: Record<string, string> = {
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
+    };
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/[&<>"']/g, (c) => entities[c]);
+    title = `📍 ${esc(data.venueName)} 장소 추천 제보가 도착했습니다`;
+    color = "#F2994A";
+    fields = [
+      {title: "장소 이름", value: esc(data.venueName)},
+      {title: "주소", value: esc(data.location) || "미입력"},
+      {title: "제보자 연락처", value: esc(data.contact)},
+      {title: "제보자", value: data.email ? esc(data.email) : "비로그인 제보"},
+    ];
+    break;
+  }
   }
 
   const fieldsHtml = fields

@@ -3,7 +3,7 @@ import {
   Search, Shield, CheckCircle, Heart, TrendingDown,
   LayoutGrid, FileText, Sparkles, Lock, BookOpen, Coffee, Utensils,
   ChevronRight, AlertCircle, ShieldCheck, Umbrella, Zap, Star, MapPin,
-  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play
+  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play, Copy, ExternalLink, Smartphone
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -15,39 +15,37 @@ import { Helmet } from 'react-helmet-async';
 
 const bannerData = [
   {
-    "id": 1,
-    "title": "STAYON 유튜브 출연! 📺",
-    "desc": "사역자들을 위한 스테이온 활용 가이드와 생생한 소개 영상을 확인해보세요.",
-    "tag": "MEDIA",
-    "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
-    "textColor": "text-white",
-    image: "/main_image_02.png" as string | undefined,
-    "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
-  },
-  {
-    id: 5,
-    title: "STAYON 만나패밀리 출연! 📺",
-    desc: "만나패밀리 채널에서 스테이온을 소개해주셨어요. 영상으로 만나보세요.",
-    tag: "MEDIA",
-    // 카드 1(유튜브 출연)과 같은 "영상" 느낌이지만, 둘 다 똑같은 빨강이면 헷갈려서
-    // 톤을 다르게(짙은 네이비/블랙) 줬다. 리포미디어(카드 1) 바로 다음 순서로 두기로
-    // 해서, id는 5지만 배열 순서는 두 번째로 옮겨뒀다 - 클릭 라우팅은 id 기준이라
-    // 순서를 옮겨도 안전하다.
+    id: 6,
+    title: "수련회 사전 답사 체크리스트 오픈! ✅",
+    desc: "답사 갈 때 꼭 봐야 할 것들, 스테이온이 미리 챙겨드려요.",
+    tag: "OPEN",
     bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
     textColor: "text-white",
-    image: "/main_image_05.png" as string | undefined,
-    icon: <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+    image: "/main_image_07.png" as string | undefined,
+    icon: <CheckCircle2 className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
-  {
-    "id": 2,
-    "title": "카드 결제 정식 오픈 🎉",
-    "desc": "이제 모든 장소를 신용카드로 안전하고 편리하게 예약할 수 있습니다.",
-    "tag": "오픈",
-    "bgColor": "bg-gradient-to-br from-[#3182F6] via-[#2370E0] to-[#1253B3]",
-    "textColor": "text-white",
-    image: "/main_image_03.png" as string | undefined,
-    "icon": <CreditCard className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
-  },
+  // [임시 숨김] 만나패밀리(id 5) · 리포미디어(id 1) 카드 - 며칠 뒤 다시 오픈 예정. 주석만 풀면 그대로 복구된다.
+  // {
+  //   id: 5,
+  //   title: "STAYON 만나패밀리 출연! 📺",
+  //   desc: "만나패밀리 채널에서 스테이온을 소개해주셨어요. 영상으로 만나보세요.",
+  //   tag: "MEDIA",
+  //   // id는 5지만 배열상 두 번째 자리 - 클릭 라우팅은 id 기준이라 순서를 옮겨도 안전하다.
+  //   bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
+  //   textColor: "text-white",
+  //   image: "/main_image_05.png" as string | undefined,
+  //   icon: <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+  // },
+  // {
+  //   "id": 1,
+  //   "title": "STAYON 유튜브 출연! 📺",
+  //   "desc": "사역자들을 위한 스테이온 활용 가이드와 생생한 소개 영상을 확인해보세요.",
+  //   "tag": "MEDIA",
+  //   "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
+  //   "textColor": "text-white",
+  //   image: "/main_image_02.png" as string | undefined,
+  //   "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+  // },
   {
     id: 3,
     title: "수련회 장소 등록 이벤트 🎁",
@@ -67,6 +65,18 @@ const bannerData = [
     textColor: "text-white",
     image: "/main_image_04.png" as string | undefined,
     icon: <Mic2 className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
+  },
+  {
+    // 이미 다들 아는 기능이라(출시된 지 꽤 지남) 배너 맨 끝으로 - id는 그대로라
+    // 클릭 라우팅(공지 1번)엔 영향 없음.
+    "id": 2,
+    "title": "카드 결제 정식 오픈 🎉",
+    "desc": "이제 모든 장소를 신용카드로 안전하고 편리하게 예약할 수 있습니다.",
+    "tag": "오픈",
+    "bgColor": "bg-gradient-to-br from-[#3182F6] via-[#2370E0] to-[#1253B3]",
+    "textColor": "text-white",
+    image: "/main_image_03.png" as string | undefined,
+    "icon": <CreditCard className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
 ];
 const circleMenus = [
@@ -215,6 +225,67 @@ function FamilyServiceTicker({ services, navigate }: { services: typeof familySe
   );
 }
 
+// "공식 소개 자료를 받아보세요" 바로 아래 - 요청(구글폼) 없이도 바로 볼 수 있는 온라인
+// 소개 페이지. 교회 단톡방 등에 바로 공유할 수 있게 링크 복사 버튼을 같이 둔다.
+const PARTNER_INTRO_URL = "https://placepartner.stayon-platform.com/";
+
+function PartnerIntroLinkBox() {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(PARTNER_INTRO_URL);
+    } catch {
+      // 카톡 인앱 브라우저 등 clipboard API가 막힌 환경 대비
+      const ta = document.createElement("textarea");
+      ta.value = PARTNER_INTRO_URL;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto mt-5 md:mt-8 flex flex-col md:flex-row md:items-center gap-3 md:gap-6 rounded-2xl md:rounded-3xl bg-[#F9FAFB] border border-[#F2F4F6] p-4 md:p-6">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <span className="flex h-9 w-9 md:h-11 md:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+          <Smartphone className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13px] md:text-[15px] font-bold text-gray-700 leading-snug break-keep">
+            스테이온에서는 <span className="text-blue-600">온라인으로도</span> 공식 소개 자료를 제공하고 있어요.
+          </p>
+          <p className="mt-0.5 text-[12px] md:text-[13px] font-medium text-gray-500 leading-snug break-keep">
+            스마트폰에 맞춰 만들어서, 단톡방에 링크만 보내도 바로 편하게 볼 수 있어요.
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={`flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl md:rounded-2xl text-[13px] md:text-[14px] font-black border transition-all active:scale-95 ${copied ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+        >
+          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {copied ? "복사됐어요" : "링크 복사"}
+        </button>
+        <a
+          href={PARTNER_INTRO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl md:rounded-2xl bg-blue-600 text-white text-[13px] md:text-[14px] font-black hover:bg-blue-700 transition-all active:scale-95"
+        >
+          소개자료 확인하기 <ExternalLink className="w-4 h-4" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function Home() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -268,6 +339,8 @@ export function Home() {
       navigate("/teams");
     } else if (bannerId === 5) {
       window.open("https://www.youtube.com/watch?v=Y6j8fm9NGxo", "_blank", "noopener,noreferrer");
+    } else if (bannerId === 6) {
+      navigate("/checklist/new");
     }
   };
 
@@ -1346,6 +1419,7 @@ export function Home() {
       </button>
     </div>
   </div>
+  <PartnerIntroLinkBox />
 </section>
 
       {/* Start Now Section */}

@@ -601,7 +601,7 @@ export default function ProgramHub() {
 
                             {/* 내장 뷰 배치 */}
                             {viewType === 'card' ? (
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-6">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-6">
                                     {filteredPosts.length === 0 && (
                                         <div className="col-span-full py-14 md:py-20 text-center bg-white rounded-[22px] md:rounded-[32px] border border-[#E5E8EB]">
                                             <HelpCircle className="w-10 h-10 md:w-12 md:h-12 text-[#B0B8C1] mx-auto mb-3 md:mb-4" />

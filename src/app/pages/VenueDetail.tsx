@@ -9,7 +9,7 @@ import {
   Car, Wind, Volume2, Info, Check,
   Square, Layout as LayoutIcon, Calendar, Monitor,
   Home, Coffee, Utensils, Lock, ChefHat, ShoppingBag, Ban, AlertCircle, X,
-  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera, BookOpen
+  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera, BookOpen, ClipboardCheck
 } from "lucide-react";
 import { VENUE_IMAGE_CATEGORIES, toDisplayImagesByCategory } from "../lib/venueImageCategories";
 import { motion, AnimatePresence } from "framer-motion";
@@ -380,6 +380,17 @@ export function VenueDetail() {
           >
             <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
             예약이 처음이신가요? 절차 보기
+          </button>
+
+          {/* 답사 가서 뭘 확인해야 할지 막막한 문제를 풀기 위한 체크리스트 도구로 연결.
+              이 장소 정보(이름/주소/URL)를 미리 채워서 넘겨준다. */}
+          <button
+            type="button"
+            onClick={() => navigate(`/checklist/new?venueId=${id}`)}
+            className="flex items-center gap-1.5 px-3.5 md:px-4 py-2 md:py-2.5 bg-[#F2FDF5] hover:bg-[#E3FBEC] text-[#1FAD5F] rounded-xl md:rounded-2xl font-bold text-[12px] md:text-[13px] whitespace-nowrap transition-all active:scale-95"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            사전답사체크리스트 보기
           </button>
         </div>
 

@@ -5,6 +5,7 @@ import {
   fetchIndexHtml, patchMeta, escapeHtml, HOSTING_ORIGIN, MetaPatch,
 } from "./utils/pageMeta";
 import {STYLE_MAIN, STYLE_H2, STYLE_UL, txt} from "./utils/prerender";
+import {shortCity, venueRegion} from "./utils/venueFaq";
 
 const DEFAULT_TITLE = "교회 수련회 장소 예약 | 스테이온(STAYON PLACE)";
 
@@ -72,12 +73,15 @@ function buildVenueBodyHtml(v: VenueDoc): string {
   ].join("");
   const description = txt(v.description);
   const denomination = txt(v.denomination);
+  const region = venueRegion(v.location).full;
 
   const head = [
     denomination ? "<p style=\"margin:0;color:#3182f6;font-weight:800;" +
       `font-size:13px">${escapeHtml(denomination)}</p>` : "",
     "<h1 style=\"font-size:24px;font-weight:900;margin:4px 0 8px\">" +
       `${escapeHtml(txt(v.venueName))} 수련회 장소 소개</h1>`,
+    region ? "<p style=\"margin:0 0 4px;color:#4e5968\">" +
+      `${escapeHtml(region)} 교회 수련회 장소</p>` : "",
     address ? `<p style="margin:0 0 8px">${escapeHtml(address)}</p>` : "",
     tags ? "<p style=\"margin:0 0 8px;color:#3182f6\">" +
       `${escapeHtml(tags)}</p>` : "",
@@ -101,8 +105,9 @@ function buildVenueBodyHtml(v: VenueDoc): string {
 }
 
 /**
- * 구글에 "이 페이지는 이런 이름/주소의 장소 소개"라고 알려주는 구조화 데이터
- * (schema.org Place, JSON-LD)를 만든다.
+ * 구글·네이버에 "이 페이지는 이런 이름/주소/시설의 수련회 장소 소개"라고
+ * 알려주는 구조화 데이터(JSON-LD)를 만든다. 장소 정보(EventVenue), 이동 경로
+ * (홈 > 수련회 장소 > 장소명)을 한 묶음(@graph)으로 넣는다.
  * @param {string} path 페이지 경로(예: "/venue/abc").
  * @param {VenueDoc} v venues 문서 데이터.
  * @param {string} fallbackDesc 소개글이 없을 때 쓸 설명.
@@ -111,27 +116,67 @@ function buildVenueBodyHtml(v: VenueDoc): string {
 function buildVenueJsonLd(
   path: string, v: VenueDoc, fallbackDesc: string
 ): Record<string, unknown> {
+  const url = `${HOSTING_ORIGIN}${path}`;
   const images: string[] = Array.isArray(v.images) ?
     v.images.filter((i: unknown) => typeof i === "string").slice(0, 5) : [];
   const address = [txt(v.location), txt(v.addressDetail)]
     .filter(Boolean).join(" ");
-  const ld: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Place",
+  const region = venueRegion(v.location);
+  const venue: Record<string, unknown> = {
+    "@type": "EventVenue",
+    "@id": `${url}#venue`,
     "name": txt(v.venueName),
     "description": txt(v.description).slice(0, 300) || fallbackDesc,
-    "url": `${HOSTING_ORIGIN}${path}`,
+    "url": url,
   };
-  if (images.length > 0) ld.image = images;
+  if (images.length > 0) venue.image = images;
   if (address) {
-    ld.address = {
+    const postal: Record<string, string> = {
       "@type": "PostalAddress",
       "streetAddress": address,
       "addressCountry": "KR",
     };
+    if (region.province) postal.addressRegion = region.province;
+    if (region.city) postal.addressLocality = region.city;
+    venue.address = postal;
   }
-  if (Number(v.capacity) > 0) ld.maximumAttendeeCapacity = Number(v.capacity);
-  return ld;
+  if (Number(v.capacity) > 0) {
+    venue.maximumAttendeeCapacity = Number(v.capacity);
+  }
+  if (Number(v.price) > 0) {
+    venue.priceRange =
+      `1박 ${Number(v.price).toLocaleString("ko-KR")}원`;
+  }
+  const mealOption = Array.isArray(v.mealOption) ? v.mealOption : [];
+  const amenities: Array<[string, boolean]> = [];
+  if (typeof v.airConditioner === "boolean") {
+    amenities.push(["에어컨", v.airConditioner]);
+  }
+  if (txt(v.parkingCapacity)) amenities.push(["주차", true]);
+  if (mealOption.includes("provided")) amenities.push(["식사 제공", true]);
+  if (mealOption.includes("self")) amenities.push(["직접 취사", true]);
+  if (txt(v.soundSystem)) amenities.push(["음향 장비", true]);
+  if (txt(v.projector)) amenities.push(["프로젝터", true]);
+  if (amenities.length > 0) {
+    venue.amenityFeature = amenities.map(([name, value]) => ({
+      "@type": "LocationFeatureSpecification", name, value,
+    }));
+  }
+
+  const breadcrumb = {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "홈",
+        "item": `${HOSTING_ORIGIN}/`},
+      {"@type": "ListItem", "position": 2, "name": "수련회 장소",
+        "item": `${HOSTING_ORIGIN}/venues`},
+      {"@type": "ListItem", "position": 3, "name": txt(v.venueName),
+        "item": url},
+    ],
+  };
+
+  const graph: Record<string, unknown>[] = [venue, breadcrumb];
+  return {"@context": "https://schema.org", "@graph": graph};
 }
 
 // 장소 상세 화면(VenueDetail.tsx)이 실제로 그리는 공개 필드만 담는다. 신청자
@@ -188,29 +233,46 @@ export const venuePreview = onRequest(
         }
 
         if (venueName && venueData) {
-          meta.title = `${venueName} 수련회 장소 소개 | 스테이온(STAYON PLACE)`;
+          // 제목·설명에 지역(예: "경기 용인시")을 넣어 "용인 수련회 장소" 같은
+          // 지역 검색에 걸리게 한다.
+          const region = venueRegion(venueData.location);
+          const capacityText = capacity ? `최대 ${capacity}명` : "";
+          const titleSuffix = [
+            region.full ? `${region.full} 교회 수련회 장소` : "교회 수련회 장소",
+            capacityText ? `(${capacityText})` : "",
+          ].filter(Boolean).join(" ");
+          meta.title = `${venueName} | ${titleSuffix} | 스테이온(STAYON PLACE)`;
           const pagePath = `/venue/${encodeURIComponent(venueId)}`;
           meta.path = pagePath;
 
           const tagText = tags.length > 0 ?
             tags.map((t) => `#${t}`).join(" ") : "";
-          const capacityText = capacity ? `최대 ${capacity}명 수용` : "";
+          const price = Number(venueData.price);
+          const priceText = price > 0 ?
+            `1박 ${price.toLocaleString("ko-KR")}원` : "";
           meta.description = [
-            `${venueName} 수련회 장소 정보`,
-            [capacityText, tagText].filter(Boolean).join(" · "),
+            `${region.full ? `${region.full} ` : ""}${venueName} 교회 수련회 장소`,
+            [capacityText, priceText, tagText].filter(Boolean).join(" · "),
             "스테이온에서 실시간 예약 현황을 확인하세요.",
           ].filter(Boolean).join(" | ");
 
-          if (tags.length > 0) {
-            meta.keywords = [venueName, ...tags, "수련회장소", "스테이온"].join(", ");
-          }
+          const city = shortCity(region.city);
+          meta.keywords = Array.from(new Set([
+            venueName,
+            city ? `${city} 수련회 장소` : "",
+            region.province ? `${region.province} 수련회 장소` : "",
+            city ? `${city} 교회 수련회` : "",
+            ...tags,
+            "교회 수련회 장소", "수련회장소", "스테이온",
+          ].filter(Boolean))).join(", ");
 
           meta.preload = {
             globalName: "__PRELOADED_VENUE__",
             data: buildVenuePreload(venueId, venueData),
           };
           meta.bodyHtml = buildVenueBodyHtml(venueData);
-          meta.jsonLd = buildVenueJsonLd(pagePath, venueData, meta.description);
+          meta.jsonLd =
+            buildVenueJsonLd(pagePath, venueData, meta.description);
         }
       }
     } catch (error) {

@@ -10,7 +10,7 @@ import {
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
   Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone, Ban, Church, Mail,
-  LayoutDashboard, Link2, ExternalLink,
+  LayoutDashboard, Link2, ExternalLink, MessageSquareText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, storage, functions } from "../lib/firebase";
@@ -905,6 +905,7 @@ export function AdminDashboard() {
             { id: "rejected", label: "반려 / 삭제", count: rejectedCount, icon: XCircle, accentColor: "#F04452" },
             { id: "schedule", label: "장소별 일정관리", count: approvedCount, icon: Calendar },
             { id: "blockRequests", label: "차단 신청 승인", count: blockRequests.length, icon: Ban, accentColor: "#F04452" },
+            { id: "venue_suggestions", label: "장소 추천 제보", icon: Megaphone, accentColor: "#F2994A", href: "/admin/venue-suggestions" },
           ],
         },
         {
@@ -982,6 +983,12 @@ export function AdminDashboard() {
           label: "음향 시공 관리",
           items: [
             { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
+          ],
+        },
+        {
+          label: "영업 도구",
+          items: [
+            { id: "message_templates", label: "문자 템플릿", icon: MessageSquareText, badge: "NEW", href: "/admin/message-templates" },
           ],
         },
       ]}

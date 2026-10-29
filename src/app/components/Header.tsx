@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays, ClipboardCheck
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -330,7 +330,7 @@ export function Header() {
         ? "bg-white/80 backdrop-blur-2xl border-b border-[#F2F4F6] shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
         : "bg-white border-b border-transparent"
         }`}>
-        <div className="max-w-[1400px] mx-auto px-6 py-5 md:py-6">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3 group shrink-0">
               <div className="w-10 h-10 bg-[#191F28] rounded-[14px] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:rotate-[-5deg] shadow-lg shadow-gray-200">
@@ -501,6 +501,10 @@ export function Header() {
                     <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute top-full left-0 mt-2 w-[240px] bg-white rounded-[28px] shadow-[0_24px_54px_rgba(0,0,0,0.08)] border border-[#F2F4F6] p-2"
                     >
+                      <Link to="/checklist/new" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
+                        <div className="w-[34px] h-[34px] bg-[#FFF8E8] rounded-xl flex items-center justify-center group-hover:bg-[#FFF0CC]"><ClipboardCheck className="w-5 h-5 text-[#F2994A]" /></div>
+                        <div><div className="text-[15px] font-black text-[#191F28]">사전답사 체크리스트</div><div className="text-[12px] text-[#8B95A1] font-bold">답사 준비 체크하기</div></div>
+                      </Link>
                       <Link to="/planner" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F2F8FF] rounded-xl flex items-center justify-center group-hover:bg-[#E8F3FF]"><LayoutDashboard className="w-5 h-5 text-[#3182F6]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">스마트 플래너</div><div className="text-[12px] text-[#8B95A1] font-bold">최저가 비교하기</div></div>
@@ -620,7 +624,7 @@ export function Header() {
                   onMouseEnter={() => setIsRegisterMenuOpen(true)}
                   onMouseLeave={() => setIsRegisterMenuOpen(false)}
                 >
-                  <button className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF] transition-all active:scale-95 group whitespace-nowrap">
+                  <button className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#F2F8FF] text-[#3182F6] hover:bg-[#E8F3FF] transition-all active:scale-95 group whitespace-nowrap">
                     <PlusSquare className="w-4 h-4 transition-transform group-hover:rotate-90" />
                     <span className="font-black text-[12.5px]">등록 문의</span>
                     <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-300 ${isRegisterMenuOpen ? "rotate-180" : ""}`} />
@@ -681,7 +685,7 @@ export function Header() {
                 <div className="relative shrink-0" ref={userMenuRef}>
                   {/* <button onClick={isLoggedIn ? () => setIsUserMenuOpen(!isUserMenuOpen) : () => setIsLoginModalOpen(true)} */}
                   <button onClick={isLoggedIn ? () => setIsUserMenuOpen(!isUserMenuOpen) : () => setIsLoginModalOpen(true)}
-                    className={`flex items-center gap-2.5 px-6 py-3 rounded-full whitespace-nowrap transition-all duration-300 active:scale-95 ${isLoggedIn ? "bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB]" : "bg-[#191F28] text-white shadow-[0_8px_16px_rgba(25,31,40,0.2)]"}`}>
+                    className={`flex items-center gap-2.5 px-6 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 active:scale-95 ${isLoggedIn ? "bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB]" : "bg-[#191F28] text-white shadow-[0_8px_16px_rgba(25,31,40,0.2)]"}`}>
                     <User className={`w-4 h-4 ${isLoggedIn ? "text-[#8B95A1]" : "text-white"}`} />
                     <span className="font-black text-[15px] whitespace-nowrap">{isLoggedIn ? `${user?.displayName?.slice(0, 3)}님` : "시작하기"}</span>
                     {isLoggedIn && <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />}
@@ -707,7 +711,7 @@ export function Header() {
               </div>
             </nav>
 
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-3.5 rounded-2xl bg-[#F2F4F6] text-[#191F28] active:scale-90 transition-transform">
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2.5 rounded-2xl bg-[#F2F4F6] text-[#191F28] active:scale-90 transition-transform">
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
@@ -720,7 +724,7 @@ export function Header() {
               {/* 메뉴를 열면 배경(body) 스크롤을 막는데(아래 useEffect), 정작 이 패널
                   자체엔 스크롤 영역이 없어서 화면이 작은 폰에서는 하단 항목이 아예
                   안 보이고 스크롤도 안 됐다. 패널 자체를 뷰포트 높이 기준으로 스크롤되게 한다. */}
-              <div className="px-4 py-4 flex flex-col gap-2.5 max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain">
+              <div className="px-4 py-4 flex flex-col gap-2.5 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain">
                 {/* 둘러보기: 장소/외부 사역팀/합주실/굿즈/단체티/온라인 주보 - 등록 문의보다 방문자가
                     먼저 찾는 동작이라 최상단에 배치. 3열 고정이라 보통 2줄(장소/외부사역팀/합주실,
                     굿즈몰/티셔츠몰/온라인 주보)로 꽉 차고, 교회 찾기가 켜져있을 때만(churchDirectoryEnabled)
@@ -763,6 +767,12 @@ export function Header() {
                     <ExternalLink className="w-5 h-5 text-[#6366F1]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">온라인 주보</span>
                   </a>
+                  {/* 데스크톱은 "플래너" 드롭다운에 있는 사전답사 체크리스트 - 모바일 메뉴엔 플래너
+                      그룹이 없어서 바로 들어갈 길이 없었다. 색은 데스크톱 항목과 같은 주황 톤. */}
+                  <Link to="/checklist/new" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FFF8E8] rounded-xl text-center active:scale-95 transition-all">
+                    <ClipboardCheck className="w-5 h-5 text-[#F2994A]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">답사 체크리스트</span>
+                  </Link>
                   {churchDirectoryEnabled && (
                     <Link to="/churches" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#ECFDF5] rounded-xl text-center active:scale-95 transition-all">
                       <Church className="w-5 h-5 text-[#10B981]" />

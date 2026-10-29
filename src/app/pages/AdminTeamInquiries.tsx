@@ -3,7 +3,7 @@ import { useNavigate, ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   Eye, Copy, PhoneCall, BarChart3, ArrowUpDown, Megaphone, CreditCard, Ban, Volume2,
-  LayoutDashboard,
+  LayoutDashboard, MessageSquareText,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -108,6 +108,7 @@ export function AdminTeamInquiries() {
             { id: "v_approved", label: "승인 완료", count: venues.filter((v) => v.status === "approved").length, icon: CheckCircle, href: "/admin/venues?tab=approved" },
             { id: "v_rejected", label: "반려 / 삭제", count: venues.filter((v) => v.status === "rejected").length, icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
+            { id: "venue_suggestions", label: "장소 추천 제보", icon: Megaphone, accentColor: "#F2994A", href: "/admin/venue-suggestions" },
           ],
         },
         {
@@ -181,6 +182,12 @@ export function AdminTeamInquiries() {
           label: "음향 시공 관리",
           items: [
             { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
+          ],
+        },
+        {
+          label: "영업 도구",
+          items: [
+            { id: "message_templates", label: "문자 템플릿", icon: MessageSquareText, badge: "NEW", href: "/admin/message-templates" },
           ],
         },
       ]}

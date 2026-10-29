@@ -49,6 +49,8 @@ import { SoundConstructionGuide } from "./pages/SoundConstructionGuide";
 import SoundConstructionRegistrationForm from "./pages/SoundConstructionRegistrationForm";
 import { AdminSoundConstruction } from "./pages/AdminSoundConstruction";
 import { AdminMissionVenues } from "./pages/AdminMissionVenues";
+import { AdminVenueSuggestions } from "./pages/AdminVenueSuggestions";
+import { AdminMessageTemplates } from "./pages/AdminMessageTemplates";
 import { VehicleRentalList } from "./pages/VehicleRentalList";
 import { VehicleRentalDetail } from "./pages/VehicleRentalDetail";
 import { MissionVenueDetail } from "./pages/MissionVenueDetail";
@@ -77,6 +79,8 @@ import { SmartPlannerGuide } from "./pages/SmartPlannerGuide";
 import { ScheduleGuide } from "./pages/ScheduleGuide";
 import { CustomGoodsPlanner } from "./pages/CustomGoodsPlanner";
 import { ComingSoon } from "./pages/ComingSoon";
+import ChecklistForm from "./pages/ChecklistForm";
+import ChecklistList from "./pages/ChecklistList";
 
 export const router = createBrowserRouter([
   {
@@ -98,6 +102,18 @@ export const router = createBrowserRouter([
       {
         path: "venue/:id/review/write",
         element: <VenueReviewWrite />,
+      },
+      {
+        path: "checklists", // 나의 사전답사 체크리스트 목록
+        element: <ChecklistList />,
+      },
+      {
+        path: "checklist/new", // 새 사전답사 체크리스트 작성 (?venueId= 로 등록된 장소 정보 미리 채움)
+        element: <ChecklistForm />,
+      },
+      {
+        path: "checklist/:id", // 저장된 사전답사 체크리스트 보기/수정
+        element: <ChecklistForm />,
       },
       {
         path: "booking/:id",
@@ -352,6 +368,8 @@ export const router = createBrowserRouter([
       { path: "vehicles", element: <AdminVehicleRentals /> },
       { path: "mission-venues", element: <AdminMissionVenues /> },
       { path: "sound-construction", element: <AdminSoundConstruction /> },
+      { path: "venue-suggestions", element: <AdminVenueSuggestions /> },
+      { path: "message-templates", element: <AdminMessageTemplates /> },
     ],
   },
 ]);

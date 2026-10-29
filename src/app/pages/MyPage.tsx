@@ -2,7 +2,7 @@ import { Header } from "../components/Header";
 import {
   Calendar, MapPin, CheckCircle2, Clock, ChevronRight, Heart, Wallet, ArrowRight,
   Users, LogOut, Settings, AlertTriangle, PlusCircle, UserCircle, MessageCircle, FileText, History as HistoryIcon, Building2, CreditCard, Check, Phone, MapPinned, Sparkles,
-  Pencil, ClipboardList, Tent, CalendarCheck,
+  Pencil, ClipboardList, Tent, CalendarCheck, ClipboardCheck,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -421,6 +421,17 @@ export function MyPage() {
               </div>
               <ChevronRight className="w-4 h-4 text-[#D1D6DB] shrink-0" />
             </button>
+            <button
+              onClick={() => navigate("/checklists")}
+              className="w-full flex items-center gap-3 p-4 text-left active:bg-gray-50 transition-colors"
+            >
+              <div className="w-9 h-9 bg-[#FFF8E8] rounded-xl flex items-center justify-center shrink-0"><ClipboardCheck className="w-4 h-4 text-[#F2994A]" /></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-black text-[#191F28]">사전답사 체크리스트</p>
+                <p className="text-[12px] font-bold text-[#ADB5BD]">답사 가서 확인한 내용 기록하기</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#D1D6DB] shrink-0" />
+            </button>
           </div>
         </div>
 
@@ -446,11 +457,12 @@ export function MyPage() {
           </div>
         </section>
 
-        <div className="hidden md:grid grid-cols-3 gap-6 mb-10">
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
             { label: "답사 완료 리스트", value: `${myBookings.filter(b => b.status === 'approved' || b.status === 'deposit_paid').length}건`, icon: FileText, color: "text-[#3182F6]" },
             { label: "찜한 장소", value: `${myFavorites.length}개`, icon: Heart, color: "text-[#F04452]", onClick: () => navigate('/planner') },
             { label: "전체 내역", value: `${myBookings.length}건`, icon: HistoryIcon, color: "text-[#8B95A1]" },
+            { label: "사전답사 체크리스트", value: "기록하기", icon: ClipboardCheck, color: "text-[#F2994A]", onClick: () => navigate('/checklists') },
           ].map((stat, i) => (
             <div key={i} onClick={stat.onClick} className="bg-white p-7 rounded-[32px] shadow-sm border border-transparent hover:border-gray-100 transition-all cursor-pointer group flex items-center gap-5">
               <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -591,6 +603,13 @@ export function MyPage() {
                                     className="w-full py-3.5 md:py-4 bg-[#191F28] text-white rounded-xl font-black hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-[14px] md:text-[15px] shadow-lg"
                                   >
                                     <CheckCircle2 className="w-5 h-5 text-blue-400" /> 장소 최종 확정하기
+                                  </button>
+                                  {/* 답사 다녀오기 직전/직후 현장에서 폰으로 바로 체크할 수 있는 체크리스트 도구로 연결 */}
+                                  <button
+                                    onClick={() => navigate(`/checklist/new${booking.venueId ? `?venueId=${booking.venueId}` : ""}`)}
+                                    className="w-full py-3 md:py-3.5 bg-[#F2F8FF] text-[#3182F6] rounded-xl font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-[13px] md:text-[14px]"
+                                  >
+                                    <ClipboardList className="w-4 h-4" /> 사전답사 체크리스트가 필요하신가요?
                                   </button>
                                 </div>
                               )}

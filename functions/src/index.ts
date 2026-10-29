@@ -175,6 +175,7 @@ export {teamDetailPreview} from "./teamDetailPreview";
 export {bandRoomPreview} from "./bandRoomPreview";
 export {bandRoomRegisterPreview} from "./bandRoomRegisterPreview";
 export {programsPreview} from "./programsPreview";
+export {checklistPreview} from "./checklistPreview";
 export {goodsRegisterPreview} from "./goodsRegisterPreview";
 export {goodsDetailPreview} from "./goodsDetailPreview";
 export {goodsPreview} from "./goodsPreview";

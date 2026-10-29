@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import {
-  ChevronLeft, ChevronRight, Phone, MapPin, Compass, X, ZoomIn, Users, Wind, Bed, Car, Bath, Tag,
+  ChevronLeft, ChevronRight, Phone, MapPin, Compass, X, Maximize2, Wind, Bed, Car, Bath,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -15,6 +15,23 @@ function InfoRow({ icon, label, value }: any) {
         <span className="whitespace-nowrap">{label}</span>
       </div>
       <span className="text-[#191f28] font-black text-[15px] md:text-[14px] md:text-right break-keep">{value}</span>
+    </div>
+  );
+}
+
+// 수련회 장소 상세(VenueDetail.tsx)의 답사 체크포인트 카드와 같은 모양
+function CheckItem({ icon, label, value }: any) {
+  return (
+    <div className="flex flex-col gap-2 p-4 bg-white rounded-2xl border border-[#f2f4f6]">
+      <div className="flex items-center gap-2.5">
+        <div className="text-[#3182f6] bg-[#f2f8ff] p-2 rounded-xl">
+          {icon}
+        </div>
+        <span className="text-[#8b95a1] font-bold text-[13px]">{label}</span>
+      </div>
+      <div className="text-[#191f28] font-semibold text-[14px] leading-relaxed whitespace-pre-wrap break-keep">
+        {value}
+      </div>
     </div>
   );
 }
@@ -86,95 +103,121 @@ export function MissionVenueDetail() {
           </button>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 lg:gap-5 pb-6">
-          <section className="relative lg:col-start-1 lg:row-start-1 rounded-[24px] overflow-hidden border border-[#f2f4f6] aspect-video bg-white group">
-            {galleryImages.length > 0 ? (
-              <img src={galleryImages[currentImageIndex]} className="w-full h-full object-cover" alt={venue.venueName} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-[#EFF6FF]">
-                <Compass className="w-12 h-12 text-[#93C5FD]" />
+        {/* 수련회 장소 상세(VenueDetail.tsx)와 같은 배치: 좌측 사진 갤러리 + 우측 요약 카드,
+            긴 소개글은 아래 "장소 소개" 섹션으로 따로 뺀다. 예전엔 소개글 전체가 우측 카드
+            안에 들어가서 카드만 길게 늘어나고 사진은 작게 떠 보였다. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 items-start pb-6">
+          <div className="lg:col-start-1 lg:row-start-1">
+            <section className="relative mb-3">
+              <div className="relative aspect-[4/3] rounded-[32px] overflow-hidden bg-[#e5e8eb] shadow-inner">
+                {galleryImages.length > 0 ? (
+                  <img src={galleryImages[currentImageIndex]} className="w-full h-full object-cover" alt={venue.venueName} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[#EFF6FF]">
+                    <Compass className="w-12 h-12 text-[#93C5FD]" />
+                  </div>
+                )}
+                {galleryImages.length > 0 && (
+                  <button type="button" onClick={() => setIsImageLightboxOpen(true)} className="absolute top-5 right-5 p-2.5 bg-black/20 backdrop-blur-md text-white rounded-xl hover:bg-black/40 transition-all" aria-label="확대해서 보기">
+                    <Maximize2 className="w-5 h-5" />
+                  </button>
+                )}
               </div>
-            )}
+
+              {galleryImages.length > 1 && (
+                <>
+                  <div className="absolute top-[calc(50%-14px)] -translate-y-1/2 left-0 right-0 flex justify-between px-2 pointer-events-none">
+                    <button type="button" onClick={() => goToImage(currentImageIndex - 1)} className="pointer-events-auto bg-white/90 backdrop-blur-md p-2.5 rounded-full text-[#4e5968] shadow-md hover:bg-white transition-all active:scale-90" aria-label="이전 이미지">
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button type="button" onClick={() => goToImage(currentImageIndex + 1)} className="pointer-events-auto bg-white/90 backdrop-blur-md p-2.5 rounded-full text-[#4e5968] shadow-md hover:bg-white transition-all active:scale-90" aria-label="다음 이미지">
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <div className="flex justify-center gap-1.5 mt-4">
+                    {galleryImages.map((_, i) => (
+                      <button key={i} type="button" onClick={() => goToImage(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentImageIndex ? "w-6 bg-[#3182f6]" : "w-1.5 bg-[#d1d6db]"}`} aria-label={`${i + 1}번째 이미지`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
 
             {galleryImages.length > 1 && (
-              <>
-                <button type="button" onClick={() => goToImage(currentImageIndex - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all active:scale-90" aria-label="이전 이미지">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={() => goToImage(currentImageIndex + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all active:scale-90" aria-label="다음 이미지">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-                  {galleryImages.map((_, i) => (
-                    <button key={i} type="button" onClick={() => goToImage(i)} className={`rounded-full transition-all ${i === currentImageIndex ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"}`} aria-label={`${i + 1}번째 이미지`} />
+              <div className="hidden md:flex flex-col gap-2">
+                <div className="grid grid-rows-2 grid-flow-col justify-start gap-2 overflow-x-auto no-scrollbar py-1">
+                  {galleryImages.map((img, idx) => (
+                    <button
+                      key={img}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`shrink-0 w-[92px] h-[72px] rounded-2xl overflow-hidden border-2 transition-all ${idx === currentImageIndex ? "border-[#3182f6]" : "border-transparent opacity-70 hover:opacity-100"}`}
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt={`썸네일 ${idx + 1}`} />
+                    </button>
                   ))}
                 </div>
-              </>
+                <div className="flex items-center justify-center text-xs text-gray-500 font-medium select-none mt-1">
+                  <span className="tracking-widest">
+                    <strong className="text-gray-900">{currentImageIndex + 1}</strong> / {galleryImages.length}
+                  </span>
+                </div>
+              </div>
             )}
+          </div>
 
-            {galleryImages.length > 0 && (
-              <button type="button" onClick={() => setIsImageLightboxOpen(true)} className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1.5 bg-black/40 backdrop-blur-md text-white rounded-full text-[11px] font-bold hover:bg-black/60 transition-all active:scale-95">
-                <ZoomIn className="w-3.5 h-3.5" /> 확대해서 보기
-              </button>
-            )}
-          </section>
-
-          <section className="lg:col-start-2 lg:row-start-1 bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] h-full flex flex-col justify-between">
+          <section className="lg:col-start-2 lg:row-start-1 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] h-full flex flex-col justify-between">
             <div>
               {venue.denomination && (
-                <div className="flex items-center gap-1.5 flex-wrap mb-2.5 md:mb-3">
-                  <span className="px-3.5 py-1.5 text-[12px] font-black rounded-xl bg-[#F2F8FF] text-[#3182f6]">
+                <div className="mb-3">
+                  <span className="inline-block px-3.5 py-1.5 bg-[#f2f8ff] text-[#3182f6] text-[12px] font-black rounded-xl break-keep">
                     {venue.denomination}
                   </span>
                 </div>
               )}
-              <h1 className="text-[22px] md:text-[24px] font-black text-[#191f28] mb-2.5 md:mb-3 tracking-tighter leading-tight break-keep">
+              <h1 className="text-[22px] md:text-[24px] font-black text-[#191f28] mb-2 tracking-tighter leading-tight break-keep">
                 {venue.venueName}
               </h1>
-              {venue.description && (
-                <p className="text-[14px] font-bold text-[#4e5968] leading-relaxed break-keep whitespace-pre-wrap mb-3 md:mb-4">
-                  {venue.description}
+              {venue.location && (
+                <p className="flex items-start gap-1.5 text-[#4e5968] text-[14px] font-semibold mb-3 opacity-80 break-keep">
+                  <MapPin className="w-4 h-4 text-[#3182f6] shrink-0 mt-0.5" />
+                  {venue.location} {venue.addressDetail}
                 </p>
               )}
-
-              <div className="bg-[#f9fafb] rounded-2xl border border-[#f2f4f6] p-3.5 md:p-4 space-y-2.5">
-                {venue.location && (
-                  <div className="flex items-center gap-2.5 text-[14px] font-bold text-[#4e5968]">
-                    <MapPin className="w-4 h-4 text-[#3182f6] shrink-0" />
-                    {venue.location} {venue.addressDetail}
-                  </div>
-                )}
-                <div className="flex items-center gap-2.5 text-[14px] font-bold text-[#4e5968]">
-                  <Users className="w-4 h-4 text-[#3182f6] shrink-0" />
-                  최대 {Number(venue.capacity || 0).toLocaleString()}명
+              {(venue.tags || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {venue.tags.map((tag: string) => (
+                    <span key={tag} className="text-[12px] font-bold text-[#3182f6] bg-[#f2f8ff] px-2.5 py-1 rounded-lg">#{tag}</span>
+                  ))}
                 </div>
+              )}
+              <div>
+                <span className="text-[#8b95a1] font-bold text-[12px] block mb-1">수용 인원</span>
+                <span className="text-[19px] font-black text-[#333d4b]">최대 {Number(venue.capacity || 0).toLocaleString()}<small className="text-[13px] ml-1">명</small></span>
+              </div>
+              <div className="border-t border-[#f2f4f6] my-4" />
+
+              <h3 className="text-[16px] font-black text-[#191f28] mb-3 flex items-center gap-2.5">
+                <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 시설 정보
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <CheckItem icon={<Wind className="w-5 h-5" />} label="냉방 시설" value={venue.airConditioner ? "있음" : "없음"} />
+                <CheckItem icon={<Bed className="w-5 h-5" />} label="침구류" value={venue.beddingAvailable ? "보유" : "미보유"} />
+                <CheckItem icon={<Car className="w-5 h-5" />} label="주차 정보" value={venue.parkingCapacity || "문의"} />
+                <CheckItem icon={<Bath className="w-5 h-5" />} label="샤워실/화장실" value={venue.showerBathroom || "문의"} />
               </div>
             </div>
 
-            <div className="mt-3 md:mt-4">
-              {venue.contactPhone && (
-                <a href={`tel:${venue.contactPhone}`} className="w-full flex items-center justify-center gap-2 py-3.5 md:py-4 bg-[#191f28] text-white rounded-2xl font-black text-[15px] hover:bg-black transition-all active:scale-[0.98]">
-                  <Phone className="w-4 h-4" /> 전화 문의하기
-                </a>
-              )}
-            </div>
-          </section>
-
-          <section className="lg:col-span-2 bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
-            <h3 className="text-[15px] md:text-[16px] font-black text-[#191f28] mb-2.5 md:mb-3 flex items-center gap-2 md:gap-2.5">
-              <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 시설 정보
-            </h3>
-            <div className="bg-[#f9fafb] rounded-2xl border border-[#f2f4f6] overflow-hidden">
-              <InfoRow icon={<Wind className="w-4 h-4" />} label="냉방 시설" value={venue.airConditioner ? "있음" : "없음"} />
-              <InfoRow icon={<Bed className="w-4 h-4" />} label="침구류" value={venue.beddingAvailable ? "보유" : "미보유"} />
-              <InfoRow icon={<Car className="w-4 h-4" />} label="주차 정보" value={venue.parkingCapacity || "문의"} />
-              <InfoRow icon={<Bath className="w-4 h-4" />} label="샤워실/화장실" value={venue.showerBathroom || "문의"} />
-            </div>
+            {venue.contactPhone && (
+              <a href={`tel:${venue.contactPhone}`} className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 md:py-4 bg-[#191f28] text-white rounded-2xl font-black text-[15px] hover:bg-black transition-all active:scale-[0.98]">
+                <Phone className="w-4 h-4" /> 전화 문의하기
+              </a>
+            )}
           </section>
 
           {(situations.length > 0 || desiredServices.length > 0) && (
-            <section className="lg:col-span-2 bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
-              <h3 className="text-[15px] md:text-[16px] font-black text-[#191f28] mb-2.5 md:mb-3 flex items-center gap-2 md:gap-2.5">
+            <section className="lg:col-span-2 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
+              <h3 className="text-[16px] font-black text-[#191f28] mb-3 flex items-center gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 선교지 소개
               </h3>
               <div className="bg-[#f9fafb] rounded-2xl border border-[#f2f4f6] overflow-hidden">
@@ -184,20 +227,14 @@ export function MissionVenueDetail() {
             </section>
           )}
 
-          {(venue.tags || []).length > 0 && (
-            <section className="lg:col-span-2 bg-white rounded-[24px] p-4 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6]">
-              <h3 className="text-[15px] md:text-[16px] font-black text-[#191f28] mb-3 flex items-center gap-2 md:gap-2.5">
-                <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 태그
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {venue.tags.map((tag: string) => (
-                  <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold bg-[#F2F4F6] text-[#6B7684]">
-                    <Tag className="w-3 h-3" />{tag}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
+          <section className="lg:col-span-2 bg-white rounded-2xl border border-[#f2f4f6] p-5">
+            <h3 className="text-[16px] font-black text-[#191f28] mb-3 flex items-center gap-2.5">
+              <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 장소 소개
+            </h3>
+            <p className="text-[#4e5968] leading-[1.7] whitespace-pre-wrap break-keep text-[14px] font-bold opacity-90">
+              {venue.description || "상세 설명이 없습니다."}
+            </p>
+          </section>
         </div>
       </main>
 

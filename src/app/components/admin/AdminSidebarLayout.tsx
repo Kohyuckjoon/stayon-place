@@ -10,6 +10,8 @@ export interface AdminNavItem {
   icon: LucideIcon;
   count?: number;
   accentColor?: string;
+  // "NEW" 같은 짧은 표시 (count 대신 보여줌)
+  badge?: string;
   // 지정 시 로컬 탭 전환 대신 해당 경로로 이동하는 링크로 렌더링됨 (다른 관리자 페이지로 넘어갈 때 사용)
   href?: string;
 }
@@ -83,6 +85,15 @@ export function AdminSidebarLayout({
             style={hasAlert ? { backgroundColor: item.accentColor } : undefined}
           >
             {item.count}
+          </span>
+        )}
+        {typeof item.count !== "number" && item.badge && (
+          <span
+            className={`text-[11px] font-black px-2 py-0.5 rounded-full ${
+              isActive ? "bg-white text-[#3182F6]" : "bg-[#E8F3FF] text-[#3182F6]"
+            }`}
+          >
+            {item.badge}
           </span>
         )}
       </>

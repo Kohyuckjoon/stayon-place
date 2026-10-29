@@ -1,3 +1,19 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* .no-scrollbar / .scrollbar-hide는 둘 다 Tailwind 내장 유틸리티가 아니고(v4라 플러그인도
+   안 씀) 이 프로젝트 전역 CSS에도 정의된 적이 없었다 - 일부 페이지(AdminHub.tsx 등)가
+   그 페이지 안에서만 적용되는 로컬 <style> 태그로 따로 정의해둔 거였고, 그 외
+   나머지 페이지(Home.tsx 모바일 배너 포함)에서는 이름만 있고 실제로는 아무 효과가
+   없어서 가로 스크롤 시 브라우저 기본 스크롤바가 그대로 보였다. 여기서 한 번만
+   전역으로 정의해서 사이트 전체에서 제대로 동작하게 한다. */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

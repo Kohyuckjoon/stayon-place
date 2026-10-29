@@ -6,7 +6,7 @@ import {
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, Church, Building2, ChevronLeft,
   Wind, Bed, Car, Bath, Volume2, Tag as TagIcon, Ban,
-  LayoutDashboard,
+  LayoutDashboard, MessageSquareText,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, arrayRemove, arrayUnion } from "firebase/firestore";
@@ -305,6 +305,7 @@ export function AdminMissionVenues() {
             { id: "v_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_schedule", label: "장소별 일정관리", icon: Calendar, href: "/admin/venues?tab=schedule" },
             { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
+            { id: "venue_suggestions", label: "장소 추천 제보", icon: Megaphone, accentColor: "#F2994A", href: "/admin/venue-suggestions" },
           ],
         },
         {
@@ -382,6 +383,12 @@ export function AdminMissionVenues() {
           label: "음향 시공 관리",
           items: [
             { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
+          ],
+        },
+        {
+          label: "영업 도구",
+          items: [
+            { id: "message_templates", label: "문자 템플릿", icon: MessageSquareText, badge: "NEW", href: "/admin/message-templates" },
           ],
         },
       ]}

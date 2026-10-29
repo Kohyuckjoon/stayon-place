@@ -3,7 +3,7 @@ import { ScrollRestoration } from "react-router-dom";
 import {
   Users, Clock, CheckCircle, XCircle, Calendar, ClipboardCheck, CalendarCheck,
   CreditCard, Ban, BarChart3, Megaphone, Volume2, ShieldOff, MapPinned,
-  Eye, UserPlus, Link2, MessageCircle, Activity, LayoutDashboard, RefreshCw,
+  Eye, UserPlus, Link2, MessageCircle, Activity, LayoutDashboard, RefreshCw, MessageSquareText,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -184,6 +184,7 @@ export function AdminAnalytics() {
             { id: "v_rejected", label: "반려 / 삭제", icon: XCircle, href: "/admin/venues?tab=rejected" },
             { id: "v_schedule", label: "장소별 일정관리", icon: Calendar, href: "/admin/venues?tab=schedule" },
             { id: "v_blockrequests", label: "차단 신청 승인", icon: Ban, accentColor: "#F04452", href: "/admin/venues?tab=blockRequests" },
+            { id: "venue_suggestions", label: "장소 추천 제보", icon: Megaphone, accentColor: "#F2994A", href: "/admin/venue-suggestions" },
           ],
         },
         {
@@ -261,6 +262,12 @@ export function AdminAnalytics() {
           label: "음향 시공 관리",
           items: [
             { id: "sc_requests", label: "시공 문의 목록", icon: Volume2, href: "/admin/sound-construction" },
+          ],
+        },
+        {
+          label: "영업 도구",
+          items: [
+            { id: "message_templates", label: "문자 템플릿", icon: MessageSquareText, badge: "NEW", href: "/admin/message-templates" },
           ],
         },
       ]}
