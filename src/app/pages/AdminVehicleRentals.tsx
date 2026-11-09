@@ -6,7 +6,7 @@ import {
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus,
   BarChart3, Megaphone, FileText, Church, Building2, Hash, ShieldCheck,
   Minus, Plus, ChevronLeft, Ban, Volume2,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy } from "firebase/firestore";
@@ -654,6 +654,7 @@ export function AdminVehicleRentals() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

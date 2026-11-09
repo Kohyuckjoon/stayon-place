@@ -3,7 +3,7 @@ import { ScrollRestoration } from "react-router-dom";
 import {
   Users, Clock, CheckCircle, XCircle, Calendar, ClipboardCheck, CalendarCheck,
   CreditCard, Ban, BarChart3, Megaphone, Volume2, ShieldOff, MapPinned,
-  Eye, UserPlus, Link2, MessageCircle, Activity, LayoutDashboard, RefreshCw, MessageSquareText,
+  Eye, UserPlus, Link2, MessageCircle, Activity, LayoutDashboard, ClipboardList, RefreshCw, MessageSquareText,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -167,6 +167,7 @@ export function AdminAnalytics() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

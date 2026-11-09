@@ -5,6 +5,14 @@ import { app } from './firebase';
 
 const storage = getStorage(app);
 
+// 장소 사진 공통 설정 - 장소 등록 화면(uploadVenueImage)과 관리자 화면(AdminDashboard)이 같이 쓴다.
+export const VENUE_IMAGE_COMPRESSION = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true
+};
+export const VENUE_IMAGE_CACHE_CONTROL = "public, max-age=31536000";
+
 // export const uploadVenueImage = async (file: File): Promise<string> => {
 //   const options = {
 //     maxSizeMB: 1,
@@ -70,10 +78,11 @@ export const uploadVenueImage = async (
     const fileName = `${Date.now()}_${file.name}`;
     const storageRef = ref(storage, `${folderPath}/${fileName}`);
     
-    const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+    // 장소 사진은 올린 뒤 바뀌지 않으므로 브라우저가 1년간 저장해 두고 다시 받지 않게 한다.
+    const uploadTask = uploadBytesResumable(storageRef, compressedFile, { cacheControl: VENUE_IMAGE_CACHE_CONTROL });
 
     return new Promise((resolve, reject) => {
-      uploadTask.on('state_changed', 
+      uploadTask.on('state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log(`[${venueName}] 업로드 진행률: ${progress.toFixed(2)}%`);

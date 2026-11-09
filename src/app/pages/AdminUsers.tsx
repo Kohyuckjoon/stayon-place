@@ -4,7 +4,7 @@ import {
   Users, UserX, UserCheck, Search, Clock, CheckCircle, XCircle,
   Calendar, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   ShieldOff, ShieldCheck, Trash2, AlertTriangle, Mail, BarChart3, Megaphone, Ban, Volume2,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -173,6 +173,7 @@ export function AdminUsers() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

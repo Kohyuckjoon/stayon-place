@@ -24,28 +24,27 @@ const bannerData = [
     image: "/main_image_07.png" as string | undefined,
     icon: <CheckCircle2 className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
-  // [임시 숨김] 만나패밀리(id 5) · 리포미디어(id 1) 카드 - 며칠 뒤 다시 오픈 예정. 주석만 풀면 그대로 복구된다.
-  // {
-  //   id: 5,
-  //   title: "STAYON 만나패밀리 출연! 📺",
-  //   desc: "만나패밀리 채널에서 스테이온을 소개해주셨어요. 영상으로 만나보세요.",
-  //   tag: "MEDIA",
-  //   // id는 5지만 배열상 두 번째 자리 - 클릭 라우팅은 id 기준이라 순서를 옮겨도 안전하다.
-  //   bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
-  //   textColor: "text-white",
-  //   image: "/main_image_05.png" as string | undefined,
-  //   icon: <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
-  // },
-  // {
-  //   "id": 1,
-  //   "title": "STAYON 유튜브 출연! 📺",
-  //   "desc": "사역자들을 위한 스테이온 활용 가이드와 생생한 소개 영상을 확인해보세요.",
-  //   "tag": "MEDIA",
-  //   "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
-  //   "textColor": "text-white",
-  //   image: "/main_image_02.png" as string | undefined,
-  //   "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
-  // },
+  {
+    id: 5,
+    title: "STAYON 만나패밀리 출연! 📺",
+    desc: "만나패밀리 채널에서 스테이온을 소개해주셨어요. 영상으로 만나보세요.",
+    tag: "MEDIA",
+    // id는 5지만 배열상 두 번째 자리 - 클릭 라우팅은 id 기준이라 순서를 옮겨도 안전하다.
+    bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
+    textColor: "text-white",
+    image: "/main_image_05.png" as string | undefined,
+    icon: <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+  },
+  {
+    "id": 1,
+    "title": "STAYON 유튜브 출연! 📺",
+    "desc": "사역자들을 위한 스테이온 활용 가이드와 생생한 소개 영상을 확인해보세요.",
+    "tag": "MEDIA",
+    "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
+    "textColor": "text-white",
+    image: "/main_image_02.png" as string | undefined,
+    "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
+  },
   {
     id: 3,
     title: "수련회 장소 등록 이벤트 🎁",
@@ -700,7 +699,7 @@ export function Home() {
                       떠 보였다 - 박스 없이 카드 각자가 자기 그림자를 갖고 흰 배경 위에 바로
                       놓이도록 고쳤다(원래 큰 배너 1개 버전과 동일한 방식). 카드는 설명문 없이
                       태그+제목만 - 박스가 없어진 만큼 패딩/글자 크기는 더 넉넉하게 키웠다. */}
-                  <div className="lg:col-span-8 relative h-[360px] lg:h-[400px]">
+                  <div className="lg:col-span-8 relative h-[420px] lg:h-[400px]">
                     {/* 데스크톱(lg 이상, 오른쪽 "지금 시작하기" 패널과 나란히 놓이는 구간): 카드
                         3개 동시 노출 + 6초 자동 슬라이드. 그 아래 폭(태블릿·모바일, 어차피 오른쪽
                         패널과 세로로 쌓이는 구간)에서는 카드 3개를 욱여넣으면 너무 좁아져서(신한
@@ -749,12 +748,15 @@ export function Home() {
 
                     {/* 태블릿/모바일: 카드가 전부(bannerData 전체) 가로로 나열되고, 하나가 크게
                         보이면서 오른쪽에 다음 카드가 살짝 비친다 - 손가락으로 넘기는 방식. */}
-                    <div className="flex lg:hidden absolute inset-0 gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pr-10">
+                    {/* 가로 스크롤 영역은 위아래로 넘치는 부분을 잘라내므로, 위아래로 넓히고 그만큼
+                        안쪽 여백을 줘서 카드 그림자가 끝까지 보이게 한다. 카드는 배너 이미지(792x1200)와
+                        같은 2:3 비율로 높이에 맞춰서 이미지가 위아래로 잘리지 않게 한다. */}
+                    <div className="flex lg:hidden absolute inset-x-0 -inset-y-5 py-5 gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pr-10">
                       {bannerData.map((banner) => (
                         <div
                           key={banner.id}
                           onClick={() => handleBannerClick(banner.id)}
-                          className={`relative ${banner.bgColor} rounded-[24px] shrink-0 w-[80%] sm:w-[62%] snap-center p-5 flex flex-col justify-between cursor-pointer overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.1)] active:scale-[0.98] transition-transform`}
+                          className={`relative ${banner.bgColor} rounded-[24px] shrink-0 h-full aspect-[33/50] snap-center p-5 flex flex-col justify-between cursor-pointer overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.1)] active:scale-[0.98] transition-transform`}
                         >
                           {renderBannerCardContent(banner)}
                         </div>
@@ -765,10 +767,10 @@ export function Home() {
                   {/* 우측: KB Pay 스타일 로그인/시작하기 유닛 + 바로 아래 카드 1개 더(내용 미정,
                       일단 틀만) - 세로로 2개 쌓는 구조로 바꿔서 왼쪽 카드뷰가 커진 높이에 맞췄다. */}
                   <div className="lg:col-span-4 flex flex-col gap-3 md:gap-4">
-                    <div className="flex-1 bg-[#F9FAFB] border border-slate-100 rounded-[28px] md:rounded-[32px] p-6 md:p-7 flex flex-col justify-between items-start text-left shadow-[0_16px_40px_rgba(0,0,0,0.01)]">
+                    <div className="flex-1 bg-[#EAEDF1] rounded-[28px] md:rounded-[32px] p-6 md:p-7 flex flex-col justify-between gap-6 lg:gap-4 items-start text-left shadow-[0_16px_40px_rgba(0,0,0,0.01)]">
                       <div className="space-y-1.5">
                         <p className="text-blue-600 text-xs font-black tracking-tight uppercase">Smart Platform</p>
-                        <h3 className="text-lg md:text-xl font-black text-[#191F28] leading-tight break-keep">
+                        <h3 className="text-lg md:text-xl font-black text-[#191F28] leading-snug lg:leading-tight break-keep">
                           STAYON 플랫폼에서<br />안전하고 빠르게 시작하세요.
                         </h3>
                       </div>

@@ -146,7 +146,7 @@ export function buildVenueFaq(v: VenueLike): VenueFaqItem[] {
 
   const hall = str(v.hallSize);
   const worship = [
-    hall ? `강당 크기: ${hall}평` : "",
+    hall ? `강당 크기: ${hall}${v.hallSizeUnit === "명" ? "명" : "평"}` : "",
     str(v.soundSystem) ? `음향/조명: ${str(v.soundSystem)}` : "",
     str(v.instruments) ? `보유 악기: ${str(v.instruments)}` : "",
     str(v.projector) ? `프로젝터: ${str(v.projector)}` : "",

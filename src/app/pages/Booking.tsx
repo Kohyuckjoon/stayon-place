@@ -293,7 +293,7 @@ export function Booking() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (dateError) return;
+    if (dateError || requiresStayonInquiry) return;
     if (!agreeToTerms || !agreeToRefund) {
       alert("모든 약관에 동의해주세요.");
       return;
@@ -456,6 +456,8 @@ export function Booking() {
       let dayPrice = basePrice;
       if (venue.useSeasonalPrice && venue.seasonPrices?.length > 0) {
         const matchedSeason = venue.seasonPrices.find((season: any) => {
+          // 기간이나 요금이 비어 있는 시즌은 없는 것으로 본다 (빈 요금이 0원으로 계산되는 것 방지)
+          if (!season.start || !season.end || season.price === "" || season.price == null) return false;
           let startSeason = season.start.replace(/\//g, '-').trim();
           let endSeason = season.end.replace(/\//g, '-').trim();
           if (startSeason.length === 10) startSeason = startSeason.substring(5);
@@ -465,8 +467,11 @@ export function Booking() {
             : (currentMMDD >= startSeason || currentMMDD <= endSeason);
         });
         if (matchedSeason) {
-          dayPrice = Number(matchedSeason.price);
-          if (dayPrice > Number(venue.price || 0)) peakDetected = true;
+          const seasonPrice = Number(matchedSeason.price);
+          // 둘째 날부터는 그날 시즌의 "추가 1박 요금"을 적용한다. 입력이 없으면 기존처럼 같은 요금.
+          const hasExtraNightPrice = matchedSeason.extraNightPrice !== "" && matchedSeason.extraNightPrice != null;
+          dayPrice = i > 0 && hasExtraNightPrice ? Number(matchedSeason.extraNightPrice) : seasonPrice;
+          if (seasonPrice > Number(venue.price || 0)) peakDetected = true;
         }
       }
       // totalCalculated += dayPrice;
@@ -482,6 +487,10 @@ export function Booking() {
   };
 
   const totalPrice = calculateTotalPrice();
+
+  // 추가 1박 요금을 쓰는 장소는 3박 이상을 신청받지 않고 스테이온 문의로 안내한다.
+  const requiresStayonInquiry = !isInspection && nights >= 3 && !!venue.useSeasonalPrice
+    && (venue.seasonPrices || []).some((season: any) => season.extraNightPrice !== "" && season.extraNightPrice != null);
 
   // 관리자 단말에서 실시간 지정한 예약금 산출 타입(percent / amount) 분기 연산 및 텍스트 렌더링 모델
   const calculateDepositPrice = () => {
@@ -717,7 +726,7 @@ export function Booking() {
                 )}
               </AnimatePresence>
 
-              {!isInspection && formData.startDate && formData.endDate && !dateError && (
+              {!isInspection && formData.startDate && formData.endDate && !dateError && !requiresStayonInquiry && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1017,6 +1026,18 @@ export function Booking() {
             </AnimatePresence>
           </div>
 
+          {requiresStayonInquiry ? (
+          <div className="pt-4">
+            <div className="bg-white rounded-[28px] sm:rounded-[32px] p-5 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-[#F2F4F6]">
+              <p className="text-[17px] font-black text-[#191F28] break-keep">3박 이상은 스테이온으로 문의해 주세요</p>
+              <p className="text-[14px] font-bold text-[#6B7684] mt-1.5 leading-relaxed break-keep">이 장소의 3박 이상 일정은 담당자가 요금과 일정을 직접 안내해 드립니다.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-5">
+                <a href="https://pf.kakao.com/_AtexfX/chat" target="_blank" rel="noopener noreferrer" className="h-[54px] flex items-center justify-center rounded-[18px] bg-[#FEE500] text-[#191F28] font-black text-[15px] active:scale-[0.98] transition-all">카카오톡으로 문의하기</a>
+                <a href="tel:0502-1937-0615" className="h-[54px] flex items-center justify-center gap-2 rounded-[18px] bg-[#F2F4F6] text-[#191F28] font-black text-[15px] active:scale-[0.98] transition-all"><Phone className="w-4 h-4" /> 전화 문의하기</a>
+              </div>
+            </div>
+          </div>
+          ) : (
           <div className="pt-4">
             <div className="bg-[#191F28] rounded-[28px] sm:rounded-[32px] p-5 sm:p-8 shadow-2xl transition-all duration-300">
               {/* 상단 라벨 */}
@@ -1094,6 +1115,7 @@ export function Booking() {
               </div>
             </div>
           </div>
+          )}
         </form>
       </main>
 

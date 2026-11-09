@@ -355,6 +355,7 @@ export function RegisterVenue() {
       // 1. 파이어베이스 저장
       await addDoc(collection(db, "venues"), {
         ...formData,
+        hallSizeUnit: hallSizeByCapacity ? "명" : "평",
         applicantUid: user.uid,
         images: imageUrls,
         imagesByCategory,
@@ -456,6 +457,19 @@ export function RegisterVenue() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4" onClick={() => setSelectedImageUrl(null)}>
             <button className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full"><X className="w-8 h-8" /></button>
             <motion.img initial={{ scale: 0.95 }} animate={{ scale: 1 }} src={selectedImageUrl} className="max-w-full max-h-full object-contain rounded-2xl" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 신청 중 팝업 */}
+      <AnimatePresence>
+        {isSubmitting && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[105] bg-black/50 flex items-center justify-center p-6" role="status" aria-live="polite">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-[320px] bg-white rounded-[28px] px-6 py-8 flex flex-col items-center text-center shadow-2xl">
+              <div className="w-12 h-12 border-[4px] border-[#f2f4f6] border-t-[#3182f6] rounded-full animate-spin mb-5" />
+              <p className="text-[18px] font-black text-[#191f28] mb-2">신청 중이에요</p>
+              <p className="text-[14px] font-bold text-[#8b95a1] leading-relaxed break-keep">사진이 많으면 시간이 조금 걸릴 수 있어요.<br />완료될 때까지 창을 닫지 말아 주세요.</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

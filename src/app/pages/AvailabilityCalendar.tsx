@@ -84,7 +84,7 @@ const CalendarWrapper = styled.div`
     }
   }
 
-  /* 예약 완료(X 표시) 스타일 - 입금 완료된 날짜에만 적용.
+  /* 예약 완료(X 표시 + 파란 뱃지) 스타일 - 입금 완료된 날짜에만 적용.
      오늘 날짜(.react-calendar__tile--now)가 동시에 예약 완료 날짜이면, 두 클래스가
      같은 버튼에 함께 붙는데 둘 다 단일 클래스 선택자라 CSS 파일에서 나중에 나오는
      쪽(.react-calendar__tile--now)이 이겨서 오늘 날짜만 파란 숫자가 X 위로 비쳐
@@ -95,28 +95,48 @@ const CalendarWrapper = styled.div`
     color: #ADB5BD !important; /* 숫자 색상 */
     cursor: not-allowed !important;
     pointer-events: none;
-    position: relative; /* 자식 요소인 X 표시의 기준점 */
-    overflow: hidden; /* X 표시가 타일을 벗어나지 않도록 설정 */
+    position: relative; /* 자식 요소인 X 표시·"예약 완료" 뱃지의 기준점 */
+    overflow: hidden; /* X 표시·뱃지가 타일을 벗어나지 않도록 설정 */
 
+    /* 날짜 숫자와 같은 정중앙에 X를 겹쳐서 숫자를 정확히 가린다.
+       두 자리 숫자도 덮이도록 숫자 폭보다 조금 길게 잡는다. */
     &::before, &::after {
       content: '';
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 18px;
+      width: 22px;
       height: 2px;
-      background: #333D4B; /* X 표시 색상을 더 진한 그레이로 변경 */
+      background: #333D4B;
       border-radius: 2px;
       z-index: 1; /* 숫자보다 위에 보이도록 설정 */
     }
-
-    /* X자 형태 정밀 조정 */
     &::before { transform: translate(-50%, -50%) rotate(45deg); }
     &::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
     &:enabled:hover {
       background: #F9FAFB !important;
       transform: none;
+    }
+
+    /* 날짜 아래에 붙는 파란 "예약 완료" 뱃지 */
+    .booked-badge {
+      position: absolute;
+      bottom: 6%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 2px 6px;
+      background: #3182F6;
+      color: #FFFFFF;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.3;
+      border-radius: 999px;
+      white-space: nowrap;
+      z-index: 2;
+    }
+    @media (max-width: 480px) {
+      .booked-badge { font-size: 8px; padding: 1px 4px; letter-spacing: -0.3px; }
     }
   }
 
@@ -187,6 +207,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ venueId, bo
     return null;
   };
 
+  const tileContent = ({ date, view }: any) => {
+    if (view === 'month' && isBooked(date)) return <span className="booked-badge">예약 완료</span>;
+    return null;
+  };
+
   const tileDisabled = ({ date, view }: any) => {
     // 오늘 이전 날짜도 선택 못하게 막는 것이 직관적입니다.
     const today = new Date();
@@ -215,6 +240,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ venueId, bo
       <Calendar
         locale="ko-KR"
         tileClassName={tileClassName}
+        tileContent={tileContent}
         tileDisabled={tileDisabled}
         calendarType="gregory"
         formatDay={(_, date) => date.getDate().toString()}

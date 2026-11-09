@@ -222,11 +222,18 @@ export function VenueList() {
     const q = query(collection(db, "venues"), where("status", "==", "approved"));
     const unsubscribeVenues = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const sortedData = data.sort((a: any, b: any) => {
-        const timeA = a.createdAt?.seconds || 0;
-        const timeB = b.createdAt?.seconds || 0;
-        return timeB - timeA;
-      });
+      // 하루에 한 번 순서가 바뀌도록 오늘 날짜(한국 시간)와 장소 id로 만든 값으로 섞는다.
+      // 같은 날에는 누가 언제 들어와도 같은 순서로 보인다.
+      const dateKey = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const dailyRank = (id: string) => {
+        let h = 2166136261;
+        for (const ch of `${dateKey}:${id}`) {
+          h ^= ch.charCodeAt(0);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      };
+      const sortedData = data.sort((a: any, b: any) => dailyRank(a.id) - dailyRank(b.id));
       setDbVenues(sortedData);
       setLoading(false);
     });

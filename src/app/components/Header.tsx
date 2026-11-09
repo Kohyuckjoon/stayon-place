@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays, ClipboardCheck
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays, ClipboardCheck, Wallet
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +39,7 @@ export function Header() {
   const [isRegisterMenuOpen, setIsRegisterMenuOpen] = useState(false);
   const [isTeamsMenuOpen, setIsTeamsMenuOpen] = useState(false);
   const [isSoundMenuOpen, setIsSoundMenuOpen] = useState(false);
+  const [isBulletinMenuOpen, setIsBulletinMenuOpen] = useState(false);
 
   // [상태 관리] 로그인 및 회원가입 단계 제어
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -513,6 +514,18 @@ export function Header() {
                         <div className="w-[34px] h-[34px] bg-[#F2FDF5] rounded-xl flex items-center justify-center group-hover:bg-[#E7F9ED]"><BookOpen className="w-5 h-5 text-[#2DCA72]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">일정표 플래너</div><div className="text-[12px] text-[#8B95A1] font-bold">일정표 만들고 배포하기</div></div>
                       </Link>
+                      {/* 예산 플래너 - 기능 준비 중이라 이동 없이 "준비중" 배지 + 낮은 불투명도로만 표시
+                          (상단 "음향 시공 문의"와 같은 비활성 처리 방식). */}
+                      <div aria-disabled="true" className="flex items-center gap-3 p-3 rounded-[16px] cursor-not-allowed select-none opacity-50">
+                        <div className="w-[34px] h-[34px] bg-[#F2F4F6] rounded-xl flex items-center justify-center"><Wallet className="w-5 h-5 text-[#8B95A1]" /></div>
+                        <div>
+                          <div className="flex items-center gap-1.5 text-[15px] font-black text-[#191F28]">
+                            예산 플래너
+                            <span className="px-1.5 py-0.5 bg-[#E5E8EB] text-[#8B95A1] rounded-full text-[10px] font-black">준비중</span>
+                          </div>
+                          <div className="text-[12px] text-[#8B95A1] font-bold">준비 중인 기능이에요</div>
+                        </div>
+                      </div>
                       <Link to="/programs" className="flex items-center gap-3 p-3 hover:bg-[#F9FAFB] rounded-[16px] transition-colors group">
                         <div className="w-[34px] h-[34px] bg-[#F0FDFA] rounded-xl flex items-center justify-center group-hover:bg-[#CCFBF1]"><CalendarDays className="w-5 h-5 text-[#0D9488]" /></div>
                         <div><div className="text-[15px] font-black text-[#191F28]">교회 프로그램</div><div className="text-[12px] text-[#8B95A1] font-bold">레크리에이션 아이디어 얻기</div></div>
@@ -545,15 +558,34 @@ export function Header() {
                 </AnimatePresence>
               </div> */}
 
-              <a
-                href="https://bulletin.stayon-platform.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
+              {/* 온라인 주보 - 찬양팀 섭외와 같은 방식으로 호버 시 짧은 설명 툴팁을 띄운다. */}
+              <div
+                className="relative shrink-0"
+                onMouseEnter={() => setIsBulletinMenuOpen(true)}
+                onMouseLeave={() => setIsBulletinMenuOpen(false)}
               >
-                <span>온라인 주보</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-              </a>
+                <a
+                  href="https://bulletin.stayon-platform.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
+                >
+                  <span>온라인 주보</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                </a>
+                <AnimatePresence>
+                  {isBulletinMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
+                    >
+                      앱 설치없이 QR로 간편하게
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* 탭2: 찬양팀 섭외 - 목적지가 하나라 드롭다운 없이 바로 이동하는 단일 링크.
                   라벨만 보면 범위가 뭔지 애매해서, 호버 시 작게 뜨는 툴팁으로 "찬양팀·찬양사역자·

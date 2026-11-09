@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Users, ShieldOff, Megaphone, CreditCard, Volume2,
-  LayoutDashboard, MapPin, Phone, Trash2, Check, BarChart3, MessageSquareText,
+  LayoutDashboard, ClipboardList, MapPin, Phone, Trash2, Check, BarChart3, MessageSquareText,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, orderBy, query } from "firebase/firestore";
@@ -61,6 +61,7 @@ export function AdminVenueSuggestions() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

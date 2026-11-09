@@ -4,7 +4,7 @@ import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   Megaphone, GripVertical, X, Plus, Music, Save, CreditCard,
   Zap, Ban, PartyPopper, TrendingUp, BarChart3, Calendar, ClipboardCheck, CalendarCheck, MapPinned, Volume2,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import {
@@ -270,6 +270,7 @@ export function AdminBandRoomAds() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

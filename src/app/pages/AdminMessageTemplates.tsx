@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Users, ShieldOff, Megaphone, CreditCard, Volume2,
-  LayoutDashboard, BarChart3, Calendar, Ban, ClipboardCheck, CalendarCheck, MapPinned,
+  LayoutDashboard, ClipboardList, BarChart3, Calendar, Ban, ClipboardCheck, CalendarCheck, MapPinned,
   MessageSquareText, Pencil, Plus, ChevronLeft, Check, Trash2, HelpCircle, Copy, X, Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -789,6 +789,7 @@ export function AdminMessageTemplates() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

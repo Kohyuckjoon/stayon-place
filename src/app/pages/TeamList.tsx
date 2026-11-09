@@ -254,11 +254,21 @@ export function TeamList() {
   }, []);
 
   // 끌어올리기(boostedUntil이 아직 안 지난 팀)를 최상단으로, 그중에서는 최근에
-  // 끌어올린 순으로 정렬한다. 나머지는 기존 순서를 그대로 유지한다.
+  // 끌어올린 순으로 정렬한다. 나머지는 하루에 한 번 순서가 바뀌도록 오늘 날짜(한국 시간)와
+  // 팀 id로 만든 값으로 섞는다 - 같은 날에는 누가 언제 들어와도 같은 순서로 보인다.
   const filteredTeams = useMemo(() => {
     const filtered = activeCategory === "전체" ? teams : teams.filter((t) => t.category === activeCategory);
     const boostRank = (t: any) => (isBoosted(t) ? (t.boostedAt?.toDate?.()?.getTime() || 0) : -1);
-    return [...filtered].sort((a, b) => boostRank(b) - boostRank(a));
+    const dateKey = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const dailyRank = (id: string) => {
+      let h = 2166136261;
+      for (const ch of `${dateKey}:${id}`) {
+        h ^= ch.charCodeAt(0);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    };
+    return [...filtered].sort((a, b) => boostRank(b) - boostRank(a) || dailyRank(a.id) - dailyRank(b.id));
   }, [teams, activeCategory]);
 
   // "예약률 높이기"로 끌어올린 공간을 최상단으로(그중에서는 최근에 끌어올린 순), 그다음

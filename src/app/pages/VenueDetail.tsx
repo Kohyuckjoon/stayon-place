@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { doc, getDoc, collection, query, where, onSnapshot, getDocs, deleteDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { isAdminEmail } from "../lib/adminEmails";
 import {
@@ -66,6 +67,9 @@ export function VenueDetail() {
   // "사진" 탭은 스크롤 이동 없이 히어로 갤러리 영역 자체를 카테고리별 사진 보기로
   // 즉시 바꿔치기하는 용도라 별도 스크롤 대상 섹션이 없다 - "정보"/"리뷰"만 실제로 스크롤한다.
   const [activeInfoTab, setActiveInfoTab] = useState<"info" | "photos" | "reviews">("info");
+  // "사진" 탭에서는 화면에 사진만 남기고 나머지(시설 정보·캘린더·소개·리뷰 등)는 숨긴다.
+  // 정보는 "상세정보" 탭을 눌러야 다시 보인다.
+  const hideInPhotos = activeInfoTab === "photos" ? "hidden" : "";
   const reviewSectionRef = useRef<HTMLDivElement>(null);
   const [venueReviews, setVenueReviews] = useState<any[]>([]);
 
@@ -82,7 +86,8 @@ export function VenueDetail() {
       window.setTimeout(() => setShowPhotosLoadingPopup(false), 800);
     }
     if (tab === "reviews") {
-      reviewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // 사진 탭에서 바로 넘어온 경우 리뷰 섹션이 다시 보이게 그려진 다음에 스크롤한다.
+      window.setTimeout(() => reviewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -93,12 +98,10 @@ export function VenueDetail() {
   // "사진" 탭은 스크롤과 무관한 상태라, 리뷰 섹션에 도달하기 전까지는 건드리지 않는다
   // (그렇지 않으면 스크롤 1px만 움직여도 카테고리 보기가 원래 갤러리로 되돌아가버린다).
   useEffect(() => {
+    // "사진" 탭에서는 리뷰 섹션이 숨겨져 있어(위치값이 0으로 잡힘) 스크롤로 탭을 바꾸지 않는다.
     const handleScroll = () => {
-      if (reviewSectionRef.current && reviewSectionRef.current.getBoundingClientRect().top <= 140) {
-        setActiveInfoTab("reviews");
-      } else {
-        setActiveInfoTab((prev) => (prev === "photos" ? "photos" : "info"));
-      }
+      const reachedReviews = !!reviewSectionRef.current && reviewSectionRef.current.getBoundingClientRect().top <= 140;
+      setActiveInfoTab((prev) => (prev === "photos" ? "photos" : reachedReviews ? "reviews" : "info"));
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -144,6 +147,9 @@ export function VenueDetail() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setVenue(docSnap.data());
+          // 조회수 +1 (관리자 화면에서만 표시). 응답을 기다리지 않아 로딩에 영향 없음.
+          httpsCallable(functions, "logStoreEvent")({ store: "venue", id, type: "view" })
+            .catch((err) => console.error("조회수 기록 실패:", err));
         } else {
           alert("장소를 찾을 수 없습니다.");
           navigate("/venues");
@@ -399,7 +405,7 @@ export function VenueDetail() {
           {/* 이미지 갤러리 + 썸네일 (좌측 상단) - "사진" 탭을 누르면 스크롤 이동 없이
               이 영역만 카테고리별 사진 보기로 즉시 바뀐다. 예약 캘린더/CTA/상세정보/리뷰는
               그대로 유지되고, "정보" 탭을 다시 누르면 원래 갤러리로 돌아온다. */}
-          <div className="lg:col-start-1 lg:row-start-1">
+          <div className={`lg:col-start-1 lg:row-start-1 ${activeInfoTab === "photos" ? "lg:col-span-2" : ""}`}>
             {/* 순수 디졸브(투명도만 크로스페이드, 슬라이드나 높이 애니메이션 없음)로만
                 전환한다 - 높이까지 같이 애니메이션하려던 이전 시도들이 오히려 더
                 버벅이는 원인이었다. 높이는 그냥 즉시 바뀌고, 그 위의 내용만 부드럽게
@@ -418,14 +424,14 @@ export function VenueDetail() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="relative bg-white rounded-[32px] border border-[#f2f4f6] shadow-inner p-5 max-h-[520px] overflow-y-auto">
+                  className="relative md:bg-white md:rounded-[32px] md:border md:border-[#f2f4f6] md:shadow-inner md:p-5">
                   <AnimatePresence>
                     {showPhotosLoadingPopup && (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-[32px]"
+                        className="absolute inset-0 z-10 flex items-start justify-center pt-24 bg-white/80 backdrop-blur-sm rounded-[32px]"
                       >
                         <div className="flex flex-col items-center gap-3 px-6 py-5 bg-white rounded-2xl shadow-lg border border-[#f2f4f6]">
                           <div className="w-7 h-7 border-[3px] border-[#e5e8eb] border-t-[#3182f6] rounded-full animate-spin" />
@@ -437,17 +443,23 @@ export function VenueDetail() {
                   {categoriesWithPhotos.length === 0 ? (
                     <p className="text-[13px] text-[#8b95a1] font-bold text-center py-16">등록된 사진이 없어요</p>
                   ) : (
-                    <div className="space-y-5">
+                    // 작은 썸네일을 눌러서 하나씩 열어보던 방식 대신, 카테고리별로 큰 사진을
+                    // 2열 그리드로 펼쳐서 내리기만 해도 바로 보이게 한다(박스 안 스크롤 없이
+                    // 페이지 스크롤 하나로). 사진을 누르면 기존처럼 전체화면으로 크게 볼 수 있다.
+                    <div className="space-y-6 md:space-y-8">
                       {categoriesWithPhotos.map((category) => {
                         const photos = displayByCategory[category.key] || [];
                         const offset = runningOffset;
                         runningOffset += photos.length;
                         return (
                           <div key={category.key}>
-                            <p className="text-[13px] font-bold text-[#6b7684] mb-2.5">
-                              {category.label} <span className="text-[#adb5bd] font-bold">{photos.length}</span>
-                            </p>
-                            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                            {/* 카테고리명이 길어 줄바꿈되더라도 장수가 세로로 쪼개지지 않게, 장수를
+                                제목 글자 바로 뒤에 이어 붙인다. */}
+                            <h4 className="mb-2 text-[14px] md:text-[16px] font-black text-[#191f28] leading-snug break-keep">
+                              {category.label}
+                              <span className="ml-1.5 text-[12px] md:text-[13px] text-[#8b95a1] font-bold whitespace-nowrap">{photos.length}장</span>
+                            </h4>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 md:gap-3">
                               {photos.map((img, idx) => (
                                 <button
                                   key={img}
@@ -456,7 +468,7 @@ export function VenueDetail() {
                                     setCurrentImgIdx(offset + idx);
                                     setIsModalOpen(true);
                                   }}
-                                  className="shrink-0 w-[104px] h-[80px] rounded-xl overflow-hidden border-2 border-transparent hover:border-[#3182f6] transition-all"
+                                  className="aspect-[4/3] rounded-2xl overflow-hidden bg-[#f2f4f6] active:scale-[0.98] transition-transform"
                                 >
                                   <LazyImg src={img} className="object-cover" alt={category.label} />
                                 </button>
@@ -488,8 +500,9 @@ export function VenueDetail() {
                 }}
                 className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar rounded-[32px] bg-[#e5e8eb] shadow-inner"
               >
+                {/* snap-always: 빠르게/길게 밀어도 사진을 건너뛰지 않고 한 장씩만 넘어가게 한다. */}
                 {venue.images?.map((img: string, idx: number) => (
-                  <div key={idx} className="min-w-full aspect-[4/3] snap-center relative overflow-hidden">
+                  <div key={idx} className="min-w-full aspect-[4/3] snap-center snap-always relative overflow-hidden">
                     <LazyImg src={img} className="object-cover" alt="장소 이미지" eager={idx === 0} />
                     <button
                       onClick={() => { setCurrentImgIdx(idx); setIsModalOpen(true); }}
@@ -607,7 +620,7 @@ export function VenueDetail() {
           </div>
 
           {/* 타이틀/뱃지/정보 카드 - 우측 컬럼 1번째 (중첩 카드 없이 한 겹) */}
-          <section className="lg:col-start-2 lg:row-start-1 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] h-full flex flex-col justify-between">
+          <section className={`${hideInPhotos} lg:col-start-2 lg:row-start-1 bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] h-full flex flex-col justify-between`}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <span className="px-3.5 py-1.5 bg-[#f2f8ff] text-[#3182f6] text-[12px] font-black rounded-xl break-keep">
                 {venue.denomination || '교단 정보 없음'}
@@ -661,7 +674,7 @@ export function VenueDetail() {
               추가되며) 훨씬 길어져서 이 캘린더 카드까지 억지로 늘어나 가운데 빈 공간이
               커 보이는 문제가 생겼다. self-start로 바꿔서 이 카드는 자기 내용만큼의
               자연스러운 높이로만 표시되게 했다. */}
-          <section className="lg:col-start-1 lg:row-start-2 lg:self-start bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] flex flex-col">
+          <section className={`${hideInPhotos} lg:col-start-1 lg:row-start-2 lg:self-start bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] flex flex-col`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-[16px] font-black text-[#191f28] tracking-tight">
@@ -690,14 +703,14 @@ export function VenueDetail() {
           </section>
 
           {/* 상세 시설 정보 - 우측 컬럼 3번째 */}
-          <div className="lg:col-start-2 lg:row-start-2 lg:self-stretch bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] space-y-6">
+          <div className={`${hideInPhotos} lg:col-start-2 lg:row-start-2 lg:self-stretch bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] space-y-6`}>
             {/* 1. 상세 시설 정보 */}
             <div>
               <h3 className="text-[16px] font-black text-[#191f28] mb-3 flex items-center gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 상세 시설 정보
               </h3>
               <div className="bg-[#f9fafb] rounded-2xl border border-[#f2f4f6] overflow-hidden">
-                <InfoRow icon={<Square className="w-4 h-4" />} label="강당 크기" value={venue.hallSize ? `${venue.hallSize}평` : '-'} />
+                <InfoRow icon={<Square className="w-4 h-4" />} label="강당 크기" value={venue.hallSize ? `${venue.hallSize}${venue.hallSizeUnit === '명' ? '명' : '평'}` : '-'} />
                 <InfoRow icon={<LayoutIcon className="w-4 h-4" />} label="음향/조명" value={venue.soundSystem || '-'} />
                 <InfoRow icon={<Info className="w-4 h-4" />} label="보유 악기" value={venue.instruments || '-'} />
                 <InfoRow icon={<Bath className="w-4 h-4" />} label="샤워실/화장실" value={venue.showerBathroom || '-'} />
@@ -763,7 +776,7 @@ export function VenueDetail() {
           </div>
 
           {/* 장소 소개 - 헤딩은 배경 위, 내용은 카드 한 겹만 */}
-          <div className="lg:col-span-2">
+          <div className={`${hideInPhotos} lg:col-span-2`}>
             
             <div className="bg-white rounded-2xl border border-[#f2f4f6] p-5">
               <h3 className="text-[16px] font-black text-[#191f28] mb-3 flex items-center gap-2.5">
@@ -777,7 +790,7 @@ export function VenueDetail() {
           </div>
 
           {/* 장소 리뷰 - 상단 "장소 리뷰 보기" 탭 클릭 시 이 지점으로 스크롤 이동 */}
-          <div ref={reviewSectionRef} className="lg:col-span-2 scroll-mt-24">
+          <div ref={reviewSectionRef} className={`${hideInPhotos} lg:col-span-2 scroll-mt-24`}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h3 className="text-[16px] font-black text-[#191f28] flex items-center gap-2.5">
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 장소 리뷰
@@ -861,13 +874,13 @@ export function VenueDetail() {
           <button
             type="button"
             onClick={() => navigate("/booking-guide")}
-            className="lg:col-span-2 flex items-center justify-center gap-2 py-3 px-4 bg-[#F2F8FF] hover:bg-[#E8F3FF] text-[#3182f6] rounded-2xl font-bold text-[14px] transition-all active:scale-[0.98] border border-[#E8F3FF]"
+            className={`${hideInPhotos} lg:col-span-2 flex items-center justify-center gap-2 py-3 px-4 bg-[#F2F8FF] hover:bg-[#E8F3FF] text-[#3182f6] rounded-2xl font-bold text-[14px] transition-all active:scale-[0.98] border border-[#E8F3FF]`}
           >
             <BookOpen className="w-4 h-4" /> 예약이 처음이신가요? 전체 절차 보기 <ChevronRight className="w-4 h-4" />
           </button>
 
           {/* 예약 상담 CTA - 맨 아래, 전체 폭 */}
-          <section className="lg:col-span-2 bg-[#3182f6] rounded-[24px] p-5 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <section className={`${hideInPhotos} lg:col-span-2 bg-[#3182f6] rounded-[24px] p-5 shadow-xl text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4`}>
             <div>
               <h3 className="text-[18px] font-black mb-1 tracking-tight break-keep">예약 상담을 시작하시겠어요?</h3>
               <p className="text-[13px] font-medium opacity-90 leading-relaxed break-keep">

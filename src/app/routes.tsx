@@ -51,6 +51,7 @@ import { AdminSoundConstruction } from "./pages/AdminSoundConstruction";
 import { AdminMissionVenues } from "./pages/AdminMissionVenues";
 import { AdminVenueSuggestions } from "./pages/AdminVenueSuggestions";
 import { AdminMessageTemplates } from "./pages/AdminMessageTemplates";
+import { AdminChecklists } from "./pages/AdminChecklists";
 import { VehicleRentalList } from "./pages/VehicleRentalList";
 import { VehicleRentalDetail } from "./pages/VehicleRentalDetail";
 import { MissionVenueDetail } from "./pages/MissionVenueDetail";
@@ -370,6 +371,7 @@ export const router = createBrowserRouter([
       { path: "sound-construction", element: <AdminSoundConstruction /> },
       { path: "venue-suggestions", element: <AdminVenueSuggestions /> },
       { path: "message-templates", element: <AdminMessageTemplates /> },
+      { path: "checklists", element: <AdminChecklists /> },
     ],
   },
 ]);

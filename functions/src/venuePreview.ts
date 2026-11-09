@@ -48,7 +48,8 @@ function buildVenueBodyHtml(v: VenueDoc): string {
     .filter(Boolean).join(" ");
   const tags = Array.isArray(v.tags) ?
     v.tags.map(txt).filter(Boolean).map((t: string) => `#${t}`).join(" ") : "";
-  const hall = txt(v.hallSize) ? `${txt(v.hallSize)}평` : "";
+  const hallUnit = v.hallSizeUnit === "명" ? "명" : "평";
+  const hall = txt(v.hallSize) ? `${txt(v.hallSize)}${hallUnit}` : "";
   const rooms = Number(v.maleRooms) > 0 || Number(v.femaleRooms) > 0 ?
     `남 ${Number(v.maleRooms) || 0} / 여 ${Number(v.femaleRooms) || 0}` : "";
   const mealOption = Array.isArray(v.mealOption) ? v.mealOption : [];
@@ -183,7 +184,8 @@ function buildVenueJsonLd(
 // 연락처/이메일/uid 같은 개인정보는 절대 HTML에 실어 보내지 않는다.
 const PRELOAD_FIELDS = [
   "venueName", "denomination", "location", "addressDetail", "tags",
-  "capacity", "price", "description", "images", "hallSize", "soundSystem",
+  "capacity", "price", "description", "images", "hallSize", "hallSizeUnit",
+  "soundSystem",
   "instruments", "showerBathroom", "maleRooms", "femaleRooms",
   "cafeteriaCapacity", "mealOption", "mealPrice", "mealNote", "airConditioner",
   "nightEventLimit", "parkingCapacity", "projector", "blockedDates",
@@ -281,9 +283,21 @@ export const venuePreview = onRequest(
 
     try {
       const html = await fetchIndexHtml();
+      let patched = patchMeta(html, meta);
+      // 상세 화면의 첫 사진(슬라이더 첫 장)을 사이트 스크립트가 다 받아지고 실행된 뒤가
+      // 아니라 HTML을 받자마자 같이 내려받게 한다. 카카오톡 인앱 브라우저처럼 캐시가
+      // 비어 있는 첫 방문에서 사진이 늦게 뜨던 문제를 줄이기 위함.
+      if (meta.image && meta.preload) {
+        const imageUrl = escapeHtml(meta.image);
+        const hints = "\n    <link rel=\"preconnect\" " +
+          "href=\"https://firebasestorage.googleapis.com\" />" +
+          `\n    <link rel="preload" as="image" href="${imageUrl}" ` +
+          "fetchpriority=\"high\" />";
+        patched = patched.replace("<head>", () => `<head>${hints}`);
+      }
       res.set("Content-Type", "text/html; charset=UTF-8");
       res.set("Cache-Control", "public, max-age=300");
-      res.status(200).send(patchMeta(html, meta));
+      res.status(200).send(patched);
     } catch (error) {
       logger.error("venuePreview: index.html 서빙 실패", error);
       res.status(500).send("Internal Server Error");

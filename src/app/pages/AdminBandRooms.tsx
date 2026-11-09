@@ -5,7 +5,7 @@ import {
   Phone, Mail, ClipboardCheck, CalendarCheck, MapPinned, CreditCard,
   Calendar, Trash2, X, RotateCcw, Edit3, Save, ShieldOff, ImagePlus, Tag, BarChart3, Megaphone, Zap,
   ChevronLeft, ChevronRight, GripVertical, Ban, Volume2,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, serverTimestamp } from "firebase/firestore";
@@ -343,6 +343,7 @@ export function AdminBandRooms() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

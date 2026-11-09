@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 // import { ScrollRestoration } from "react-router-dom";
 import { ScrollRestoration, useSearchParams } from "react-router-dom";
 import {
@@ -10,12 +10,14 @@ import {
   ShieldCheck, Award, Check, Calendar, Settings,
   ClipboardCheck, CalendarCheck, MapPinned,
   Wind, Car, Volume2, GripVertical, ChevronUp, ChevronDown, ArrowLeft, ChevronLeft, ZoomIn, ShieldOff, TrendingUp, BarChart3, Megaphone, Bath, Phone, Ban, Church, Mail,
-  LayoutDashboard, Link2, ExternalLink, MessageSquareText,
+  LayoutDashboard, ClipboardList, Link2, ExternalLink, MessageSquareText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, storage, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, where, arrayUnion, arrayRemove, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import imageCompression from "browser-image-compression";
+import { VENUE_IMAGE_COMPRESSION, VENUE_IMAGE_CACHE_CONTROL } from "../lib/storage";
 import { httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
@@ -38,6 +40,91 @@ const formatNumber = (val: any) => {
 const unformatNumber = (val: string) => val.replace(/,/g, "");
 
 // 통계 카드 컴포넌트 (클릭 시 해당 탭으로 이동 + 현재 탭 하이라이트)
+// 시즌별 요금 달력. 시즌은 매년 반복되므로 연도 없이 월-일("MM-DD")만 고르고 저장한다.
+// 2월은 윤년까지 고려해 29일까지 표시하고, 요일은 해마다 달라서 표시하지 않는다.
+const SEASON_MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const SeasonDatePicker = ({ value, onChange, disabled, alignRight }: { value: string; onChange: (monthDay: string) => void; disabled?: boolean; alignRight?: boolean }) => {
+  // 예전 데이터에 "YYYY-MM-DD"나 슬래시 형식이 섞여 있어도 월-일만 읽는다.
+  const normalized = (value || "").replace(/\//g, "-").trim();
+  const monthDay = normalized.length === 10 ? normalized.substring(5) : normalized;
+  const selectedMonth = Number(monthDay.split("-")[0]) || 0;
+  const selectedDay = Number(monthDay.split("-")[1]) || 0;
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [month, setMonth] = useState(selectedMonth || new Date().getMonth() + 1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (!isOpen && selectedMonth) setMonth(selectedMonth);
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full h-[46px] px-3.5 bg-white border flex items-center justify-between gap-1.5 rounded-xl transition-all ${isOpen ? "border-[#3182F6] shadow-[0_0_0_1px_#3182F6]" : "border-[#E5E8EB]"} ${disabled ? "cursor-default" : "hover:border-[#B0B8C1]"}`}
+      >
+        <span className={`text-[14px] font-black whitespace-nowrap ${selectedMonth && selectedDay ? "text-[#191F28]" : "text-[#ADB5BD]"}`}>
+          {selectedMonth && selectedDay ? `${selectedMonth}월 ${selectedDay}일` : "날짜 선택"}
+        </span>
+        <Calendar className={`w-4 h-4 shrink-0 ${isOpen ? "text-[#3182F6]" : "text-[#B0B8C1]"}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            className={`absolute z-[100] top-[100%] ${alignRight ? "right-0" : "left-0"} w-[280px] mt-2 bg-white rounded-[24px] p-5 shadow-[0_24px_54px_rgba(0,0,0,0.12)] border border-[#F2F4F6]`}
+          >
+            <div className="flex items-center justify-between mb-4 px-1">
+              <span className="text-[17px] font-black text-[#191F28]">{month}월</span>
+              <div className="flex gap-1">
+                <button type="button" onClick={() => setMonth(month === 1 ? 12 : month - 1)} className="p-2 hover:bg-[#F2F4F6] rounded-full transition-colors"><ChevronLeft className="w-5 h-5 text-[#4E5968]" /></button>
+                <button type="button" onClick={() => setMonth(month === 12 ? 1 : month + 1)} className="p-2 hover:bg-[#F2F4F6] rounded-full transition-colors"><ChevronRight className="w-5 h-5 text-[#4E5968]" /></button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: SEASON_MONTH_DAYS[month - 1] }, (_, i) => i + 1).map((day) => {
+                const isSelected = month === selectedMonth && day === selectedDay;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      onChange(`${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+                      setIsOpen(false);
+                    }}
+                    className={`aspect-square flex items-center justify-center text-[13px] font-black rounded-[12px] transition-all ${isSelected ? "bg-[#3182F6] text-white shadow-md shadow-[#3182F6]/20" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-[11px] font-bold text-[#8B95A1] text-center">매년 같은 날짜에 반복 적용됩니다</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const StatCard = ({ title, value, icon: Icon, colorClass, onClick, isActive }: any) => (
   <button
     onClick={onClick}
@@ -430,7 +517,9 @@ export function AdminDashboard() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const storageRef = ref(storage, `venues/${editedVenue.venueName || 'unnamed'}_${key}_${Date.now()}_${i}`);
-        const snapshot = await uploadBytes(storageRef, file);
+        // 카메라 원본(3~5MB)이 그대로 올라가 상세페이지가 느려지던 문제 - 장소 등록 화면과 같이 줄여서 올린다.
+        const compressed = await imageCompression(file, VENUE_IMAGE_COMPRESSION);
+        const snapshot = await uploadBytes(storageRef, compressed, { contentType: compressed.type || file.type, cacheControl: VENUE_IMAGE_CACHE_CONTROL });
         const url = await getDownloadURL(snapshot.ref);
         newImageUrls.push(url);
       }
@@ -464,7 +553,8 @@ export function AdminDashboard() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const storageRef = ref(storage, `venues/${editedVenue.venueName || 'unnamed'}_bulk_${Date.now()}_${i}`);
-        const snapshot = await uploadBytes(storageRef, file);
+        const compressed = await imageCompression(file, VENUE_IMAGE_COMPRESSION);
+        const snapshot = await uploadBytes(storageRef, compressed, { contentType: compressed.type || file.type, cacheControl: VENUE_IMAGE_CACHE_CONTROL });
         const url = await getDownloadURL(snapshot.ref);
         uploadedUrls.push(url);
       }
@@ -788,7 +878,7 @@ export function AdminDashboard() {
       } else {
         updatedSeasons[index][field] = value.trim();
       }
-    } else if (field === "price") {
+    } else if (field === "price" || field === "extraNightPrice") {
       updatedSeasons[index][field] = unformatNumber(value);
     } else {
       updatedSeasons[index][field] = value;
@@ -834,6 +924,8 @@ export function AdminDashboard() {
       };
 
       delete updateData.id;
+      // 조회수는 서버가 올리는 값이라, 편집 화면을 연 시점의 값으로 덮어쓰지 않는다.
+      delete (updateData as any).viewCount;
 
       // const { id, ...updateData } = finalUpdateData;
       await updateDoc(venueRef, updateData);
@@ -888,6 +980,7 @@ export function AdminDashboard() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {
@@ -1198,7 +1291,7 @@ export function AdminDashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[12px] font-bold text-[#8B95A1] truncate">{venue.applicantName || "익명"} · {venue.denomination}</p>
+                      <p className="text-[12px] font-bold text-[#8B95A1] truncate">{venue.applicantName || "익명"} · {venue.denomination} · 조회 {Number(venue.viewCount || 0).toLocaleString()}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-[#D1D6DB] shrink-0" />
                   </div>
@@ -1286,6 +1379,8 @@ export function AdminDashboard() {
                               )}
                               <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
                               <span className="text-[12px] font-bold text-[#3182F6] truncate">{venue.denomination}</span>
+                              <span className="w-1 h-1 bg-[#D1D6DB] rounded-full shrink-0" />
+                              <span className="text-[12px] font-bold text-[#8B95A1] shrink-0">조회 {Number(venue.viewCount || 0).toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -1940,11 +2035,7 @@ export function AdminDashboard() {
                       <button
                         type="button"
                         disabled={!isEditMode}
-                        onClick={() => setEditedVenue({
-                          ...editedVenue,
-                          useSeasonalPrice: !editedVenue.useSeasonalPrice,
-                          useTimeSlotPrice: editedVenue.useSeasonalPrice ? editedVenue.useTimeSlotPrice : false // 시즌을 켜면 시간대별은 강제 OFF
-                        })}
+                        onClick={() => setEditedVenue({ ...editedVenue, useSeasonalPrice: !editedVenue.useSeasonalPrice })}
                         className={`w-12 h-7 rounded-full transition-colors relative outline-none border border-transparent ${editedVenue.useSeasonalPrice ? "bg-[#3182F6]" : "bg-[#D1D6DB]"}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${editedVenue.useSeasonalPrice ? "translate-x-5" : "translate-x-0"}`} />
@@ -1957,63 +2048,107 @@ export function AdminDashboard() {
                     {/* 시즌 설정 폼 동적 락킹 */}
                     <div className={`space-y-3 transition-opacity ${editedVenue.useSeasonalPrice ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
                       {(editedVenue.seasonPrices || []).map((season: any, idx: number) => {
-                        const formatToDateValue = (dateStr: string) => {
-                          if (!dateStr) return "";
-                          if (dateStr.split("-").length === 3) return dateStr; // 이미 YYYY-MM-DD 인 경우
-                          const currentYear = new Date().getFullYear(); // 기본적으로 현재 연도 기준 (2026)
-                          return `${currentYear}-${dateStr}`;
-                        };
-
                         return (
                           <div key={idx} className="p-4 bg-[#FAFAFB] border border-[#E5E8EB] rounded-2xl space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[14px] font-black text-[#3182F6]">{season.label} 요금</span>
-                              <span className="text-[11px] text-[#8B95A1] font-bold">시즌별 날짜 지정</span>
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="flex gap-1.5">
+                                {["성수기", "비성수기"].map((label) => {
+                                  // 기존 장소의 기본 이름 "비수기"도 비성수기로 표시한다.
+                                  const isSelected = season.label === label || (label === "비성수기" && season.label === "비수기");
+                                  return (
+                                    <button
+                                      key={label}
+                                      type="button"
+                                      disabled={!isEditMode}
+                                      onClick={() => handleSeasonPriceChange(idx, "label", label)}
+                                      className={`px-3 py-1.5 rounded-lg text-[12px] font-black transition-all ${isSelected ? "bg-[#3182F6] text-white" : "bg-[#F2F4F6] text-[#8B95A1]"}`}
+                                    >
+                                      {label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {isEditMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditedVenue({ ...editedVenue, seasonPrices: editedVenue.seasonPrices.filter((_: any, i: number) => i !== idx) })}
+                                  aria-label="시즌 삭제"
+                                  className="p-1.5 text-[#8B95A1] hover:text-[#F04452] hover:bg-[#FFF0F0] rounded-lg transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <label className="text-[10px] font-bold text-[#8B95A1] block mb-1">시작일</label>
-                                <div className="relative">
-                                  {/* 고정되어 있던 `2026-` 하드코딩을 제거하고 동적 날짜값 바인딩 */}
-                                  <input
-                                    type="date"
-                                    disabled={!isEditMode}
-                                    value={formatToDateValue(season.start)}
-                                    onChange={(e) => handleSeasonPriceChange(idx, "start", e.target.value)}
-                                    className="w-full px-3 py-2 text-[13px] font-bold bg-white border border-[#E5E8EB] rounded-xl text-center outline-none focus:border-[#3182F6] transition-all"
-                                  />
-                                </div>
+                                <SeasonDatePicker
+                                  value={season.start}
+                                  disabled={!isEditMode}
+                                  onChange={(monthDay) => handleSeasonPriceChange(idx, "start", monthDay)}
+                                />
                               </div>
                               <div>
                                 <label className="text-[10px] font-bold text-[#8B95A1] block mb-1">종료일</label>
-                                <div className="relative">
-                                  {/* 고정되어 있던 `2026-` 하드코딩을 제거하고 동적 날짜값 바인딩 */}
-                                  <input
-                                    type="date"
-                                    disabled={!isEditMode}
-                                    value={formatToDateValue(season.end)}
-                                    onChange={(e) => handleSeasonPriceChange(idx, "end", e.target.value)}
-                                    className="w-full px-3 py-2 text-[13px] font-bold bg-white border border-[#E5E8EB] rounded-xl text-center outline-none focus:border-[#3182F6] transition-all"
-                                  />
-                                </div>
+                                <SeasonDatePicker
+                                  value={season.end}
+                                  disabled={!isEditMode}
+                                  alignRight
+                                  onChange={(monthDay) => handleSeasonPriceChange(idx, "end", monthDay)}
+                                />
                               </div>
                             </div>
 
-                            <div className="relative">
-                              <input
-                                type="text"
-                                placeholder="해당 시즌 적용 요금"
-                                disabled={!isEditMode}
-                                value={formatNumber(season.price)}
-                                onChange={(e) => handleSeasonPriceChange(idx, "price", e.target.value)}
-                                className="w-full pl-4 pr-10 py-2.5 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]"
-                              />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#8B95A1]">원</span>
+                            <div>
+                              <label className="text-[10px] font-bold text-[#8B95A1] block mb-1">1박 요금</label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  placeholder="해당 시즌 적용 요금"
+                                  disabled={!isEditMode}
+                                  value={formatNumber(season.price)}
+                                  onChange={(e) => handleSeasonPriceChange(idx, "price", e.target.value)}
+                                  className="w-full pl-4 pr-10 py-2.5 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#8B95A1]">원</span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-[#8B95A1] block mb-1">추가 1박 요금 (선택)</label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  placeholder="비워 두면 1박 요금과 동일"
+                                  disabled={!isEditMode}
+                                  value={formatNumber(season.extraNightPrice)}
+                                  onChange={(e) => handleSeasonPriceChange(idx, "extraNightPrice", e.target.value)}
+                                  className="w-full pl-4 pr-10 py-2.5 bg-white border border-[#E5E8EB] rounded-xl text-[14px] font-bold text-right outline-none focus:border-[#3182F6]"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#8B95A1]">원</span>
+                              </div>
+                              <p className="mt-1 text-[11px] font-bold text-[#8B95A1] break-keep">입력하면 이 장소의 3박 이상 예약은 스테이온 문의로 안내됩니다.</p>
                             </div>
                           </div>
                         );
                       })}
+
+                      {isEditMode && (
+                        <button
+                          type="button"
+                          onClick={() => setEditedVenue({
+                            ...editedVenue,
+                            seasonPrices: [...(editedVenue.seasonPrices || []), { label: "성수기", start: "", end: "", price: "", extraNightPrice: "" }],
+                          })}
+                          className="w-full py-3 flex items-center justify-center gap-1.5 bg-white border border-dashed border-[#B0B8C1] rounded-2xl text-[13px] font-black text-[#4E5968] hover:border-[#3182F6] hover:text-[#3182F6] transition-all"
+                        >
+                          <Plus className="w-4 h-4" /> 시즌 추가
+                        </button>
+                      )}
+                      {(editedVenue.seasonPrices || []).length > 2 && (
+                        <p className="text-[11px] font-bold text-[#8B95A1] break-keep">기간이 겹치면 목록에서 위에 있는 시즌의 요금이 적용됩니다.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2028,11 +2163,7 @@ export function AdminDashboard() {
                       <button
                         type="button"
                         disabled={!isEditMode}
-                        onClick={() => setEditedVenue({
-                          ...editedVenue,
-                          useTimeSlotPrice: !editedVenue.useTimeSlotPrice,
-                          useSeasonalPrice: !editedVenue.useTimeSlotPrice ? false : editedVenue.useSeasonalPrice
-                        })}
+                        onClick={() => setEditedVenue({ ...editedVenue, useTimeSlotPrice: !editedVenue.useTimeSlotPrice })}
                         className={`w-12 h-7 rounded-full transition-colors relative outline-none border border-transparent ${editedVenue.useTimeSlotPrice ? "bg-[#3182F6]" : "bg-[#D1D6DB]"}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-sm transition-transform ${editedVenue.useTimeSlotPrice ? "translate-x-5" : "translate-x-0"}`} />

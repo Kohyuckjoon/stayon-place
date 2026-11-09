@@ -5,7 +5,7 @@ import {
   Phone, Mail, Church, User, ClipboardCheck, CalendarCheck, MapPinned, MapPin,
   CreditCard, Calendar, Trash2, X, RotateCcw, Share2, Edit3, Save, ShieldOff, Lock, ImagePlus, ChevronDown, TrendingUp,
   Eye, Copy, PhoneCall, BarChart3, Megaphone, Download, Camera, AtSign, Newspaper, Ban, Volume2, ChevronLeft, ChevronRight,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { db, functions } from "../lib/firebase";
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
@@ -649,6 +649,7 @@ export function AdminTeams() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {

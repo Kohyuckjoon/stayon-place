@@ -102,9 +102,11 @@ export const logReferralVisit = onCall({
 // 굿즈/단체티 상세페이지 조회수 및 "온라인몰 바로가기" 클릭수 기록 - logTeamContactEvent와
 // 동일한 이유(익명 방문자가 호출하는 단순 카운터라 소유권 검사가 필요 없음)로 컬렉션·필드를
 // 화이트리스트로 제한해 한 함수를 goodsStore/groupShirts 둘이 같이 쓴다.
+// 수련회 장소(venues)도 상세페이지 조회수만 같은 함수로 기록한다(관리자 화면에서만 표시).
 const STORE_EVENT_COLLECTIONS: Record<string, string> = {
   goods: "goodsStore",
   shirts: "groupShirts",
+  venue: "venues",
 };
 const STORE_EVENT_FIELDS: Record<string, string> = {
   view: "viewCount",
@@ -120,6 +122,9 @@ export const logStoreEvent = onCall({
     STORE_EVENT_COLLECTIONS[store] : undefined;
   const field = typeof type === "string" ? STORE_EVENT_FIELDS[type] : undefined;
   if (!id || typeof id !== "string" || !collectionName || !field) {
+    return {success: false, error: "잘못된 요청"};
+  }
+  if (store === "venue" && type !== "view") {
     return {success: false, error: "잘못된 요청"};
   }
   try {
@@ -164,6 +169,8 @@ export {
 } from "./analytics";
 
 export {dynamicSitemap} from "./dynamicSitemap";
+
+export {rssFeed} from "./rssFeed";
 export {reviewsPreview} from "./reviewsPreview";
 export {venuePreview} from "./venuePreview";
 export {venuesPreview} from "./venuesPreview";

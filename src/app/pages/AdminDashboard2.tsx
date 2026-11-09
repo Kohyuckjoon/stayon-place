@@ -7,7 +7,7 @@ import {
   Users, CreditCard, MessageSquare,
   RotateCcw, ChevronRight, ChevronLeft, Mail, ClipboardCheck,
   CalendarCheck, Trash2, Check, MapPinned, Tent, Receipt, Coins, ShieldOff, BarChart3, Megaphone, Ban, Volume2, CalendarDays,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, functions } from "../lib/firebase";
@@ -55,6 +55,53 @@ const INSPECTION_TIME_SLOTS: string[] = (() => {
   }
   return slots;
 })();
+
+// 대관 기간 변경 시 숙박 요금을 다시 계산한다. Booking.tsx의 calculateTotalPrice에서
+// 숙박 요금 부분만 같은 기준으로 옮긴 것으로, 추가 인원·옵션 요금은 포함하지 않는다.
+function calculateStayPrice(venue: any, booking: any, startDate: string, endDate: string) {
+  const basePrice = Number(booking.selectedTimeSlot?.price ?? venue.price ?? 0);
+  const nights = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+  if (nights <= 0) return basePrice;
+
+  let total = 0;
+  for (let i = 0; i < nights; i++) {
+    const currentDay = new Date(startDate);
+    currentDay.setDate(currentDay.getDate() + i);
+    const currentMMDD = `${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
+
+    let dayPrice = basePrice;
+    if (venue.useSeasonalPrice && venue.seasonPrices?.length > 0) {
+      const matchedSeason = venue.seasonPrices.find((season: any) => {
+        if (!season.start || !season.end || season.price === "" || season.price == null) return false;
+        let startSeason = season.start.replace(/\//g, '-').trim();
+        let endSeason = season.end.replace(/\//g, '-').trim();
+        if (startSeason.length === 10) startSeason = startSeason.substring(5);
+        if (endSeason.length === 10) endSeason = endSeason.substring(5);
+        return startSeason <= endSeason
+          ? (currentMMDD >= startSeason && currentMMDD <= endSeason)
+          : (currentMMDD >= startSeason || currentMMDD <= endSeason);
+      });
+      if (matchedSeason) {
+        const hasExtraNightPrice = matchedSeason.extraNightPrice !== "" && matchedSeason.extraNightPrice != null;
+        dayPrice = i > 0 && hasExtraNightPrice ? Number(matchedSeason.extraNightPrice) : Number(matchedSeason.price);
+      }
+    }
+    total += dayPrice;
+  }
+  return total;
+}
+
+// 새 숙박 요금에 추가 인원·옵션 요금을 더한다. 기존 금액이 숙박 요금보다 적으면
+// (날짜만 먼저 바뀐 예약 등) 추가 요금이 없는 것으로 본다.
+function calculateChangedBookingPrices(venue: any, booking: any, startDate: string, endDate: string) {
+  const oldTotal = Number(booking.totalPrice || 0);
+  const extraFees = Math.max(0, oldTotal - calculateStayPrice(venue, booking, booking.startDate, booking.endDate));
+  const totalPrice = calculateStayPrice(venue, booking, startDate, endDate) + extraFees;
+  // depositPercent가 0이면 정액 예약금이라 그대로 둔다.
+  const depositPercent = Number(booking.depositPercent ?? (venue.depositType === "amount" ? 0 : (venue.depositPercent || 10)));
+  const depositPrice = depositPercent > 0 ? Math.floor((totalPrice * depositPercent) / 100) : Number(booking.depositPrice || 0);
+  return { totalPrice, depositPrice, balancePrice: totalPrice - depositPrice };
+}
 
 // Booking.tsx의 MaterialCalendar(토스 스타일 달력)와 동일한 디자인을 그대로 복제한 것.
 // Booking.tsx(결제 흐름 보호 파일)는 절대 건드리지 않기 위해 여기서 별도로 둔다.
@@ -177,10 +224,16 @@ export function AdminDashboard2() {
   // "답사 가능 승인" 시 신청자가 제출한 희망 날짜 중 최종 1건 + 시간을 같이 확정한다.
   const [confirmDateChoice, setConfirmDateChoice] = useState("");
   const [confirmTimeChoice, setConfirmTimeChoice] = useState("");
+  // 신청자가 수련회 날짜를 바꾸고 싶어 할 때 관리자가 대관 기간을 직접 변경한다.
+  const [isEditingDates, setIsEditingDates] = useState(false);
+  const [newStartDate, setNewStartDate] = useState("");
+  const [newEndDate, setNewEndDate] = useState("");
+  const [isSavingDates, setIsSavingDates] = useState(false);
 
   // 다른 예약 카드를 선택할 때마다 이전 선택이 남아있지 않도록 초기화하고,
   // 이미 희망 날짜가 하나뿐이면 편의상 기본으로 선택해둔다.
   useEffect(() => {
+    setIsEditingDates(false);
     if (!selectedBooking) return;
     setConfirmDateChoice(selectedBooking.confirmedInspectionDate || (selectedBooking.inspectionDate?.length === 1 ? selectedBooking.inspectionDate[0] : ""));
     setConfirmTimeChoice(selectedBooking.confirmedInspectionTime || "");
@@ -319,6 +372,62 @@ export function AdminDashboard2() {
     }
   };
 
+  // 결제가 끝난 예약은 차액 처리가 필요할 수 있어 여기서 날짜를 바꾸지 않는다.
+  const canChangeDates = selectedBooking && !["deposit_paid", "completed", "cancelled"].includes(selectedBooking.status);
+  const isDateRangeInvalid = !newStartDate || !newEndDate || newEndDate < newStartDate;
+  const isDateRangeUnchanged = newStartDate === selectedBooking?.startDate && newEndDate === selectedBooking?.endDate;
+  const overlappingBookings = !selectedBooking || isDateRangeInvalid ? [] : bookings.filter(b =>
+    b.id !== selectedBooking.id
+    && b.venueId === selectedBooking.venueId
+    && b.status !== "cancelled"
+    && b.startDate && b.endDate
+    && newStartDate <= b.endDate && newEndDate >= b.startDate
+  );
+  // 결제 대기 이후 단계의 예약이나 관리자가 막아둔 날짜와 겹치면 저장할 수 없고,
+  // 그 이전 단계의 예약과 겹치면 안내만 하고 저장은 허용한다.
+  const hasOccupiedOverlap = overlappingBookings.some(b => ["approved", "deposit_paid", "completed"].includes(b.status));
+  const selectedBookingVenue = venues.find(v => v.id === selectedBooking?.venueId);
+  const selectedBookingBlockedDates: string[] = selectedBookingVenue?.blockedDates || [];
+  // 사전답사 예약의 금액은 날짜와 상관없는 답사비라서 일반 예약만 다시 계산한다.
+  const isInspectionBooking = selectedBooking?.type === "inspection" || selectedBooking?.depositLabel === "사전답사비";
+  const changedPrices = selectedBooking && selectedBookingVenue && !isInspectionBooking && !isDateRangeInvalid
+    ? calculateChangedBookingPrices(selectedBookingVenue, selectedBooking, newStartDate, newEndDate)
+    : null;
+  const isPriceUnavailable = !!selectedBooking && !isInspectionBooking && !selectedBookingVenue;
+  // 날짜가 같아도 저장된 금액이 틀어져 있으면 바로잡을 수 있게 한다.
+  const hasNoDateChanges = isDateRangeUnchanged && (!changedPrices || changedPrices.totalPrice === Number(selectedBooking?.totalPrice || 0));
+  const hasBlockedDateOverlap = !isDateRangeInvalid && selectedBookingBlockedDates.some(dateStr => {
+    const d = new Date(dateStr);
+    return d >= new Date(newStartDate) && d <= new Date(newEndDate);
+  });
+
+  const handleStartEditingDates = () => {
+    setNewStartDate(selectedBooking?.startDate || "");
+    setNewEndDate(selectedBooking?.endDate || "");
+    setIsEditingDates(true);
+  };
+
+  const handleSaveBookingDates = async () => {
+    if (!selectedBooking || isDateRangeInvalid || hasNoDateChanges || hasOccupiedOverlap || hasBlockedDateOverlap || isPriceUnavailable || isSavingDates) return;
+    const priceMessage = changedPrices
+      ? `총 금액: ${Number(selectedBooking.totalPrice || 0).toLocaleString()}원 → ${changedPrices.totalPrice.toLocaleString()}원\n예약금: ${Number(selectedBooking.depositPrice || 0).toLocaleString()}원 → ${changedPrices.depositPrice.toLocaleString()}원`
+      : "사전답사비는 바뀌지 않습니다.";
+    if (!window.confirm(`대관 기간을 변경할까요?\n\n기존: ${selectedBooking.startDate} ~ ${selectedBooking.endDate}\n변경: ${newStartDate} ~ ${newEndDate}\n\n${priceMessage}`)) return;
+    try {
+      setIsSavingDates(true);
+      const updates = { startDate: newStartDate, endDate: newEndDate, ...(changedPrices || {}) };
+      await updateDoc(doc(db, "bookings", selectedBooking.id), updates);
+      setSelectedBooking((prev: any) => prev ? { ...prev, ...updates } : prev);
+      setIsEditingDates(false);
+      alert("대관 기간이 변경되었습니다.");
+    } catch (error) {
+      console.error("대관 기간 변경 실패:", error);
+      alert("대관 기간 변경 중 오류가 발생했습니다.");
+    } finally {
+      setIsSavingDates(false);
+    }
+  };
+
   const filteredData = bookings.filter(b => b.status === activeTab && (b.churchName?.includes(searchQuery) || b.contactName?.includes(searchQuery)));
   const pendingCount = bookings.filter(b => b.status === "pending").length;
   const inspectionReadyCount = bookings.filter(b => b.status === "inspection_confirmed").length;
@@ -332,6 +441,7 @@ export function AdminDashboard2() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {
@@ -644,6 +754,84 @@ export function AdminDashboard2() {
                     <InfoRow icon={Users} label="총 인원" value={`${selectedBooking.additionalAttendees || 0}명`} />
                     <InfoRow icon={Calendar} label="대관 기간" value={`${selectedBooking.startDate} ~ ${selectedBooking.endDate}`} />
                   </div>
+
+                  {canChangeDates && !isEditingDates && (
+                    <button
+                      type="button"
+                      onClick={handleStartEditingDates}
+                      className="w-full mt-2.5 sm:mt-3 py-3.5 bg-[#F2F8FF] text-[#3182F6] rounded-xl sm:rounded-2xl font-black text-[13px] sm:text-[14px] hover:bg-[#E8F3FF] transition-colors active:scale-[0.99]"
+                    >
+                      날짜 변경
+                    </button>
+                  )}
+
+                  {canChangeDates && isEditingDates && (
+                    <div className="mt-2.5 sm:mt-3 bg-[#F2F8FF] p-4 sm:p-6 rounded-[20px] sm:rounded-[28px] border border-blue-50 space-y-4">
+                      <div className="grid grid-cols-1 gap-3">
+                        <MaterialCalendar label="새 시작일" value={newStartDate} onChange={setNewStartDate} />
+                        <MaterialCalendar label="새 종료일" value={newEndDate} onChange={setNewEndDate} />
+                      </div>
+
+                      {newStartDate && newEndDate && newEndDate < newStartDate && (
+                        <p className="text-[13px] font-bold text-[#F04452] break-keep">종료일이 시작일보다 빠릅니다.</p>
+                      )}
+                      {hasBlockedDateOverlap && (
+                        <p className="text-[13px] font-bold text-[#F04452] break-keep">예약을 막아둔 날짜가 포함되어 있어 변경할 수 없습니다.</p>
+                      )}
+                      {overlappingBookings.length > 0 && (
+                        <div className={`text-[13px] font-bold break-keep ${hasOccupiedOverlap ? "text-[#F04452]" : "text-[#B25E09]"}`}>
+                          <p>{hasOccupiedOverlap ? "결제 대기 또는 결제 완료된 예약과 겹쳐 변경할 수 없습니다." : "진행 중인 다른 신청과 날짜가 겹칩니다. 확인 후 변경해 주세요."}</p>
+                          <ul className="mt-1 space-y-0.5">
+                            {overlappingBookings.map(b => (
+                              <li key={b.id}>· {b.churchName || "교회명 없음"} ({b.startDate} ~ {b.endDate})</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {isPriceUnavailable && (
+                        <p className="text-[13px] font-bold text-[#F04452] break-keep">장소 요금 정보를 찾을 수 없어 변경할 수 없습니다.</p>
+                      )}
+                      {changedPrices && !hasNoDateChanges && (
+                        <div className="bg-white p-4 rounded-2xl space-y-2 text-[13px] font-bold text-[#4E5968]">
+                          <div className="flex justify-between gap-2">
+                            <span>총 금액</span>
+                            <span className="text-right font-black text-[#191F28]">{Number(selectedBooking.totalPrice || 0).toLocaleString()}원 → {changedPrices.totalPrice.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>예약금</span>
+                            <span className="text-right font-black text-[#3182F6]">{Number(selectedBooking.depositPrice || 0).toLocaleString()}원 → {changedPrices.depositPrice.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span>잔금</span>
+                            <span className="text-right font-black text-[#191F28]">{Number(selectedBooking.balancePrice || 0).toLocaleString()}원 → {changedPrices.balancePrice.toLocaleString()}원</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[12px] font-bold text-[#6B7684] break-keep">
+                        {isInspectionBooking ? "사전답사비는 바뀌지 않으며, " : "현재 장소 요금 기준으로 계산되며, "}신청자에게 자동으로 안내되지 않습니다.
+                      </p>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingDates(false)}
+                          className="flex-1 h-[52px] bg-white text-[#4E5968] rounded-2xl font-black text-[14px] hover:bg-[#F2F4F6] transition-colors"
+                        >
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveBookingDates}
+                          disabled={isDateRangeInvalid || hasNoDateChanges || hasOccupiedOverlap || hasBlockedDateOverlap || isPriceUnavailable || isSavingDates}
+                          className="flex-[2] h-[52px] bg-[#3182F6] text-white rounded-2xl font-black text-[14px] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2272eb] transition-colors"
+                        >
+                          {isSavingDates ? "저장 중..." : "변경 저장"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </section>
 
                 <section>

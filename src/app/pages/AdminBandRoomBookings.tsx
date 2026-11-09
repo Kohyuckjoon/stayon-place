@@ -3,7 +3,7 @@ import { ScrollRestoration } from "react-router-dom";
 import {
   Clock, CheckCircle, XCircle, Search, Users, ShieldOff,
   BarChart3, Megaphone, CreditCard, RotateCcw, Ban, Volume2,
-  LayoutDashboard, MessageSquareText,
+  LayoutDashboard, ClipboardList, MessageSquareText,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
@@ -99,6 +99,7 @@ export function AdminBandRoomBookings() {
           label: "개요",
           items: [
             { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin/dashboard" },
+            { id: "pre_visit_checklists", label: "사전답사 체크리스트", icon: ClipboardList, href: "/admin/checklists" },
           ],
         },
         {
