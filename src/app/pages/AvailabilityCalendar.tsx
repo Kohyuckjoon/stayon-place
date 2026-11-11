@@ -25,8 +25,8 @@ const CalendarWrapper = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 16px;
-    height: 40px;
+    margin-bottom: 6px;
+    height: 36px;
     button {
       min-width: 40px;
       background: none;
@@ -52,13 +52,17 @@ const CalendarWrapper = styled.div`
     font-weight: 600;
     font-size: 13px;
     color: #8B95A1;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
     abbr { text-decoration: none; cursor: default; }
+    .react-calendar__month-view__weekdays__weekday { padding: 4px 0; }
   }
 
+  /* 예전엔 칸을 정사각형(aspect-ratio 1/1)으로 잡아서 PC에서는 한 칸이 70px 넘게 커지고
+     달력이 세로로 너무 길었다. 높이를 고정해서 폭과 상관없이 콤팩트하게 보이게 한다.
+     (아래쪽 "예약 완료" 뱃지가 X와 겹치지 않을 만큼의 높이) */
   .react-calendar__tile {
     max-width: 100%;
-    aspect-ratio: 1 / 1;
+    height: 52px;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -70,7 +74,8 @@ const CalendarWrapper = styled.div`
     border-radius: 14px;
     transition: all 0.1s ease-out;
     position: relative;
-    margin: 3px 0;
+    margin: 1px 0;
+    @media (max-width: 480px) { height: 48px; font-size: 15px; }
 
     &:enabled:hover {
       background: #F2F4F6 !important;
@@ -119,12 +124,13 @@ const CalendarWrapper = styled.div`
       transform: none;
     }
 
-    /* 날짜 아래에 붙는 파란 "예약 완료" 뱃지 */
+    /* 파란 "예약 완료" 뱃지 */
+    /* 칸 정중앙에 대각선(도장처럼 비스듬히)으로 얹는다 */
     .booked-badge {
       position: absolute;
-      bottom: 6%;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%) rotate(-30deg);
       padding: 2px 6px;
       background: #3182F6;
       color: #FFFFFF;
@@ -153,7 +159,7 @@ const LegendContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 4px;
   .item {
     display: flex;
     align-items: center;
@@ -246,7 +252,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ venueId, bo
         formatDay={(_, date) => date.getDate().toString()}
         next2Label={null}
         prev2Label={null}
-        showNeighboringMonth={false}
+        // 달마다 주 수가 4~6줄로 달라 달력 높이가 들쑥날쑥하지 않도록 항상 6줄로 그린다.
+        // 남는 칸은 빈칸 대신 앞뒤 달 날짜를 흐리게(opacity 0.2) 채워서 공백처럼 보이지 않게 한다.
+        showFixedNumberOfWeeks
         minDetail="month"
         onClickDay={(date) => {
             if(isBooked(date)) return;

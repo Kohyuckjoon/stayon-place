@@ -10,7 +10,7 @@ import {
   Car, Wind, Volume2, Info, Check,
   Square, Layout as LayoutIcon, Calendar, Monitor,
   Home, Coffee, Utensils, Lock, ChefHat, ShoppingBag, Ban, AlertCircle, X,
-  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera, BookOpen, ClipboardCheck
+  ChevronRight, Maximize2, MessageSquare, Pencil, Trash2, Plus, Bath, Camera, BookOpen, ClipboardCheck, Mic2
 } from "lucide-react";
 import { VENUE_IMAGE_CATEGORIES, toDisplayImagesByCategory } from "../lib/venueImageCategories";
 import { motion, AnimatePresence } from "framer-motion";
@@ -674,7 +674,12 @@ export function VenueDetail() {
               추가되며) 훨씬 길어져서 이 캘린더 카드까지 억지로 늘어나 가운데 빈 공간이
               커 보이는 문제가 생겼다. self-start로 바꿔서 이 카드는 자기 내용만큼의
               자연스러운 높이로만 표시되게 했다. */}
-          <section className={`${hideInPhotos} lg:col-start-1 lg:row-start-2 lg:self-start bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] flex flex-col`}>
+          {/* 캘린더 + (PC에서만) 그 아래 사역팀 섭외 광고. 오른쪽 시설 정보 카드가 더 길어서
+              캘린더 아래가 비는 자리를 광고로 채운다. 모바일은 빈 공간이 없어 광고를 넣지 않는다. */}
+          {/* self-stretch + 광고 flex-1: 왼쪽(캘린더+광고) 합친 높이가 오른쪽 시설 정보 카드 높이와
+              항상 같도록, 남는 높이는 광고가 늘었다 줄었다 하며 채운다(캘린더 크기는 고정). */}
+          <div className={`${hideInPhotos} lg:col-start-1 lg:row-start-2 lg:self-stretch flex flex-col gap-4 lg:gap-5`}>
+          <section className="bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-[16px] font-black text-[#191f28] tracking-tight">
@@ -688,7 +693,7 @@ export function VenueDetail() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <AvailabilityCalendar
                 venueId={id as string}
                 bookings={realBookings}
@@ -697,10 +702,29 @@ export function VenueDetail() {
 
               <div className="flex items-center gap-2 text-[12px] text-[#4e5968] font-bold">
                 <AlertCircle className="w-3.5 h-3.5 text-[#f04452] shrink-0" />
-                <span><span className="text-[#f04452]">X 표시</span>된 날짜는 이미 대관이 확정되어 예약이 불가능합니다.</span>
+                <span><span className="text-[#3182f6]">예약 완료</span> 표시된 날짜는 이미 대관이 확정되어 예약이 불가능합니다.</span>
               </div>
             </div>
           </section>
+
+            <button
+              type="button"
+              onClick={() => navigate("/teams")}
+              className="hidden lg:flex lg:flex-1 relative w-full overflow-hidden rounded-[24px] bg-gradient-to-br from-[#7C5CFC] to-[#5B3DF5] p-6 text-left text-white items-center justify-between gap-4 shadow-[0_8px_24px_rgba(91,61,245,0.22)] hover:-translate-y-0.5 active:scale-[0.99] transition-all"
+            >
+              <div className="relative z-10 min-w-0">
+                <span className="inline-flex px-2.5 py-1 bg-white/20 rounded-full text-[11px] font-black">사역팀 섭외</span>
+                <p className="mt-3 text-[19px] font-black leading-snug break-keep">수련회 준비,<br />사역팀 섭외가 필요하신가요?</p>
+                <p className="mt-1.5 text-[13px] font-medium text-white/80 break-keep">찬양팀 · 강사 · 문화사역자를 스테이온에서 바로 찾아보세요</p>
+                <span className="mt-4 inline-flex items-center gap-1 bg-white text-[#5B3DF5] px-3.5 py-2 rounded-full text-[13px] font-black">
+                  사역팀 둘러보기 <ChevronRight className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="shrink-0 w-20 h-20 rounded-[24px] bg-white/15 flex items-center justify-center rotate-6">
+                <Mic2 className="w-10 h-10 text-white" />
+              </div>
+            </button>
+          </div>
 
           {/* 상세 시설 정보 - 우측 컬럼 3번째 */}
           <div className={`${hideInPhotos} lg:col-start-2 lg:row-start-2 lg:self-stretch bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-[#f2f4f6] space-y-6`}>
@@ -710,7 +734,7 @@ export function VenueDetail() {
                 <div className="w-1.5 h-5 bg-[#3182f6] rounded-full" /> 상세 시설 정보
               </h3>
               <div className="bg-[#f9fafb] rounded-2xl border border-[#f2f4f6] overflow-hidden">
-                <InfoRow icon={<Square className="w-4 h-4" />} label="강당 크기" value={venue.hallSize ? `${venue.hallSize}${venue.hallSizeUnit === '명' ? '명' : '평'}` : '-'} />
+                <InfoRow icon={<Square className="w-4 h-4" />} label="강당 수용 인원" value={venue.hallSize ? `${venue.hallSize}명` : '-'} />
                 <InfoRow icon={<LayoutIcon className="w-4 h-4" />} label="음향/조명" value={venue.soundSystem || '-'} />
                 <InfoRow icon={<Info className="w-4 h-4" />} label="보유 악기" value={venue.instruments || '-'} />
                 <InfoRow icon={<Bath className="w-4 h-4" />} label="샤워실/화장실" value={venue.showerBathroom || '-'} />

@@ -372,8 +372,10 @@ export function AdminDashboard2() {
     }
   };
 
-  // 결제가 끝난 예약은 차액 처리가 필요할 수 있어 여기서 날짜를 바꾸지 않는다.
-  const canChangeDates = selectedBooking && !["deposit_paid", "completed", "cancelled"].includes(selectedBooking.status);
+  // 예약금 입금 완료(deposit_paid) 예약도 일정 변경 요청이 있어 날짜를 바꿀 수 있게 한다.
+  // 이때 예약금은 이미 받은 금액이라 그대로 두고, 총 금액·잔금만 다시 계산한다(아래 changedPrices).
+  const canChangeDates = selectedBooking && !["completed", "cancelled"].includes(selectedBooking.status);
+  const isDepositPaidBooking = selectedBooking?.status === "deposit_paid";
   const isDateRangeInvalid = !newStartDate || !newEndDate || newEndDate < newStartDate;
   const isDateRangeUnchanged = newStartDate === selectedBooking?.startDate && newEndDate === selectedBooking?.endDate;
   const overlappingBookings = !selectedBooking || isDateRangeInvalid ? [] : bookings.filter(b =>
@@ -390,9 +392,14 @@ export function AdminDashboard2() {
   const selectedBookingBlockedDates: string[] = selectedBookingVenue?.blockedDates || [];
   // 사전답사 예약의 금액은 날짜와 상관없는 답사비라서 일반 예약만 다시 계산한다.
   const isInspectionBooking = selectedBooking?.type === "inspection" || selectedBooking?.depositLabel === "사전답사비";
-  const changedPrices = selectedBooking && selectedBookingVenue && !isInspectionBooking && !isDateRangeInvalid
+  const recalculatedPrices = selectedBooking && selectedBookingVenue && !isInspectionBooking && !isDateRangeInvalid
     ? calculateChangedBookingPrices(selectedBookingVenue, selectedBooking, newStartDate, newEndDate)
     : null;
+  // 입금 완료 예약: 받은 예약금은 고정, 잔금 = 새 총 금액 - 받은 예약금
+  const paidDeposit = Number(selectedBooking?.depositPrice || 0);
+  const changedPrices = recalculatedPrices && isDepositPaidBooking
+    ? { totalPrice: recalculatedPrices.totalPrice, depositPrice: paidDeposit, balancePrice: recalculatedPrices.totalPrice - paidDeposit }
+    : recalculatedPrices;
   const isPriceUnavailable = !!selectedBooking && !isInspectionBooking && !selectedBookingVenue;
   // 날짜가 같아도 저장된 금액이 틀어져 있으면 바로잡을 수 있게 한다.
   const hasNoDateChanges = isDateRangeUnchanged && (!changedPrices || changedPrices.totalPrice === Number(selectedBooking?.totalPrice || 0));
@@ -409,8 +416,10 @@ export function AdminDashboard2() {
 
   const handleSaveBookingDates = async () => {
     if (!selectedBooking || isDateRangeInvalid || hasNoDateChanges || hasOccupiedOverlap || hasBlockedDateOverlap || isPriceUnavailable || isSavingDates) return;
-    const priceMessage = changedPrices
-      ? `총 금액: ${Number(selectedBooking.totalPrice || 0).toLocaleString()}원 → ${changedPrices.totalPrice.toLocaleString()}원\n예약금: ${Number(selectedBooking.depositPrice || 0).toLocaleString()}원 → ${changedPrices.depositPrice.toLocaleString()}원`
+    const priceMessage = changedPrices && isDepositPaidBooking
+      ? `총 금액: ${Number(selectedBooking.totalPrice || 0).toLocaleString()}원 → ${changedPrices.totalPrice.toLocaleString()}원\n예약금(입금 완료): ${paidDeposit.toLocaleString()}원 (변동 없음)\n잔금: ${(Number(selectedBooking.totalPrice || 0) - paidDeposit).toLocaleString()}원 → ${changedPrices.balancePrice.toLocaleString()}원`
+      : changedPrices
+      ? `총 금액:${Number(selectedBooking.totalPrice || 0).toLocaleString()}원 → ${changedPrices.totalPrice.toLocaleString()}원\n예약금: ${Number(selectedBooking.depositPrice || 0).toLocaleString()}원 → ${changedPrices.depositPrice.toLocaleString()}원`
       : "사전답사비는 바뀌지 않습니다.";
     if (!window.confirm(`대관 기간을 변경할까요?\n\n기존: ${selectedBooking.startDate} ~ ${selectedBooking.endDate}\n변경: ${newStartDate} ~ ${newEndDate}\n\n${priceMessage}`)) return;
     try {

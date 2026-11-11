@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useState } from "react";
+import { PageLoading } from "../lib/lazyPage";
 import { Outlet, useLocation } from "react-router-dom"; // useLocation 추가
 // import { Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,7 +68,10 @@ export function Layout() {
       {/* Outlet 자리에 Home, VenueList 같은 실제 페이지가 들어옵니다 */}
       <main className="flex-1">
         <BoardSwitcher />
-        <Outlet />
+        {/* 화면별로 나눠 받는 페이지(lazyPage)를 받는 동안 헤더·푸터는 그대로 두고 이 자리만 로딩 표시 */}
+        <Suspense fallback={<PageLoading />}>
+          <Outlet />
+        </Suspense>
 
         {/* 인스타그램/쓰레드 플로팅 버튼 - 카카오 문의 버튼 바로 위에 원형 + 버튼으로 접혀있다가
             누르면 위로 펼쳐진다. 카카오는 원래 있던 문의 버튼을 그대로 쓰면 돼서 여기 안 넣었다.

@@ -141,9 +141,6 @@ export function RegisterVenue() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isCustomDeno, setIsCustomDeno] = useState(false);
-  // 평수를 모르는 신청자를 위해 "면적" 대신 "수용 인원"으로 입력받는 모드 전환 체크박스.
-  // hallSize 필드 자체는 그대로 재사용하고, 단위(suffix)와 안내 문구만 바꾼다.
-  const [hallSizeByCapacity, setHallSizeByCapacity] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   // 사진을 카테고리(예배당/입구, 예배당 전체, 예배 셋팅 ... 기타)별로 나눠서 받는다.
@@ -355,7 +352,7 @@ export function RegisterVenue() {
       // 1. 파이어베이스 저장
       await addDoc(collection(db, "venues"), {
         ...formData,
-        hallSizeUnit: hallSizeByCapacity ? "명" : "평",
+        hallSizeUnit: "명",
         applicantUid: user.uid,
         images: imageUrls,
         imagesByCategory,
@@ -1097,22 +1094,14 @@ export function RegisterVenue() {
                   </header>
 
                   <div className="flex flex-col gap-y-2">
-                    <div
-                      onClick={() => setHallSizeByCapacity(!hallSizeByCapacity)}
-                      className="flex items-center gap-2.5 p-3 bg-[#f9fafb] rounded-xl cursor-pointer select-none w-fit mb-1"
-                    >
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${hallSizeByCapacity ? 'bg-[#3182f6] border-[#3182f6]' : 'bg-white border-[#e5e8eb]'}`}>
-                        {hallSizeByCapacity && <Check className="w-3 h-3 text-white" strokeWidth={4} />}
-                      </div>
-                      <span className="text-[13px] font-bold text-[#4e5968]">평수를 몰라요, 커버 가능한 명수로 입력할게요</span>
-                    </div>
+                    {/* 평수/명수 혼용으로 관리자 화면에서 단위 구분이 안 돼서 명수(수용 인원)로만 받는다. */}
                     <CustomInput
-                      label={hallSizeByCapacity ? "주강당 수용 인원(대략적으로 기재)" : "주강당 면적(대략적으로 기재)"}
+                      label="주강당 수용 인원(대략적으로 기재)"
                       value={formData.hallSize}
                       onChange={(v: any) => setFormData({ ...formData, hallSize: v })}
-                      placeholder={hallSizeByCapacity ? "예: 100" : "예: 80"}
+                      placeholder="예: 100"
                       type="number"
-                      suffix={hallSizeByCapacity ? "명" : "평"}
+                      suffix="명"
                     />
 
                     <CustomInput

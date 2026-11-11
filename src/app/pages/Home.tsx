@@ -21,7 +21,7 @@ const bannerData = [
     tag: "OPEN",
     bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
     textColor: "text-white",
-    image: "/main_image_07.png" as string | undefined,
+    image: "/main_image_07.webp" as string | undefined,
     icon: <CheckCircle2 className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
   {
@@ -32,7 +32,7 @@ const bannerData = [
     // id는 5지만 배열상 두 번째 자리 - 클릭 라우팅은 id 기준이라 순서를 옮겨도 안전하다.
     bgColor: "bg-gradient-to-br from-[#1F2937] via-[#111827] to-[#030712]",
     textColor: "text-white",
-    image: "/main_image_05.png" as string | undefined,
+    image: "/main_image_05.webp" as string | undefined,
     icon: <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
   },
   {
@@ -42,7 +42,7 @@ const bannerData = [
     "tag": "MEDIA",
     "bgColor": "bg-gradient-to-br from-[#FF0000] via-[#D31919] to-[#990000]",
     "textColor": "text-white",
-    image: "/main_image_02.png" as string | undefined,
+    image: "/main_image_02.webp" as string | undefined,
     "icon": <Play className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 fill-white/5 stroke-[1.5]" />
   },
   {
@@ -52,7 +52,7 @@ const bannerData = [
     tag: "EVENT",
     bgColor: "bg-gradient-to-br from-[#FF5A5F] via-[#E14B50] to-[#C83C41]",
     textColor: "text-white",
-    image: "/main_image_01.png",
+    image: "/main_image_01.webp",
     "icon": <Sparkles className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 -rotate-12 stroke-[1.5]" />
   },
   {
@@ -62,7 +62,7 @@ const bannerData = [
     tag: "NEW",
     bgColor: "bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#5B21B6]",
     textColor: "text-white",
-    image: "/main_image_04.png" as string | undefined,
+    image: "/main_image_04.webp" as string | undefined,
     icon: <Mic2 className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
   {
@@ -74,7 +74,7 @@ const bannerData = [
     "tag": "오픈",
     "bgColor": "bg-gradient-to-br from-[#3182F6] via-[#2370E0] to-[#1253B3]",
     "textColor": "text-white",
-    image: "/main_image_03.png" as string | undefined,
+    image: "/main_image_03.webp" as string | undefined,
     "icon": <CreditCard className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
 ];
@@ -652,7 +652,7 @@ export function Home() {
                                 <div className="relative w-full h-full flex items-center justify-end select-none pointer-events-none pr-3 md:pr-6">
                                   <div className="relative w-[145px] md:w-[160px] h-[180px] md:h-[200px] flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105">
                                     <img
-                                      src="/register_event.png"
+                                      src="/register_event.webp"
                                       alt="Coffee Reward"
                                       className="w-full h-auto object-contain drop-shadow-[0_20px_32px_rgba(0,0,0,0.3)]"
                                     />
@@ -790,7 +790,7 @@ export function Home() {
                       className="flex-1 relative rounded-[28px] md:rounded-[32px] overflow-hidden cursor-pointer shadow-[0_16px_40px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98] hover:-translate-y-0.5"
                     >
                       <img
-                        src="/main_image_06.png"
+                        src="/main_image_06.webp"
                         alt="우리 수련회 장소, 스테이온에 등록하세요"
                         className="absolute inset-0 w-full h-full object-cover"
                       />

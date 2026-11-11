@@ -176,10 +176,13 @@ const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "tex
             {name === "price" && displayValue && (
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-[#8B95A1]">원</span>
             )}
+            {name === "hallSize" && displayValue && (
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-[#8B95A1]">명</span>
+            )}
           </div>
         ) : (
           <p className={`text-[16px] font-black text-[#3182F6] leading-snug ${multiline ? "whitespace-pre-wrap" : ""}`}>
-            {name === "price" && value ? `${formatNumber(value)}원` : (value || "-")}
+            {name === "price" && value ? `${formatNumber(value)}원` : name === "hallSize" && value ? `${value}명` : (value || "-")}
           </p>
         )}
       </div>
@@ -920,7 +923,9 @@ export function AdminDashboard() {
         depositAmount: depositType === "amount" ? unformatNumber(editedVenue.depositAmount?.toString() || "0") : "",
         useTimeSlotPrice: editedVenue.useTimeSlotPrice ?? false,
         timeSlotOptions: sanitizedTimeSlotOptions, // 여기서 명확하게 정제된 데이터를 주입
-        perPersonPrice: editedVenue.perPersonPrice ? editedVenue.perPersonPrice.toString() : "0"
+        perPersonPrice: editedVenue.perPersonPrice ? editedVenue.perPersonPrice.toString() : "0",
+        // 주강당 크기는 이제 명수로만 관리한다(예전 평수 등록분도 관리자가 고쳐 저장하면 명으로 맞춰짐).
+        hallSizeUnit: "명"
       };
 
       delete updateData.id;
@@ -1808,7 +1813,7 @@ export function AdminDashboard() {
                       <InfoRow icon={Users} label="수용 인원" name="capacity" value={editedVenue.capacity} isEdit={isEditMode} onChange={handleEditChange} />
                       <InfoRow icon={Utensils} label="식당 인원" name="cafeteriaCapacity" value={editedVenue.cafeteriaCapacity} isEdit={isEditMode} onChange={handleEditChange} />
                       <InfoRow icon={CreditCard} label="기본 1박 요금" name="price" value={editedVenue.price} isEdit={isEditMode} onChange={handleEditChange} />
-                      <InfoRow icon={Maximize2} label="주강당 면적" name="hallSize" value={editedVenue.hallSize} isEdit={isEditMode} onChange={handleEditChange} />
+                      <InfoRow icon={Maximize2} label="주강당 수용 인원" name="hallSize" value={editedVenue.hallSize} isEdit={isEditMode} onChange={handleEditChange} />
                     </div>
                   </section>
 
