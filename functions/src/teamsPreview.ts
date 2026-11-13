@@ -1,6 +1,7 @@
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import {fetchIndexHtml, patchMeta} from "./utils/pageMeta";
+import {buildListPageHtml, fetchApprovedItems} from "./utils/prerender";
 
 // /teams는 목록형 고정 페이지라 venuePreview처럼 Firestore 조회 없이
 // 고정된 메타 정보로 치환한다. "외부사역팀"이라는 사이트 내 명칭보다
@@ -37,11 +38,28 @@ export const teamsPreview = onRequest(
   {region: "asia-northeast3"},
   async (req, res) => {
     const isBandRoomTab = req.query.category === "bandroom";
+    // 승인된 팀(또는 합주실) 목록을 본문에 미리 채워 구글봇이 상세페이지 링크를 따라가게 한다.
+    const items = isBandRoomTab ?
+      await fetchApprovedItems("bandRooms", "/band-room/", (d) => ({
+        name: String(d.roomName || "").trim(),
+        info: [d.roomType, d.address].filter(Boolean).join(" · "),
+      })) :
+      await fetchApprovedItems("ministryTeams", "/teams/", (d) => ({
+        name: String(d.teamName || "").trim(),
+        info: [d.category, d.churchNamePrivate ? "" : d.churchName]
+          .filter(Boolean).join(" · "),
+      }));
+    const bodyHtml = isBandRoomTab ?
+      buildListPageHtml("합주실·연습실 찾기", BANDROOM_DESCRIPTION, items) :
+      buildListPageHtml("교회 찬양팀·찬양사역자 섭외", DESCRIPTION, items);
+
     try {
       const html = await fetchIndexHtml();
       res.set("Content-Type", "text/html; charset=UTF-8");
       res.set("Cache-Control", "public, max-age=300");
       res.status(200).send(patchMeta(html, {
+        path: isBandRoomTab ? "/teams?category=bandroom" : "/teams",
+        bodyHtml,
         title: isBandRoomTab ? BANDROOM_TITLE : TITLE,
         description: isBandRoomTab ? BANDROOM_DESCRIPTION : DESCRIPTION,
         keywords: isBandRoomTab ? BANDROOM_KEYWORDS : KEYWORDS,

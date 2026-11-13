@@ -13,7 +13,7 @@ const DEFAULT_TITLE = "굿즈 매장 찾기 | 스테이온(STAYON PLACE)";
 export const goodsDetailPreview = onRequest(
   {region: "asia-northeast3"},
   async (req, res) => {
-    const meta: MetaPatch = {title: DEFAULT_TITLE};
+    const meta: MetaPatch = {title: DEFAULT_TITLE, path: req.path};
 
     try {
       const match = req.path.match(/\/goods\/([^/]+)/);

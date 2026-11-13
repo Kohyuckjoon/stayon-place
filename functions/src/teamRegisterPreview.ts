@@ -26,6 +26,7 @@ export const teamRegisterPreview = onRequest(
       res.set("Content-Type", "text/html; charset=UTF-8");
       res.set("Cache-Control", "public, max-age=300");
       res.status(200).send(patchMeta(html, {
+        path: "/team-register",
         title: TITLE,
         description: DESCRIPTION,
         keywords: KEYWORDS,

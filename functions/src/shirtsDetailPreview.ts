@@ -13,7 +13,7 @@ const DEFAULT_TITLE = "단체티·기념품 업체 찾기 | 스테이온(STAYON 
 export const shirtsDetailPreview = onRequest(
   {region: "asia-northeast3"},
   async (req, res) => {
-    const meta: MetaPatch = {title: DEFAULT_TITLE};
+    const meta: MetaPatch = {title: DEFAULT_TITLE, path: req.path};
 
     try {
       const match = req.path.match(/\/shirts\/([^/]+)/);

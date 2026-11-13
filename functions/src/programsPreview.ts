@@ -27,6 +27,7 @@ export const programsPreview = onRequest(
       res.set("Content-Type", "text/html; charset=UTF-8");
       res.set("Cache-Control", "public, max-age=300");
       res.status(200).send(patchMeta(html, {
+        path: "/programs",
         title: TITLE,
         description: DESCRIPTION,
         keywords: KEYWORDS,

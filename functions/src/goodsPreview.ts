@@ -1,6 +1,7 @@
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import {fetchIndexHtml, patchMeta} from "./utils/pageMeta";
+import {buildListPageHtml, fetchApprovedItems} from "./utils/prerender";
 
 // /goods는 목록형 고정 페이지라 goodsDetailPreview(단수, /goods/:id 상세페이지)처럼
 // Firestore 조회 없이 고정된 메타 정보로 치환한다.
@@ -20,11 +21,18 @@ const IMAGE = "https://place.stayon-platform.com/stayon_market_goods.png";
 export const goodsPreview = onRequest(
   {region: "asia-northeast3"},
   async (req, res) => {
+    const items = await fetchApprovedItems("goodsStore", "/goods/", (d) => ({
+      name: String(d.businessName || "").trim(),
+    }));
+    const bodyHtml = buildListPageHtml("기독교 굿즈 매장 찾기", DESCRIPTION, items);
+
     try {
       const html = await fetchIndexHtml();
       res.set("Content-Type", "text/html; charset=UTF-8");
       res.set("Cache-Control", "public, max-age=300");
       res.status(200).send(patchMeta(html, {
+        path: "/goods",
+        bodyHtml,
         title: TITLE,
         description: DESCRIPTION,
         keywords: KEYWORDS,

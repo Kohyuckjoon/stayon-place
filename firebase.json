@@ -9,11 +9,21 @@
     "headers": [
       {
         "source": "/assets/**",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
       },
       {
         "source": "**/*.@(png|jpg|jpeg|webp|svg|gif|ico)",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
       }
     ],
     "rewrites": [
@@ -161,6 +171,90 @@
         "source": "/rss.xml",
         "function": {
           "functionId": "rssFeed",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/about",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/story",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/faq",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/planner",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/budget",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/booking-guide",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/safety",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/notices",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/terms",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/privacy",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/vehicles",
+        "function": {
+          "functionId": "staticPagesPreview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/vehicles/**",
+        "function": {
+          "functionId": "staticPagesPreview",
           "region": "asia-northeast3"
         }
       },

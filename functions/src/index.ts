@@ -190,6 +190,7 @@ export {shirtsRegisterPreview} from "./shirtsRegisterPreview";
 export {shirtsDetailPreview} from "./shirtsDetailPreview";
 export {shirtsPreview} from "./shirtsPreview";
 export {vehicleRegisterPreview} from "./vehicleRegisterPreview";
+export {staticPagesPreview} from "./staticPagesPreview";
 
 export {
   adminSetUserDisabled,

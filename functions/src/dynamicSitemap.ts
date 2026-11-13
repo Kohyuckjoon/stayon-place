@@ -4,6 +4,36 @@ import * as logger from "firebase-functions/logger";
 
 const HOSTING_ORIGIN = "https://place.stayon-platform.com";
 
+// [경로, changefreq, priority] - 전용 미리보기 함수가 있는 공개 고정 페이지들.
+const STATIC_PAGES: [string, string, string][] = [
+  ["/teams", "daily", "0.8"],
+  ["/teams?category=bandroom", "weekly", "0.6"],
+  ["/goods", "weekly", "0.7"],
+  ["/shirts", "weekly", "0.7"],
+  ["/vehicles", "weekly", "0.7"],
+  ["/programs", "weekly", "0.7"],
+  ["/register", "monthly", "0.6"],
+  ["/team-register", "monthly", "0.5"],
+  ["/about", "monthly", "0.6"],
+  ["/story", "monthly", "0.5"],
+  ["/faq", "monthly", "0.6"],
+  ["/booking-guide", "monthly", "0.5"],
+  ["/planner", "monthly", "0.5"],
+  ["/budget", "monthly", "0.5"],
+  ["/safety", "monthly", "0.4"],
+  ["/notices", "weekly", "0.4"],
+  ["/reviews", "weekly", "0.5"],
+];
+
+// [컬렉션, 상세페이지 경로 앞부분]
+const DETAIL_COLLECTIONS: [string, string][] = [
+  ["ministryTeams", "/teams/"],
+  ["bandRooms", "/band-room/"],
+  ["goodsStore", "/goods/"],
+  ["groupShirts", "/shirts/"],
+  ["vehicleRentals", "/vehicles/"],
+];
+
 interface SitemapUrl {
   loc: string;
   lastmod?: string;
@@ -32,7 +62,7 @@ function buildXml(urls: SitemapUrl[]): string {
   const items = urls.map((u) => {
     const lastmodTag = u.lastmod ? `\n    <lastmod>${u.lastmod}</lastmod>` : "";
     return `  <url>
-    <loc>${u.loc}</loc>${lastmodTag}
+    <loc>${u.loc.replace(/&/g, "&amp;")}</loc>${lastmodTag}
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>
   </url>`;
@@ -55,6 +85,9 @@ export const dynamicSitemap = onRequest(
     const urls: SitemapUrl[] = [
       {loc: `${HOSTING_ORIGIN}/`, changefreq: "daily", priority: "1.0"},
       {loc: `${HOSTING_ORIGIN}/venues`, changefreq: "daily", priority: "0.9"},
+      ...STATIC_PAGES.map(([path, changefreq, priority]) => ({
+        loc: `${HOSTING_ORIGIN}${path}`, changefreq, priority,
+      })),
     ];
 
     try {
@@ -87,6 +120,27 @@ export const dynamicSitemap = onRequest(
       });
     } catch (error) {
       logger.error("dynamicSitemap: 장소 목록 조회 실패", error);
+    }
+
+    // 외부사역팀·합주실·굿즈·단체티·차량 상세페이지도 승인된 것만 포함한다.
+    for (const [collection, basePath] of DETAIL_COLLECTIONS) {
+      try {
+        const snap = await admin.firestore()
+          .collection(collection)
+          .where("status", "==", "approved")
+          .get();
+        snap.forEach((doc) => {
+          const data = doc.data();
+          urls.push({
+            loc: `${HOSTING_ORIGIN}${basePath}${doc.id}`,
+            lastmod: toLastmod(data.updatedAt || data.createdAt),
+            changefreq: "weekly",
+            priority: "0.6",
+          });
+        });
+      } catch (error) {
+        logger.error(`dynamicSitemap: ${collection} 조회 실패`, error);
+      }
     }
 
     res.set("Content-Type", "application/xml; charset=UTF-8");

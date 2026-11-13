@@ -14,7 +14,7 @@ const DEFAULT_TITLE = "외부사역·예배 반주·음향 | 외부사역 문의
 export const teamDetailPreview = onRequest(
   {region: "asia-northeast3"},
   async (req, res) => {
-    const meta: MetaPatch = {title: DEFAULT_TITLE};
+    const meta: MetaPatch = {title: DEFAULT_TITLE, path: req.path};
 
     try {
       const match = req.path.match(/\/teams\/([^/]+)/);

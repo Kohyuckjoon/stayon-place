@@ -15,7 +15,7 @@ const DEFAULT_TITLE = "교회 찬양팀 합주 공간 소개 | STAYON에서.";
 export const bandRoomPreview = onRequest(
   {region: "asia-northeast3"},
   async (req, res) => {
-    const meta: MetaPatch = {title: DEFAULT_TITLE};
+    const meta: MetaPatch = {title: DEFAULT_TITLE, path: req.path};
 
     try {
       const match = req.path.match(/\/band-room\/([^/]+)/);
