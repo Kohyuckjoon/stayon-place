@@ -3,6 +3,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { Bus, ChevronLeft, ChevronRight, GripVertical, Info, Loader2, Minus, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { FIXED_VEHICLE_TYPES, CUSTOM_VEHICLE_TYPE_LABEL, DriverIncludedOption, isLargeBusType } from "../lib/vehicleTypes";
+import { showConfirm } from "../lib/dialog";
 
 interface FleetEntry {
   type: string;
@@ -136,7 +137,7 @@ export function MyVehicleFleetManagerTab({ vehicle }: { vehicle: any }) {
   };
 
   const handleDelete = async (index: number, entry: FleetEntry) => {
-    if (!window.confirm(`"${entry.type || "이 차종"}"을 삭제하시겠어요?`)) return;
+    if (!(await showConfirm(`"${entry.type || "이 차종"}"을 삭제하시겠어요?`))) return;
     setError("");
     setDeletingIndex(index);
     try {

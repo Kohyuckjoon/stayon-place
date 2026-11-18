@@ -13,6 +13,7 @@ import {
 import { motion } from "framer-motion";
 import { db } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { showAlert } from "../lib/dialog";
 
 export default function PartnerGuide() {
 
@@ -24,7 +25,7 @@ export default function PartnerGuide() {
                 category: "partner_guide",
                 timestamp: serverTimestamp(),
             });
-            alert(`${actionName} 관련 정보를 확인합니다.`);
+            await showAlert(`${actionName} 관련 정보를 확인합니다.`);
         } catch (e) {
             console.error(e);
         }

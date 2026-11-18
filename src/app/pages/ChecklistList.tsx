@@ -6,6 +6,7 @@ import { useAuth } from "../lib/AuthContext";
 import { loginWithGoogle } from "../lib/auth";
 import { ChevronLeft, ChevronRight, Lock, Star, PlusCircle, ClipboardCheck, Trash2 } from "lucide-react";
 import { getTotalChecklistItems } from "../lib/preVisitChecklistItems";
+import { showAlert, showConfirm } from "../lib/dialog";
 
 export default function ChecklistList() {
   const navigate = useNavigate();
@@ -25,12 +26,12 @@ export default function ChecklistList() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm("이 체크리스트를 삭제할까요?")) return;
+    if (!(await showConfirm("이 체크리스트를 삭제할까요?"))) return;
     try {
       await deleteDoc(doc(db, "preVisitChecklists", id));
     } catch (error) {
       console.error("삭제 실패:", error);
-      alert("삭제 중 오류가 발생했습니다.");
+      await showAlert("삭제 중 오류가 발생했습니다.");
     }
   };
 

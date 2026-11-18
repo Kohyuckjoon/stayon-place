@@ -5,6 +5,7 @@ import { uploadVenueImage } from "../lib/storage";
 import { Calendar, Camera, ImagePlus, Info, Loader2, Save, X } from "lucide-react";
 import { VENUE_IMAGE_CATEGORIES, VenueImageCategoryKey } from "../lib/venueImageCategories";
 import { VenueBlockRequestModal } from "./VenueBlockRequestModal";
+import { showConfirm } from "../lib/dialog";
 
 // 마이페이지 "장소 관리자" 탭 - 승인된 장소 사장님이 설명·가격·사진·예약 차단 날짜 같은
 // 핵심 정보만 직접 수정할 수 있게 해준다. 시설/정책처럼 복잡한 필드는 관리자만 다룬다.
@@ -69,7 +70,7 @@ export function MyVenueCoreManagerTab({ venue }: { venue: any }) {
   };
 
   const handlePhotoRemove = async (category: VenueImageCategoryKey, url: string) => {
-    if (!window.confirm("이 사진을 삭제하시겠어요?")) return;
+    if (!(await showConfirm("이 사진을 삭제하시겠어요?"))) return;
     setPhotoError("");
     setRemovingPhoto(url);
     try {

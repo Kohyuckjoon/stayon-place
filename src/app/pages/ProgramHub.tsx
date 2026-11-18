@@ -39,6 +39,7 @@ import {
     arrayUnion,
     arrayRemove
 } from 'firebase/firestore';
+import { showAlert, showConfirm } from "../lib/dialog";
 
 interface ProgramPost {
     id: string;
@@ -222,13 +223,13 @@ export default function ProgramHub() {
             closeAndResetModal();
         } catch (error) {
             console.error("Firebase 처리 중 오류 발생:", error);
-            alert("저장에 실패했습니다. 다시 시도해주세요.");
+            await showAlert("저장에 실패했습니다. 다시 시도해주세요.");
         }
     };
 
     const handleDeletePost = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm("정말 이 프로그램을 삭제하시겠습니까?")) {
+        if ((await showConfirm("정말 이 프로그램을 삭제하시겠습니까?"))) {
             try {
                 // [수정] 삭제 작업 수행
                 await deleteDoc(doc(db, 'programs', id));
@@ -237,7 +238,7 @@ export default function ProgramHub() {
                 console.log("Firebase Delete Success:", id);
             } catch (error) {
                 console.error("Firebase 삭제 오류:", error);
-                alert("삭제 권한이 없거나 오류가 발생했습니다."); // [수정] 사용자 피드백 추가
+                await showAlert("삭제 권한이 없거나 오류가 발생했습니다."); // [수정] 사용자 피드백 추가
             }
         }
     };
@@ -291,7 +292,7 @@ export default function ProgramHub() {
 
         // 1. 로그인 상태 필터링
         if (!isLoggedIn || !currentUserId) {
-            alert("좋아요는 로그인한 상태에서 눌러주세요.");
+            await showAlert("좋아요는 로그인한 상태에서 눌러주세요.");
             window.dispatchEvent(new Event("open-login-modal"));
             return;
         }

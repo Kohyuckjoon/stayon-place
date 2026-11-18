@@ -24,6 +24,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { showAlert } from "../lib/dialog";
 
 export default function SafetyGuide() {
 
@@ -35,7 +36,7 @@ export default function SafetyGuide() {
                 category: "safety_guide",
                 timestamp: serverTimestamp(),
             });
-            alert(`${actionName} 파일 생성을 시작합니다.`);
+            await showAlert(`${actionName} 파일 생성을 시작합니다.`);
         } catch (e) {
             console.error(e);
         }

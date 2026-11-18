@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { useRef } from "react";
 import * as htmlToImage from 'html-to-image';
+import { showAlert, showConfirm } from "../lib/dialog";
 
 // 단일 일정 아이템 데이터 스키마
 interface ScheduleItem {
@@ -194,9 +195,9 @@ export function SmartSchedulePlanner() {
     };
 
     // 플래너 그룹 자체 삭제
-    const handleDeleteGroup = (groupId: string, e: React.MouseEvent) => {
+    const handleDeleteGroup = async (groupId: string, e: React.MouseEvent) => {
         e.stopPropagation(); // 행 클릭 이벤트 전파 차단
-        if (window.confirm("이 수련회 일정 플래너 전체를 삭제하시겠습니까? 내부 일정표가 모두 사라집니다.")) {
+        if ((await showConfirm("이 수련회 일정 플래너 전체를 삭제하시겠습니까? 내부 일정표가 모두 사라집니다."))) {
             const updatedGroups = plannerGroups.filter(g => g.id !== groupId);
             setPlannerGroups(updatedGroups);
 
@@ -284,9 +285,9 @@ export function SmartSchedulePlanner() {
         setIsModalOpen(false);
     };
 
-    const handleDeleteSchedule = (id: string) => {
+    const handleDeleteSchedule = async (id: string) => {
         if (!selectedGroup) return;
-        if (window.confirm("이 일정을 삭제하시겠습니까?")) {
+        if ((await showConfirm("이 일정을 삭제하시겠습니까?"))) {
             const updated = selectedGroup.schedules.filter(s => s.id !== id);
             const updatedGroup = { ...selectedGroup, schedules: updated };
             const updatedGroups = plannerGroups.map(g => g.id === selectedGroup.id ? updatedGroup : g);
@@ -506,7 +507,7 @@ export function SmartSchedulePlanner() {
                             <button
                                 onClick={() => {
                                     if (!isLoggedIn) {
-                                        alert("데이터 관리를 위해 먼저 아이디로 로그인해 주세요.");
+                                        showAlert("데이터 관리를 위해 먼저 아이디로 로그인해 주세요.");
                                         return;
                                     }
                                     setIsGroupModalOpen(true);
@@ -830,7 +831,7 @@ export function SmartSchedulePlanner() {
 
                                     // 예외 처리: 시작 시간이 종료 시간보다 늦거나 같을 경우 방어
                                     if (startMin >= endMin) {
-                                        alert("종료 시간은 시작 시간보다 늦어야 합니다.");
+                                        showAlert("종료 시간은 시작 시간보다 늦어야 합니다.");
                                         return;
                                     }
 
@@ -855,7 +856,7 @@ export function SmartSchedulePlanner() {
                                     });
 
                                     if (isOverlapped) {
-                                        alert("선택하신 시간대에 이미 등록된 다른 일정이 존재합니다. 시간을 다시 확인해 주세요.");
+                                        showAlert("선택하신 시간대에 이미 등록된 다른 일정이 존재합니다. 시간을 다시 확인해 주세요.");
                                         return;
                                     }
 

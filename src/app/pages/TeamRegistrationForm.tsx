@@ -15,6 +15,7 @@ import { EQUIPMENT_OPTIONS } from "../lib/teamDisplay";
 import { useAuth } from "../lib/AuthContext";
 import { loginWithGoogle } from "../lib/auth";
 import { CustomInput, PillSelector, MultiPillSelector, CardSelector as EquipmentSelector } from "../components/forms/TeamFormControls";
+import { showAlert } from "../lib/dialog";
 
 const CATEGORY_OPTIONS = ["찬양팀", "음향·조명", "찬양사역자", "세션", "외부 강사", "레크리에이션 강사", "기독교 문화 사역"] as const;
 const INSTRUCTOR_CATEGORIES = ["외부 강사", "레크리에이션 강사"] as const;
@@ -216,7 +217,7 @@ export default function TeamRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("등록 중 오류가 발생했습니다." + error);
+      await showAlert("등록 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { AuthProvider } from './lib/AuthContext';
 import { RouterProvider } from "react-router-dom"; 
 import { router } from "./routes";
 import { HelmetProvider } from 'react-helmet-async';
+import { DialogHost } from './lib/dialog';
 
 // export default function App() {
 //   return (
@@ -19,6 +20,8 @@ export default function App() {
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>
+      {/* 사이트 공용 알림/확인 팝업 (lib/dialog.tsx의 showAlert/showConfirm이 여기에 그려짐) */}
+      <DialogHost />
     </HelmetProvider>
   );
 }

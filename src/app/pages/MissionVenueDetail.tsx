@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Phone, MapPin, Compass, X, Maximize2, Wind, Bed, Car, Bath,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { showAlert } from "../lib/dialog";
 
 function InfoRow({ icon, label, value }: any) {
   return (
@@ -59,7 +60,7 @@ export function MissionVenueDetail() {
         if (docSnap.exists() && docSnap.data().status === "approved") {
           setVenue(docSnap.data());
         } else {
-          alert("선교지 정보를 찾을 수 없습니다.");
+          await showAlert("선교지 정보를 찾을 수 없습니다.");
           navigate("/venues?category=mission");
         }
       } catch (error) {

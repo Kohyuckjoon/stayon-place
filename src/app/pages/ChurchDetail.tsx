@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useFeatureFlag } from "../lib/featureFlags";
 import { FeatureDisabledScreen } from "../components/FeatureDisabledScreen";
+import { showAlert } from "../lib/dialog";
 
 // 다양한 형태의 유튜브 링크(watch/shorts/youtu.be/embed)에서 영상 ID만 추출한다.
 function getYoutubeVideoId(url: string): string | null {
@@ -124,7 +125,7 @@ export function ChurchDetail() {
         if (docSnap.exists() && docSnap.data().status === "approved") {
           setChurch(docSnap.data());
         } else {
-          alert("교회 정보를 찾을 수 없습니다.");
+          await showAlert("교회 정보를 찾을 수 없습니다.");
           navigate("/churches");
         }
       } catch (error) {

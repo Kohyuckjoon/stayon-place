@@ -8,6 +8,7 @@ import {
   BadgeCheck, Banknote, ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { showAlert } from "../lib/dialog";
 
 // 상세페이지 조회수/"온라인몰 바로가기" 클릭수는 소유권 검사가 필요 없는 익명 카운터라
 // 서버의 logStoreEvent(공용 함수, functions/src/index.ts)를 fire-and-forget으로 호출한다 -
@@ -54,7 +55,7 @@ export function GroupShirtsDetail() {
           setShirt({ ...data, viewCount: (Number(data.viewCount) || 0) + 1 });
           logShirtEvent(id, "view");
         } else {
-          alert("업체 정보를 찾을 수 없습니다.");
+          await showAlert("업체 정보를 찾을 수 없습니다.");
           navigate("/shirts");
         }
       } catch (error) {

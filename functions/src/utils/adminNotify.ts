@@ -327,11 +327,25 @@ export const sendMailNotification = async (
 
   case "RESERVE": {
     const isInsp = data.dateTime?.includes("사전답사");
+    const deptEntities: Record<string, string> = {
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
+    };
+    const escDept = (v: unknown) =>
+      String(v ?? "").replace(/[&<>"']/g, (c) => deptEntities[c]);
     title = isInsp ? "🔍 새로운 사전답사 신청" : "📅 새로운 장소 예약 문의";
     color = isInsp ? "#ffbb00" : "#f04452";
     fields = [
       {title: "장소명", value: data.venueName},
       {title: "신청기관", value: data.userName},
+      // 참가 부서·직분·담임목사 - 직접 입력 값이라 HTML로 해석되지 않게 이스케이프.
+      // 항목이 생기기 전 화면에서 온 요청은 값이 없어 "미입력"으로 표시.
+      {title: "참가 부서", value: escDept(data.department) || "미입력"},
+      {title: "담당자 직분", value: escDept(data.contactRole) || "미입력"},
+      {
+        title: "담당자 소속 부서",
+        value: escDept(data.contactDepartment) || "미입력",
+      },
+      {title: "담임목사", value: escDept(data.pastorName) || "미입력"},
       {title: "연락처", value: data.phone},
       {title: "신청일정", value: data.dateTime},
     ];

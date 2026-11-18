@@ -10,6 +10,7 @@ import { useAuth } from "../lib/AuthContext";
 import { loginWithGoogle } from "../lib/auth";
 import { CustomInput, PillSelector, MultiPillSelector } from "../components/forms/TeamFormControls";
 import { ROOM_TYPE_OPTIONS, EQUIPMENT_CHECKLIST_OPTIONS, MAX_TAGS, WEEKDAY_OPTIONS, TIME_OPTIONS, formatCurrencyInput } from "../lib/bandRoomDisplay";
+import { showAlert } from "../lib/dialog";
 
 interface BandRoomFormData {
   track: "info" | "booking";
@@ -109,7 +110,7 @@ export default function BandRoomRegistrationForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + selectedFiles.length > 30) {
-      alert("사진은 최대 30장까지만 등록 가능합니다.");
+      showAlert("사진은 최대 30장까지만 등록 가능합니다.");
       return;
     }
     setSelectedFiles((prev) => [...prev, ...files]);
@@ -193,7 +194,7 @@ export default function BandRoomRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("등록 중 오류가 발생했습니다." + error);
+      await showAlert("등록 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }

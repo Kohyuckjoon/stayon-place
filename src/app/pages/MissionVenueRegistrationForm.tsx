@@ -17,6 +17,7 @@ import { loginWithGoogle } from "../lib/auth";
 import {
   VENUE_IMAGE_CATEGORIES, VENUE_IMAGE_TOTAL_MAX, VenueImageCategoryKey, emptyVenueImagesByCategory, flattenVenueImages,
 } from "../lib/missionVenueImageCategories";
+import { showAlert } from "../lib/dialog";
 
 /**
  * [Input Component] - 스타일의 깔끔한 입력창
@@ -281,7 +282,7 @@ export default function MissionVenueRegistrationForm() {
     e.target.value = ""; // 같은 파일을 다시 선택할 수 있도록 초기화
     if (files.length === 0) return;
     if (files.length + categoryFiles[key].length > category.max) {
-      alert(`"${category.label}"은(는) 최대 ${category.max}장까지 등록 가능합니다.`);
+      showAlert(`"${category.label}"은(는) 최대 ${category.max}장까지 등록 가능합니다.`);
       return;
     }
     setCategoryFiles(prev => ({ ...prev, [key]: [...prev[key], ...files] }));
@@ -384,7 +385,7 @@ export default function MissionVenueRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("등록 중 오류가 발생했습니다." + error);
+      await showAlert("등록 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }
@@ -801,12 +802,12 @@ export default function MissionVenueRegistrationForm() {
                             });
 
                             // 3. 완료 처리
-                            alert("요청이 접수되었습니다. 곧 연락드릴게요!");
+                            await showAlert("요청이 접수되었습니다. 곧 연락드릴게요!");
                             handleCloseModal();
 
                           } catch (error) {
                             console.error("Error sending notification:", error);
-                            alert("요청 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                            await showAlert("요청 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
                           }
                         }}
                         className="flex-[2] py-4 bg-[#3182f6] text-white rounded-2xl font-bold disabled:bg-[#e5e8eb]"

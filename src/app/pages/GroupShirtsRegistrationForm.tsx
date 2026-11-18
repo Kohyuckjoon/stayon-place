@@ -13,6 +13,7 @@ import { useAuth } from "../lib/AuthContext";
 import { loginWithGoogle } from "../lib/auth";
 import { CustomInput, CardSelector } from "../components/forms/TeamFormControls";
 import { PartnerStoreFields, PartnerStoreFieldsValue } from "../components/forms/PartnerStoreFields";
+import { showAlert } from "../lib/dialog";
 
 const MAX_SHIRTS_PHOTOS = 3;
 const STORAGE_FOLDER = "group-shirts";
@@ -165,7 +166,7 @@ export default function GroupShirtsRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("등록 중 오류가 발생했습니다." + error);
+      await showAlert("등록 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }

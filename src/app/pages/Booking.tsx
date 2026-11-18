@@ -11,6 +11,24 @@ import { httpsCallable } from "firebase/functions";
 import {
   Calendar, Church, Phone, CheckCircle2, ChevronLeft, Info, ChevronRight, X, CalendarDays, ChevronDown, AlertCircle, Clock, Settings, Check
 } from "lucide-react";
+import { showAlert } from "../lib/dialog";
+
+// 예약 신청서의 소속 교단 목록. value는 예전 select에서 저장하던 값과 동일(기존 데이터·관리자 화면 호환).
+const DENOMINATION_OPTIONS = [
+  { value: "예장통합", label: "예장통합" },
+  { value: "예장합동", label: "예장합동" },
+  { value: "기감", label: "기독교대한감리회" },
+  { value: "기성", label: "기독교대한성결교회" },
+  { value: "기하성", label: "기독교대한하나님의성회" },
+  { value: "기타", label: "기타 / 독립교단" },
+];
+
+// 참가 부서 - 어느 부서가 오는지 관리자/알림 메일에서 알 수 있게. 가격 계산과는 무관.
+const UNION_DEPARTMENT = "연합(여러 부서)";
+const DEPARTMENT_OPTIONS = ["영유아부", "유치부", "유초등부", "중고등부", "청년부", "장년부", "전교인", UNION_DEPARTMENT];
+
+// 담당자 직분 - 누가 연락 담당인지(목사님/전도사님/청년 등) 알 수 있게.
+const CONTACT_ROLE_OPTIONS = ["담임목사", "부목사", "전도사", "간사", "교사", "장로 · 권사 · 집사", "청년"];
 
 // --- 커스텀 메테리얼 캘린더 컴포넌트 ---
 function MaterialCalendar({ value, onChange, label, error, disabledDates = [] }: { value: string, onChange: (date: string) => void, label: string, error?: boolean, disabledDates?: string[] }) {
@@ -119,6 +137,20 @@ export function Booking() {
   const [venue, setVenue] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 신청 저장이 끝난 뒤 브라우저 기본 alert 대신 띄우는 완료 팝업 표시 여부
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  // 소속 교단 드롭다운(브라우저 기본 select 대신 사이트 스타일 드롭다운) 열림 여부
+  const [isDenoOpen, setIsDenoOpen] = useState(false);
+  // "기타 (직접 입력)"을 골랐을 때 true - 아래 입력칸에 적은 교단명이 그대로 denomination으로 저장된다.
+  const [isCustomDeno, setIsCustomDeno] = useState(false);
+  // 참가 부서 드롭다운 열림 / "기타 (직접 입력)" 선택 여부
+  const [isDeptOpen, setIsDeptOpen] = useState(false);
+  const [isCustomDept, setIsCustomDept] = useState(false);
+  // 담당자 직분 드롭다운 열림 / "기타 (직접 입력)" 선택 여부
+  const [isRoleOpen, setIsRoleOpen] = useState(false);
+  const [isCustomRole, setIsCustomRole] = useState(false);
+  // "참가부서와 동일해요" 체크 - 켜져 있으면 담당자 소속 부서를 참가 부서 값으로 계속 맞춘다.
+  const [isContactDeptSame, setIsContactDeptSame] = useState(false);
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
 
   // 실제 성수기 요금이 하루라도 적용되었는지 여부를 관리할 상태값 추가
@@ -127,7 +159,12 @@ export function Booking() {
   const [formData, setFormData] = useState({
     churchName: "",
     denomination: "",
+    department: "",
+    departmentDetail: "",   // 연합(여러 부서)일 때 함께 오는 부서들
     contactName: "",
+    contactRole: "",        // 담당자 직분
+    contactDepartment: "",  // 담당자 소속 부서
+    pastorName: "",         // 담임목사님 성함
     phone: "",
     email: "",
     startDate: searchParams.get("start") || "",
@@ -137,6 +174,15 @@ export function Booking() {
     specialRequests: "",
     inspectionDate: [] as string[],
   });
+
+  // 참가 부서 표시값(연합이면 함께 오는 부서까지) - "참가부서와 동일해요" 체크 시 그대로 복사된다.
+  const participatingDeptLabel = formData.department === UNION_DEPARTMENT && formData.departmentDetail
+    ? `${formData.department} - ${formData.departmentDetail}`
+    : formData.department;
+  useEffect(() => {
+    if (!isContactDeptSame) return;
+    setFormData((prev) => (prev.contactDepartment === participatingDeptLabel ? prev : { ...prev, contactDepartment: participatingDeptLabel }));
+  }, [isContactDeptSame, participatingDeptLabel]);
 
   // 상단 상태 관리 부분에 추가
   const [additionalAttendees, setAdditionalAttendees] = useState(0);
@@ -207,7 +253,7 @@ export function Booking() {
         if (docSnap.exists()) {
           setVenue(docSnap.data());
         } else {
-          alert("장소를 찾을 수 없습니다.");
+          await showAlert("장소를 찾을 수 없습니다.");
           navigate("/venues");
         }
 
@@ -295,7 +341,7 @@ export function Booking() {
     e.preventDefault();
     if (dateError || requiresStayonInquiry) return;
     if (!agreeToTerms || !agreeToRefund) {
-      alert("모든 약관에 동의해주세요.");
+      await showAlert("모든 약관에 동의해주세요.");
       return;
     }
     setIsSubmitting(true);
@@ -329,17 +375,23 @@ export function Booking() {
             : `[본예약] ${formData.startDate} ~ ${formData.endDate} (${nights}박)`,
           phone: formData.phone,
           venueName: venue.venueName,
+          department: formData.department === UNION_DEPARTMENT && formData.departmentDetail
+            ? `${formData.department} - ${formData.departmentDetail}`
+            : formData.department,
+          contactRole: formData.contactRole,
+          contactDepartment: formData.contactDepartment,
+          pastorName: formData.pastorName,
           priceInfo: isInspection
             ? `사전답사비: ${inspectionFee.toLocaleString()}원`
             : `총액: ${totalPrice.toLocaleString()}원 (예약금: ${depositPrice.toLocaleString()}원 / 잔금: ${(totalPrice - depositPrice).toLocaleString()}원)`
         }
       });
 
-      alert(isInspection ? "사전 답사 신청이 완료되었습니다." : "예약 문의가 완료되었습니다.");
-      navigate("/");
+      // 저장·알림 전송은 위에서 끝났고, 완료 안내만 팝업으로 띄운다(확인 누르면 홈으로 이동).
+      setIsCompleteModalOpen(true);
     } catch (error) {
       console.error("전송 에러:", error);
-      alert("신청 중 오류가 발생했습니다.");
+      await showAlert("신청 중 오류가 발생했습니다.");
       console.error("전송 에러 상세:", error);
     } finally {
       setIsSubmitting(false);
@@ -578,6 +630,44 @@ export function Booking() {
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans selection:bg-blue-100 pb-32">
       <ScrollRestoration />
+
+      {/* 신청 완료 팝업 - 브라우저 기본 alert 대신. 확인을 누르면 예전과 같이 홈으로 이동 */}
+      <AnimatePresence>
+        {isCompleteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-5"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 260 }}
+              role="dialog" aria-modal="true"
+              className="w-full max-w-[360px] bg-white rounded-[32px] p-7 text-center shadow-[0_24px_80px_-20px_rgba(0,0,0,0.3)]"
+            >
+              <motion.div
+                initial={{ scale: 0.5 }} animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12, delay: 0.1 }}
+                className="w-20 h-20 mx-auto mb-6 bg-[#F2F8FF] rounded-full flex items-center justify-center"
+              >
+                <Check className="w-10 h-10 text-[#3182F6]" strokeWidth={4} />
+              </motion.div>
+              <h2 className="text-[22px] font-black tracking-tight text-[#191F28] mb-3">
+                {isInspection ? "사전 답사 신청이 완료되었어요" : "예약 문의가 완료되었어요"}
+              </h2>
+              <p className="text-[15px] font-bold text-[#6B7684] leading-relaxed break-keep mb-7">
+                담당자가 확인 후<br />입력하신 연락처로 안내해 드릴게요.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="w-full h-[56px] bg-[#3182F6] hover:bg-[#1B64DA] text-white rounded-[18px] font-black text-[17px] shadow-lg shadow-[#3182F6]/20 transition-all active:scale-[0.98]"
+              >
+                확인
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-[#F2F4F6]/60">
         <div className="max-w-2xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -830,6 +920,91 @@ export function Booking() {
               </div> */}
 
               <div className="space-y-6">
+                {/* 참가 부서 - 소속 교단과 같은 사이트 스타일 드롭다운 (필수) */}
+                <div className="space-y-2.5">
+                  <label className="text-[13px] font-black text-[#6B7684] ml-1">참가 부서</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsDeptOpen(!isDeptOpen)}
+                      className={`w-full h-[64px] px-6 flex items-center justify-between rounded-[20px] border-2 transition-all font-black text-[17px] outline-none text-left ${isDeptOpen ? "border-[#3182F6] bg-white" : "border-transparent bg-[#F9FAFB]"}`}
+                    >
+                      <span className={(formData.department || isCustomDept) ? "text-[#191F28]" : "text-[#B0B8C1]"}>
+                        {isCustomDept ? "기타 (직접 입력)" : (formData.department || "부서 선택")}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 transition-transform ${isDeptOpen ? "rotate-180 text-[#3182F6]" : "text-[#B0B8C1]"}`} />
+                    </button>
+                    {/* 부서를 고르지 않으면 브라우저가 신청을 막도록 하는 숨은 입력칸 */}
+                    <input
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      required
+                      value={isCustomDept ? "custom" : formData.department}
+                      onChange={() => {}}
+                      className="absolute bottom-0 left-1/2 w-px h-px opacity-0 pointer-events-none"
+                    />
+                    <AnimatePresence>
+                      {isDeptOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsDeptOpen(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute z-50 w-full mt-2 p-2 bg-white rounded-[24px] border border-[#F2F4F6] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] max-h-[320px] overflow-y-auto"
+                          >
+                            {DEPARTMENT_OPTIONS.map((d) => (
+                              <button
+                                type="button"
+                                key={d}
+                                onClick={() => {
+                                  setIsCustomDept(false);
+                                  setFormData({ ...formData, department: d, departmentDetail: d === UNION_DEPARTMENT ? formData.departmentDetail : "" });
+                                  setIsDeptOpen(false);
+                                }}
+                                className={`w-full p-3.5 rounded-[18px] flex items-center justify-between text-left font-bold text-[15px] transition-colors ${!isCustomDept && formData.department === d ? "bg-[#F2F8FF] text-[#3182F6]" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                              >
+                                {d}
+                                {!isCustomDept && formData.department === d && <Check className="w-4 h-4 text-[#3182F6]" strokeWidth={3} />}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomDept(true);
+                                setFormData({ ...formData, department: "", departmentDetail: "" });
+                                setIsDeptOpen(false);
+                              }}
+                              className={`w-full p-3.5 rounded-[18px] flex items-center justify-between text-left font-bold text-[15px] transition-colors ${isCustomDept ? "bg-[#F2F8FF] text-[#3182F6]" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                            >
+                              기타 (직접 입력)
+                              {isCustomDept && <Check className="w-4 h-4 text-[#3182F6]" strokeWidth={3} />}
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                    {isCustomDept && (
+                      <input
+                        type="text" required autoFocus
+                        value={formData.department}
+                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                        placeholder="부서명을 입력해주세요 (예: 여전도회, 찬양팀)"
+                        className="mt-2.5 w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black outline-none text-[17px]"
+                      />
+                    )}
+                    {/* 연합이면 어떤 부서들이 함께 오는지 직접 입력 (필수) */}
+                    {!isCustomDept && formData.department === UNION_DEPARTMENT && (
+                      <input
+                        type="text" required autoFocus
+                        value={formData.departmentDetail}
+                        onChange={(e) => setFormData({ ...formData, departmentDetail: e.target.value })}
+                        placeholder="함께 오는 부서를 입력해주세요 (예: 중고등부 + 청년부)"
+                        className="mt-2.5 w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black outline-none text-[17px]"
+                      />
+                    )}
+                  </div>
+                </div>
+
                 {/* 기본 인원 안내 섹션 */}
                 {/* <div className="p-4 bg-[#F2F4F6] rounded-[20px]">
                   <p className="text-[14px] font-bold text-[#4E5968]">
@@ -937,21 +1112,88 @@ export function Booking() {
               </div>
               <div className="space-y-2.5">
                 <label className="text-[13px] font-black text-[#6B7684] ml-1">소속 교단</label>
+                {/* 브라우저 기본 select(회색 시스템 목록) 대신 사이트 스타일 드롭다운.
+                    목록과 저장값(value)은 예전 select와 동일하게 유지한다. */}
                 <div className="relative">
-                  <select
-                    required value={formData.denomination}
-                    onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
-                    className="w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black appearance-none outline-none text-[17px]"
+                  <button
+                    type="button"
+                    onClick={() => setIsDenoOpen(!isDenoOpen)}
+                    className={`w-full h-[64px] px-6 flex items-center justify-between rounded-[20px] border-2 transition-all font-black text-[17px] outline-none text-left ${isDenoOpen ? "border-[#3182F6] bg-white" : "border-transparent bg-[#F9FAFB]"}`}
                   >
-                    <option value="">교단 선택</option>
-                    <option value="예장통합">예장통합</option>
-                    <option value="예장합동">예장합동</option>
-                    <option value="기감">기독교대한감리회</option>
-                    <option value="기성">기독교대한성결교회</option>
-                    <option value="기하성">기독교대한하나님의성회</option>
-                    <option value="기타">기타 / 독립교단</option>
-                  </select>
-                  <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B8C1] pointer-events-none" />
+                    <span className={(formData.denomination || isCustomDeno) ? "text-[#191F28]" : "text-[#B0B8C1]"}>
+                      {isCustomDeno ? "기타 (직접 입력)" : (DENOMINATION_OPTIONS.find((o) => o.value === formData.denomination)?.label || "교단 선택")}
+                    </span>
+                    <ChevronDown className={`w-5 h-5 transition-transform ${isDenoOpen ? "rotate-180 text-[#3182F6]" : "text-[#B0B8C1]"}`} />
+                  </button>
+                  {/* 교단을 고르지 않으면 예전 select의 required처럼 브라우저가 신청을 막도록 하는 숨은 입력칸 */}
+                  <input
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    required
+                    // 직접 입력 모드에서는 아래 보이는 입력칸이 required로 확인하므로 여기선 통과시킨다.
+                    value={isCustomDeno ? "custom" : formData.denomination}
+                    onChange={() => {}}
+                    className="absolute bottom-0 left-1/2 w-px h-px opacity-0 pointer-events-none"
+                  />
+                  <AnimatePresence>
+                    {isDenoOpen && (
+                      <>
+                        {/* 바깥 아무 곳이나 누르면 닫힘 */}
+                        <div className="fixed inset-0 z-40" onClick={() => setIsDenoOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute z-50 w-full mt-2 p-2 bg-white rounded-[24px] border border-[#F2F4F6] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]"
+                        >
+                          {DENOMINATION_OPTIONS.map((o) => (
+                            <button
+                              type="button"
+                              key={o.value}
+                              onClick={() => {
+                                setIsCustomDeno(false);
+                                setFormData({ ...formData, denomination: o.value });
+                                setIsDenoOpen(false);
+                              }}
+                              className={`w-full p-3.5 rounded-[18px] flex items-center justify-between text-left font-bold text-[15px] transition-colors ${!isCustomDeno && formData.denomination === o.value ? "bg-[#F2F8FF] text-[#3182F6]" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                            >
+                              {o.label}
+                              {!isCustomDeno && formData.denomination === o.value && <Check className="w-4 h-4 text-[#3182F6]" strokeWidth={3} />}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomDeno(true);
+                              setFormData({ ...formData, denomination: "" });
+                              setIsDenoOpen(false);
+                            }}
+                            className={`w-full p-3.5 rounded-[18px] flex items-center justify-between text-left font-bold text-[15px] transition-colors ${isCustomDeno ? "bg-[#F2F8FF] text-[#3182F6]" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                          >
+                            기타 (직접 입력)
+                            {isCustomDeno && <Check className="w-4 h-4 text-[#3182F6]" strokeWidth={3} />}
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                  {isCustomDeno && (
+                    <>
+                      <input
+                        type="text" required autoFocus
+                        value={formData.denomination}
+                        onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
+                        placeholder="교단명을 입력해주세요 (예: 한국기독교00연합)"
+                        className="mt-2.5 w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black outline-none text-[17px]"
+                      />
+                      {/* 직접 입력한 교단은 정식 교단 소속 여부를 확인해야 해서 반려 가능성을 미리 안내 */}
+                      <div className="flex items-start gap-2 mt-3 px-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-[#F04452] shrink-0 mt-0.5" />
+                        <p className="text-[12px] text-[#6B7684] font-bold leading-relaxed break-keep">
+                          정식 교단에 소속된 교회인지 확인 후 예약이 진행돼요. <span className="text-[#F04452]">정식 교단 소속이 확인되지 않으면 신청이 반려될 수 있어요.</span>
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -971,8 +1213,124 @@ export function Booking() {
                   className="w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black outline-none text-[17px]"
                 />
               </div>
+              {/* 담당자 직분 - 소속 교단과 같은 사이트 스타일 드롭다운 (필수) */}
               <div className="space-y-2.5">
-                <label className="text-[13px] font-black text-[#6B7684] ml-1">휴대폰 번호</label>
+                <label className="text-[13px] font-black text-[#6B7684] ml-1">담당자 직분</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsRoleOpen(!isRoleOpen)}
+                    className={`w-full h-[64px] px-6 flex items-center justify-between rounded-[20px] border-2 transition-all font-black text-[17px] outline-none text-left ${isRoleOpen ? "border-[#3182F6] bg-white" : "border-transparent bg-[#F9FAFB]"}`}
+                  >
+                    <span className={(formData.contactRole || isCustomRole) ? "text-[#191F28]" : "text-[#B0B8C1]"}>
+                      {isCustomRole ? "기타 (직접 입력)" : (formData.contactRole || "직분 선택")}
+                    </span>
+                    <ChevronDown className={`w-5 h-5 transition-transform ${isRoleOpen ? "rotate-180 text-[#3182F6]" : "text-[#B0B8C1]"}`} />
+                  </button>
+                  <input
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    required
+                    value={isCustomRole ? "custom" : formData.contactRole}
+                    onChange={() => {}}
+                    className="absolute bottom-0 left-1/2 w-px h-px opacity-0 pointer-events-none"
+                  />
+                  <AnimatePresence>
+                    {isRoleOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsRoleOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute z-50 w-full mt-2 p-2 bg-white rounded-[24px] border border-[#F2F4F6] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] max-h-[320px] overflow-y-auto"
+                        >
+                          {CONTACT_ROLE_OPTIONS.map((r) => (
+                            <button
+                              type="button"
+                              key={r}
+                              onClick={() => {
+                                setIsCustomRole(false);
+                                // 담당자가 담임목사님이면 아래 담임목사님 성함을 담당자 성함으로 미리 채워준다(비어 있을 때만).
+                                setFormData({
+                                  ...formData,
+                                  contactRole: r,
+                                  pastorName: r === "담임목사" && !formData.pastorName ? formData.contactName : formData.pastorName,
+                                });
+                                setIsRoleOpen(false);
+                              }}
+                              className={`w-full p-3.5 rounded-[18px] flex items-center justify-between text-left font-bold text-[15px] transition-colors ${!isCustomRole && formData.contactRole === r ? "bg-[#F2F8FF] text-[#3182F6]" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                            >
+                              {r}
+                              {!isCustomRole && formData.contactRole === r && <Check className="w-4 h-4 text-[#3182F6]" strokeWidth={3} />}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomRole(true);
+                              setFormData({ ...formData, contactRole: "" });
+                              setIsRoleOpen(false);
+                            }}
+                            className={`w-full p-3.5 rounded-[18px] flex items-center justify-between text-left font-bold text-[15px] transition-colors ${isCustomRole ? "bg-[#F2F8FF] text-[#3182F6]" : "text-[#333D4B] hover:bg-[#F2F4F6]"}`}
+                          >
+                            기타 (직접 입력)
+                            {isCustomRole && <Check className="w-4 h-4 text-[#3182F6]" strokeWidth={3} />}
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                  {isCustomRole && (
+                    <input
+                      type="text" required autoFocus
+                      value={formData.contactRole}
+                      onChange={(e) => setFormData({ ...formData, contactRole: e.target.value })}
+                      placeholder="직분을 입력해주세요 (예: 행정 간사, 성도)"
+                      className="mt-2.5 w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black outline-none text-[17px]"
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-[13px] font-black text-[#6B7684] ml-1">담당자 소속 부서</label>
+                  {/* 참가 부서를 아직 안 골랐으면 복사할 값이 없어서 비활성 */}
+                  <button
+                    type="button"
+                    disabled={!participatingDeptLabel}
+                    onClick={() => {
+                      const next = !isContactDeptSame;
+                      setIsContactDeptSame(next);
+                      if (!next) setFormData({ ...formData, contactDepartment: "" });
+                    }}
+                    className="flex items-center gap-1.5 text-[13px] font-black text-[#4E5968] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${isContactDeptSame ? "bg-[#3182F6]" : "bg-[#E5E8EB]"}`}>
+                      <Check className={`w-3 h-3 ${isContactDeptSame ? "text-white" : "text-[#ADB5BD]"}`} strokeWidth={3} />
+                    </span>
+                    참가부서와 동일해요
+                  </button>
+                </div>
+                <input
+                  type="text" required value={formData.contactDepartment}
+                  readOnly={isContactDeptSame}
+                  onChange={(e) => setFormData({ ...formData, contactDepartment: e.target.value })}
+                  placeholder="예: 청년부, 교육부, 행정실"
+                  className={`w-full h-[64px] px-6 border-2 border-transparent rounded-[20px] transition-all font-black outline-none text-[17px] ${isContactDeptSame ? "bg-[#F2F8FF] text-[#3182F6] cursor-default" : "bg-[#F9FAFB] focus:border-[#3182F6] focus:bg-white"}`}
+                />
+              </div>
+              {/* 담임목사님 성함 - 잠시 숨김(주석 처리). 다시 켜려면 주석만 풀면 된다.
+              <div className="space-y-2.5">
+                <label className="text-[13px] font-black text-[#6B7684] ml-1">담임목사님 성함</label>
+                <input
+                  type="text" required value={formData.pastorName}
+                  onChange={(e) => setFormData({ ...formData, pastorName: e.target.value })}
+                  placeholder="예: 홍길동"
+                  className="w-full h-[64px] px-6 bg-[#F9FAFB] border-2 border-transparent focus:border-[#3182F6] focus:bg-white rounded-[20px] transition-all font-black outline-none text-[17px]"
+                />
+              </div> */}
+              <div className="space-y-2.5">
+                <label className="text-[13px] font-black text-[#6B7684] ml-1">담당자 휴대폰 번호</label>
                 <input
                   type="tel" required value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}

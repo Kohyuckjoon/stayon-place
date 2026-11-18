@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { REGION_OPTIONS as ALL_REGIONS } from "../lib/regions";
 import { getEquipmentBadges, getIndividualBadgeLabel } from "../lib/teamDisplay";
 import { getStoredReferral } from "../lib/referral";
+import { showAlert } from "../lib/dialog";
 
 // 처음 보는 사람도 바로 이해할 수 있도록, 값만 보여주지 않고 쉬운 설명을 함께 붙인다.
 const EQUIPMENT_DESCRIPTIONS: Record<string, string> = {
@@ -175,7 +176,7 @@ export function TeamDetail() {
         if (docSnap.exists() && docSnap.data().status === "approved") {
           setTeam(docSnap.data());
         } else {
-          alert("사역팀 정보를 찾을 수 없습니다.");
+          await showAlert("사역팀 정보를 찾을 수 없습니다.");
           navigate("/teams");
         }
       } catch (error) {

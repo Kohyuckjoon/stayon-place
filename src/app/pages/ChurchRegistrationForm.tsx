@@ -15,6 +15,7 @@ import { loginWithGoogle } from "../lib/auth";
 import { CustomInput } from "../components/forms/TeamFormControls";
 import { useFeatureFlag } from "../lib/featureFlags";
 import { FeatureDisabledScreen } from "../components/FeatureDisabledScreen";
+import { showAlert } from "../lib/dialog";
 
 const MAX_CHURCH_PHOTOS = 10;
 const MAX_YOUTUBE_URLS = 3;
@@ -237,7 +238,7 @@ export default function ChurchRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("등록 중 오류가 발생했습니다." + error);
+      await showAlert("등록 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }

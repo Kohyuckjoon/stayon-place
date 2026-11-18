@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, ShieldAlert, CheckCircle2, X, Plus, Trash2, Clock, MapPin, Layers } from 'lucide-react';
+import { showConfirm } from "../lib/dialog";
 
 interface BlockedDateRange {
   id: string;
@@ -65,7 +66,7 @@ export default function VenueBlockManager({
   };
 
   const handleCancelBlock = async (id: string) => {
-    if (window.confirm('해당 기간의 예약 제한을 해제하시겠습니까?')) {
+    if ((await showConfirm('해당 기간의 예약 제한을 해제하시겠습니까?'))) {
       try {
         if (onRemoveBlock) {
           await onRemoveBlock(id);

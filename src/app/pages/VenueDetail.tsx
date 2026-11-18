@@ -16,6 +16,7 @@ import { VENUE_IMAGE_CATEGORIES, toDisplayImagesByCategory } from "../lib/venueI
 import { motion, AnimatePresence } from "framer-motion";
 import { loginWithGoogle } from "../lib/auth";
 import AvailabilityCalendar from '../pages/AvailabilityCalendar';
+import { showAlert, showConfirm } from "../lib/dialog";
 
 // 사진이 최대 100장 넘게 등록될 수 있게 되면서, "사진" 탭을 처음 누를 때 수십 장이
 // 한꺼번에 다운로드되느라 버튼을 눌러도 한동안 반응이 없는 것처럼 보이는 문제가 있었다.
@@ -151,7 +152,7 @@ export function VenueDetail() {
           httpsCallable(functions, "logStoreEvent")({ store: "venue", id, type: "view" })
             .catch((err) => console.error("조회수 기록 실패:", err));
         } else {
-          alert("장소를 찾을 수 없습니다.");
+          await showAlert("장소를 찾을 수 없습니다.");
           navigate("/venues");
         }
       } catch (error) {
@@ -204,13 +205,13 @@ export function VenueDetail() {
   }, [venueReviews.length]);
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!window.confirm("이 리뷰를 삭제하시겠습니까?")) return;
+    if (!(await showConfirm("이 리뷰를 삭제하시겠습니까?"))) return;
     try {
       await deleteDoc(doc(db, "reviews", reviewId));
       setVenueReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (error) {
       console.error("리뷰 삭제 실패:", error);
-      alert("삭제 중 오류가 발생했습니다.");
+      await showAlert("삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -237,7 +238,7 @@ export function VenueDetail() {
       } catch (err) { console.log("공유 취소됨"); }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert("링크가 복사되었습니다.");
+      await showAlert("링크가 복사되었습니다.");
     }
   };
 

@@ -4,6 +4,7 @@ import { collection, query, orderBy, getDocs, doc, deleteDoc } from "firebase/fi
 import { getAuth } from "firebase/auth";
 import { Link } from "react-router-dom";
 import { Plus, Search, ChevronDown, ChevronUp, MessageCircle, Edit3 } from "lucide-react";
+import { showConfirm } from "../lib/dialog";
 
 // 모바일 전용 게시판 전환 탭은 이제 Layout.tsx에서 공용으로 렌더링한다(BoardSwitcher.tsx 참고).
 
@@ -47,7 +48,7 @@ export default function FreeBoardList() {
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (window.confirm("정말 삭제하시겠습니까?")) {
+        if ((await showConfirm("정말 삭제하시겠습니까?"))) {
             try {
                 await deleteDoc(doc(db, "freeboard", id));
                 setPosts(posts.filter((p) => p.id !== id));

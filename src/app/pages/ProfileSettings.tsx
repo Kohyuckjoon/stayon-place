@@ -11,6 +11,7 @@ import { deleteUserAccount } from "../lib/auth";
 import { updateProfile } from "firebase/auth";
 import { doc, updateDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
+import { showAlert } from "../lib/dialog";
 
 export default function ProfileSettings() {
     const { user, loading } = useAuth();
@@ -52,7 +53,7 @@ export default function ProfileSettings() {
         } catch (error) {
             console.error("Profile Update Error:", error);
             // 스타일 에러 알림이 있다면 대체 가능
-            alert("정보 수정 중 오류가 발생했습니다.");
+            await showAlert("정보 수정 중 오류가 발생했습니다.");
         } finally {
             setIsSaving(false);
         }
@@ -77,7 +78,7 @@ export default function ProfileSettings() {
         } catch (error) {
             console.error("Delete account failed:", error);
             setIsDeleteModalOpen(false);
-            alert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다.");
+            await showAlert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다.");
         } finally {
             setIsDeleting(false);
         }

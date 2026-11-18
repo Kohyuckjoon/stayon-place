@@ -6,6 +6,7 @@ import { useAuth } from "../lib/AuthContext";
 import { loginWithGoogle } from "../lib/auth";
 import { isAdminEmail } from "../lib/adminEmails";
 import { ChevronLeft, Lock, MapPin } from "lucide-react";
+import { showAlert } from "../lib/dialog";
 
 // 특정 장소에 대해서만 작성 가능한 리뷰 작성/수정 폼.
 // 장소명은 이 페이지로 들어온 venueId 기준으로 고정되며 수정할 수 없다.
@@ -34,7 +35,7 @@ export default function VenueReviewWrite() {
         if (snap.exists()) {
           setVenue(snap.data());
         } else {
-          alert("장소를 찾을 수 없습니다.");
+          await showAlert("장소를 찾을 수 없습니다.");
           navigate("/venues");
         }
       } catch (error) {
@@ -57,7 +58,7 @@ export default function VenueReviewWrite() {
       try {
         const snap = await getDoc(doc(db, "reviews", editId));
         if (!snap.exists()) {
-          alert("리뷰를 찾을 수 없습니다.");
+          await showAlert("리뷰를 찾을 수 없습니다.");
           navigate(`/venue/${id}`);
           return;
         }
@@ -103,7 +104,7 @@ export default function VenueReviewWrite() {
       navigate(`/venue/${id}`, { state: { scrollToReviews: true } });
     } catch (error) {
       console.error("저장 실패:", error);
-      alert("저장 중 오류가 발생했습니다.");
+      await showAlert("저장 중 오류가 발생했습니다.");
     } finally {
       setSubmitting(false);
     }

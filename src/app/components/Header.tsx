@@ -6,7 +6,7 @@ import {
   Church, Menu, User, X, ChevronDown, BookOpen,
   ShieldCheck, CreditCard, LogOut, Settings, CheckCircle2,
   PlusSquare, LayoutDashboard, RefreshCcw, AlertTriangle,
-  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays, ClipboardCheck, Wallet
+  Info, Mail, Lock, ChevronRight, UserPlus, Loader2, MessageSquare, MessagesSquare, Store, MapPin, ExternalLink, Mic2, Music, Gift, Shirt, Bus, Compass, Users, Sparkles, CalendarDays, ClipboardCheck, Wallet, Monitor
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +22,7 @@ import {
 } from "firebase/auth"; // Firebase Auth 메서드 추가
 // import { sendMailNotification } from "../../utils/slackNotify";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { showAlert } from "../lib/dialog";
 
 export function Header() {
   const churchDirectoryEnabled = useFeatureFlag("churchDirectoryEnabled");
@@ -40,6 +41,7 @@ export function Header() {
   const [isTeamsMenuOpen, setIsTeamsMenuOpen] = useState(false);
   const [isSoundMenuOpen, setIsSoundMenuOpen] = useState(false);
   const [isBulletinMenuOpen, setIsBulletinMenuOpen] = useState(false);
+  const [isWebsiteMenuOpen, setIsWebsiteMenuOpen] = useState(false);
 
   // [상태 관리] 로그인 및 회원가입 단계 제어
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -86,7 +88,7 @@ export function Header() {
       setResetEmailSent(true);
     } catch (error: any) {
       console.error(error);
-      alert("가입되지 않은 이메일이거나 오류가 발생했습니다.");
+      await showAlert("가입되지 않은 이메일이거나 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -106,11 +108,11 @@ export function Header() {
         const userData = querySnapshot.docs[0].data();
         setFoundEmail(userData.email);
       } else {
-        alert("등록된 이름(단체명)을 찾을 수 없습니다.");
+        await showAlert("등록된 이름(단체명)을 찾을 수 없습니다.");
       }
     } catch (error) {
       console.error(error);
-      alert("조회 중 오류가 발생했습니다.");
+      await showAlert("조회 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +130,7 @@ export function Header() {
       setLoginStep('select');
     } catch (error) {
       console.error("Login process error:", error);
-      alert("로그인 중 오류가 발생했습니다.");
+      await showAlert("로그인 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +156,7 @@ export function Header() {
       setPassword("");
     } catch (error: any) {
       console.error(error);
-      alert("이메일 또는 비밀번호를 확인해주세요.");
+      await showAlert("이메일 또는 비밀번호를 확인해주세요.");
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +166,7 @@ export function Header() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
-      alert("비밀번호를 8자 이상 입력해주세요.");
+      await showAlert("비밀번호를 8자 이상 입력해주세요.");
       return;
     }
 
@@ -229,9 +231,9 @@ export function Header() {
 
       // 에러 메시지 처리
       if (error.code === 'auth/email-already-in-use') {
-        alert("이미 사용 중인 이메일입니다.");
+        await showAlert("이미 사용 중인 이메일입니다.");
       } else {
-        alert("회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+        await showAlert("회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
       }
     } finally {
       setIsLoading(false);
@@ -558,35 +560,6 @@ export function Header() {
                 </AnimatePresence>
               </div> */}
 
-              {/* 온라인 주보 - 찬양팀 섭외와 같은 방식으로 호버 시 짧은 설명 툴팁을 띄운다. */}
-              <div
-                className="relative shrink-0"
-                onMouseEnter={() => setIsBulletinMenuOpen(true)}
-                onMouseLeave={() => setIsBulletinMenuOpen(false)}
-              >
-                <a
-                  href="https://bulletin.stayon-platform.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
-                >
-                  <span>온라인 주보</span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                </a>
-                <AnimatePresence>
-                  {isBulletinMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
-                    >
-                      앱 설치없이 QR로 간편하게
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
               {/* 탭2: 찬양팀 섭외 - 목적지가 하나라 드롭다운 없이 바로 이동하는 단일 링크.
                   라벨만 보면 범위가 뭔지 애매해서, 호버 시 작게 뜨는 툴팁으로 "찬양팀·찬양사역자·
                   음향/조명 섭외 등"을 부가 설명한다(상시 노출하면 2줄이 되어 옆 버튼들과 높이가
@@ -617,11 +590,70 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
+              {/* 온라인 주보 - 찬양팀 섭외와 같은 방식으로 호버 시 짧은 설명 툴팁을 띄운다. */}
+              <div
+                className="relative shrink-0"
+                onMouseEnter={() => setIsBulletinMenuOpen(true)}
+                onMouseLeave={() => setIsBulletinMenuOpen(false)}
+              >
+                <a
+                  href="https://bulletin.stayon-platform.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
+                >
+                  <span>온라인 주보</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                </a>
+                <AnimatePresence>
+                  {isBulletinMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
+                    >
+                      앱 설치없이 QR로 간편하게
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* 음향 시공 문의 - 기능 준비 중이라 임시로 비활성화. 클릭/이동 안 되게 Link 대신
                   div로 바꾸고, 자물쇠 아이콘 + "준비중" 배지 + 낮은 불투명도로 비활성 상태임을
                   표시한다. 호버 툴팁도 안내 문구로 교체(기존 설명 문구는 다시 켤 때 참고용으로
-                  주석에 남겨둔다: "교회·수양관 등 다양한 장소 음향 시공 문의"). */}
+                  주석에 남겨둔다: "교회·수양관 등 다양한 장소 음향 시공 문의").
+                  → 현재는 메뉴에서 잠시 숨김(주석 처리). 그 자리에 "교회 홈페이지 제작"을 둔다. */}
+              {/* 교회 홈페이지 제작 - 다른 서브도메인 앱이라 온라인 주보와 같은 새 탭 링크 + 호버 말풍선. */}
               <div
+                className="relative shrink-0"
+                onMouseEnter={() => setIsWebsiteMenuOpen(true)}
+                onMouseLeave={() => setIsWebsiteMenuOpen(false)}
+              >
+                <a
+                  href="https://website.stayon-platform.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
+                >
+                  <span>교회 홈페이지 제작</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                </a>
+                <AnimatePresence>
+                  {isWebsiteMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
+                    >
+                      월 7,900원부터 저렴하게!
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* <div
                 className="relative shrink-0"
                 onMouseEnter={() => setIsSoundMenuOpen(true)}
                 onMouseLeave={() => setIsSoundMenuOpen(false)}
@@ -646,7 +678,7 @@ export function Header() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </div> */}
 
               <div className="w-[1px] h-4 bg-[#E5E8EB] mx-2 shrink-0" />
 
@@ -764,29 +796,35 @@ export function Header() {
                     react-router Link가 아니라 외부 링크(a 태그)로 연결한다 - 데스크톱 GNB의 같은
                     링크(위쪽 "온라인 주보" 항목)와 동일한 target="_blank" 패턴. */}
                 <div className="grid grid-cols-3 gap-2">
-                  <Link to="/venues" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F8FF] rounded-xl text-center active:scale-95 transition-all">
+                  <Link to="/venues" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
                     <MapPin className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight">장소 찾기</span>
                   </Link>
-                  <Link to="/teams" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F5F3FF] rounded-xl text-center active:scale-95 transition-all">
-                    <Mic2 className="w-5 h-5 text-[#8B5CF6]" />
+                  {/* 데스크톱은 "플래너" 드롭다운에 있는 사전답사 체크리스트 - 모바일 메뉴엔 플래너
+                      그룹이 없어서 바로 들어갈 길이 없었다. 색은 데스크톱 항목과 같은 주황 톤. */}
+                  <Link to="/checklist/new" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
+                    <ClipboardCheck className="w-5 h-5 text-[#3182F6]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">답사 체크리스트</span>
+                  </Link>
+                  <Link to="/teams" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
+                    <Mic2 className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">찬양팀 섭외</span>
                   </Link>
-                  {/* 음향 시공 문의 - 데스크톱과 동일하게 준비 중이라 비활성화 */}
+                  {/* 음향 시공 문의 - 데스크톱과 동일하게 잠시 숨김(주석 처리)
                   <div aria-disabled="true" className="flex flex-col items-center gap-1 py-3 bg-[#F9FAFB] rounded-xl text-center opacity-50 cursor-not-allowed select-none">
                     <Lock className="w-5 h-5 text-[#ADB5BD]" />
                     <span className="text-[11px] font-black text-[#8B95A1] leading-tight break-keep">음향 시공 문의</span>
-                  </div>
-                  <Link to="/teams?category=bandroom" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F0F9FF] rounded-xl text-center active:scale-95 transition-all">
-                    <Music className="w-5 h-5 text-[#0EA5E9]" />
+                  </div> */}
+                  <Link to="/teams?category=bandroom" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
+                    <Music className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">합주실·연습실</span>
                   </Link>
-                  <Link to="/goods" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FFFBEB] rounded-xl text-center active:scale-95 transition-all">
-                    <Gift className="w-5 h-5 text-[#F59E0B]" />
+                  <Link to="/goods" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
+                    <Gift className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">굿즈몰</span>
                   </Link>
-                  <Link to="/shirts" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FDF2F8] rounded-xl text-center active:scale-95 transition-all">
-                    <Shirt className="w-5 h-5 text-[#EC4899]" />
+                  <Link to="/shirts" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
+                    <Shirt className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">티셔츠몰</span>
                   </Link>
                   <a
@@ -794,25 +832,30 @@ export function Header() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex flex-col items-center gap-1 py-3 bg-[#EEF2FF] rounded-xl text-center active:scale-95 transition-all"
+                    className="flex flex-col items-center gap-1 py-3 bg-[#E6F9F2] rounded-xl text-center active:scale-95 transition-all"
                   >
-                    <ExternalLink className="w-5 h-5 text-[#6366F1]" />
+                    <ExternalLink className="w-5 h-5 text-[#00B373]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">온라인 주보</span>
                   </a>
-                  {/* 데스크톱은 "플래너" 드롭다운에 있는 사전답사 체크리스트 - 모바일 메뉴엔 플래너
-                      그룹이 없어서 바로 들어갈 길이 없었다. 색은 데스크톱 항목과 같은 주황 톤. */}
-                  <Link to="/checklist/new" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#FFF8E8] rounded-xl text-center active:scale-95 transition-all">
-                    <ClipboardCheck className="w-5 h-5 text-[#F2994A]" />
-                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">답사 체크리스트</span>
-                  </Link>
+                  {/* 교회 홈페이지 제작 - 데스크톱 GNB와 같은 외부 링크(새 탭) */}
+                  <a
+                    href="https://website.stayon-platform.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex flex-col items-center gap-1 py-3 bg-[#E6F9F2] rounded-xl text-center active:scale-95 transition-all"
+                  >
+                    <Monitor className="w-5 h-5 text-[#00B373]" />
+                    <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">교회 홈페이지 제작</span>
+                  </a>
                   {churchDirectoryEnabled && (
-                    <Link to="/churches" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#ECFDF5] rounded-xl text-center active:scale-95 transition-all">
-                      <Church className="w-5 h-5 text-[#10B981]" />
+                    <Link to="/churches" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F2F4F6] rounded-xl text-center active:scale-95 transition-all">
+                      <Church className="w-5 h-5 text-[#3182F6]" />
                       <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">전국 교회</span>
                     </Link>
                   )}
                   {/* <Link to="/vehicles" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 py-3 bg-[#F9FAFB] rounded-xl text-center active:scale-95 transition-all">
-                    <Bus className="w-5 h-5 text-[#6B7684]" />
+                    <Bus className="w-5 h-5 text-[#3182F6]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">차량·버스 대여</span>
                   </Link> */}
                 </div>

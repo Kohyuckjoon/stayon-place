@@ -11,6 +11,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { exportToPNG, exportToExcel, exportToPDF, exportToHWP, type Venue } from '../../utils/ExportUtils';
+import { showConfirm } from "../lib/dialog";
 
 export function ComparisonPlanner() {
   const navigate = useNavigate();
@@ -88,8 +89,8 @@ export function ComparisonPlanner() {
     };
   }, [sortedVenues]);
 
-  const handleDelete = (id: string | number) => {
-    if (window.confirm("이 장소를 플래너에서 제외할까요?")) {
+  const handleDelete = async (id: string | number) => {
+    if ((await showConfirm("이 장소를 플래너에서 제외할까요?"))) {
       // 1. 현재 상태 업데이트
       const updatedVenues = venues.filter(v => v.id !== id);
       setVenues(updatedVenues);

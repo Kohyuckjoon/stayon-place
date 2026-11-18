@@ -3,6 +3,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { uploadPartnerImage } from "../lib/storage";
 import { Camera, ChevronLeft, ChevronRight, Gift, GripVertical, Info, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { showConfirm } from "../lib/dialog";
 
 const STORAGE_FOLDER = "goods-store";
 
@@ -142,7 +143,7 @@ export function MyGoodsManagerTab({ goods }: { goods: any }) {
   };
 
   const handleDelete = async (product: ProductItem) => {
-    if (!window.confirm(`"${product.name || "이 상품"}"을 삭제하시겠어요?`)) return;
+    if (!(await showConfirm(`"${product.name || "이 상품"}"을 삭제하시겠어요?`))) return;
     setError("");
     setDeletingId(product.id);
     try {

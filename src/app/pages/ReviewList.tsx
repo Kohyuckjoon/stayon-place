@@ -4,6 +4,7 @@ import { collection, query, orderBy, getDocs, doc, deleteDoc } from "firebase/fi
 import { getAuth } from "firebase/auth"; // 인증 정보 확인용
 import { Link } from "react-router-dom";
 import { Plus, Search, ChevronDown, ChevronUp, MapPin, Coffee } from "lucide-react";
+import { showConfirm } from "../lib/dialog";
 
 // 모바일 전용 게시판 전환 탭은 이제 Layout.tsx에서 공용으로 렌더링한다(BoardSwitcher.tsx 참고).
 
@@ -22,7 +23,7 @@ export default function ReviewList() {
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation(); // 부모(아코디언)가 클릭되지 않게 방지
-        if (window.confirm("정말 삭제하시겠습니까?")) {
+        if ((await showConfirm("정말 삭제하시겠습니까?"))) {
             try {
                 await deleteDoc(doc(db, "reviews", id));
                 // 삭제 후 화면 업데이트 (필터링)

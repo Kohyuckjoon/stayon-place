@@ -12,6 +12,7 @@ import { loginWithGoogle } from "../lib/auth";
 import { CustomInput } from "../components/forms/TeamFormControls";
 import { REGION_OPTIONS } from "../lib/regions";
 import { FIXED_VEHICLE_TYPES, CUSTOM_VEHICLE_TYPE_LABEL, MAX_VEHICLE_PHOTOS, DriverIncludedOption, isLargeBusType } from "../lib/vehicleTypes";
+import { showAlert } from "../lib/dialog";
 
 const STORAGE_FOLDER = "vehicle-rentals";
 const MAX_VEHICLE_FLEET_ROWS = 10;
@@ -273,7 +274,7 @@ export default function VehicleRentalRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("등록 중 오류가 발생했습니다." + error);
+      await showAlert("등록 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }

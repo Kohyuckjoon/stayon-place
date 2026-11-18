@@ -10,6 +10,7 @@ import { DENOMINATION_GROUPS } from "../lib/denominations";
 import { CustomInput } from "../components/forms/TeamFormControls";
 import { useAuth } from "../lib/AuthContext";
 import { loginWithGoogle } from "../lib/auth";
+import { showAlert } from "../lib/dialog";
 
 const NO_DENOMINATION_LABEL = "교단 가입 예정";
 const PASTOR_SAME_AS_APPLICANT_LABEL = "신청자와 이름이 같아요";
@@ -143,7 +144,7 @@ export default function SoundConstructionRegistrationForm() {
 
       setIsSuccessModalOpen(true);
     } catch (error) {
-      alert("신청 중 오류가 발생했습니다." + error);
+      await showAlert("신청 중 오류가 발생했습니다." + error);
     } finally {
       setIsSubmitting(false);
     }

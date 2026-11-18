@@ -30,6 +30,7 @@ import { db } from "../lib/firebase";
 import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollRestoration, useNavigate, useSearchParams } from "react-router-dom";
+import { showAlert } from "../lib/dialog";
 
 // 지자체 데이터
 const LOCATIONS = [
@@ -186,7 +187,7 @@ export function VenueList() {
 
   const handleGoToPlanner = () => {
     if (plannerItems.length === 0) {
-      alert("비교할 장소를 먼저 담아주세요.");
+      showAlert("비교할 장소를 먼저 담아주세요.");
       return;
     }
     setIsPlannerOpen(false);

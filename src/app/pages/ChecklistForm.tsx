@@ -14,6 +14,7 @@ import { uploadPartnerImage } from "../lib/storage";
 import { ALL_CHECKLIST_ITEM_IDS, getVisibleSections, getTotalChecklistItems } from "../lib/preVisitChecklistItems";
 import { TIME_OPTIONS } from "../lib/bandRoomDisplay";
 import { ChevronLeft, ChevronRight, ChevronDown, Check, Camera, X, Star, Pencil, Lock, Gift, MapPin, ClipboardCheck, Cloud, UserCheck } from "lucide-react";
+import { showAlert, showConfirm } from "../lib/dialog";
 
 // 답사 가서 뭘 체크해야 할지 막막한 문제를 풀어주는 도구. 처음엔 10개 섹션을 아코디언으로
 // 펼치고 항목마다 숫자/시간/날짜 등 입력 형식이 다 달랐는데, "서식 작성"처럼 느껴져서
@@ -128,7 +129,7 @@ export default function ChecklistForm() {
         if (id) {
           if (!user) { setLoadingInitial(false); return; }
           const snap = await getDoc(doc(db, "preVisitChecklists", id));
-          if (!snap.exists()) { alert("체크리스트를 찾을 수 없습니다."); navigate("/checklists"); return; }
+          if (!snap.exists()) { await showAlert("체크리스트를 찾을 수 없습니다."); navigate("/checklists"); return; }
           const d = snap.data() as any;
           if (d.ownerId !== user.uid && !isAdminEmail(user.email)) { setForbidden(true); setLoadingInitial(false); return; }
           applyDoc(id, d);
@@ -341,16 +342,16 @@ export default function ChecklistForm() {
       setTimeout(() => setSuggestSuccess(false), 2500);
     } catch (error) {
       console.error("장소 추천 제출 실패:", error);
-      alert("제출 중 오류가 발생했습니다.");
+      await showAlert("제출 중 오류가 발생했습니다.");
     } finally {
       setSuggestSubmitting(false);
     }
   };
 
   // 작성 중인 내용이 있으면 바깥을 눌러도 바로 닫지 않고 한 번 확인한다.
-  const handleSuggestClose = () => {
+  const handleSuggestClose = async () => {
     const hasDraft = suggestVenueName.trim() || suggestLocation.trim() || suggestContact.trim();
-    if (hasDraft && !window.confirm("작성 중인 내용이 있습니다. 취소할까요?")) return;
+    if (hasDraft && !(await showConfirm("작성 중인 내용이 있습니다. 취소할까요?"))) return;
     setSuggestModalOpen(false);
   };
 
@@ -394,7 +395,7 @@ export default function ChecklistForm() {
       pulseSaved();
     } catch (error) {
       console.error("사진 업로드 실패:", error);
-      alert("사진 업로드 중 오류가 발생했습니다.");
+      await showAlert("사진 업로드 중 오류가 발생했습니다.");
     } finally {
       setUploadingPhoto(false);
     }

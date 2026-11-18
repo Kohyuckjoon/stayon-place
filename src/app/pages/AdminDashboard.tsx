@@ -156,12 +156,13 @@ const InfoRow = ({ label, value, icon: Icon, isEdit, name, onChange, type = "tex
         {isEdit ? (
           <div className="relative">
             {multiline ? (
+              // 여러 줄 입력(시설 및 장비 칸에서만 사용): 줄 간격·높이를 넉넉하게 해서 긴 내용도 읽기 쉽게
               <textarea
                 name={name}
-                rows={2}
+                rows={4}
                 value={displayValue || ""}
                 onChange={onChange}
-                className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-black focus:border-[#3182F6] focus:ring-4 ring-[#3182F6]/5 outline-none transition-all resize-y leading-snug"
+                className="w-full px-4 py-3 bg-white border border-[#E5E8EB] rounded-xl text-[15px] font-semibold text-[#191F28] focus:border-[#3182F6] focus:ring-4 ring-[#3182F6]/5 outline-none transition-all resize-y leading-relaxed min-h-[112px]"
               />
             ) : (
               <input
@@ -1847,11 +1848,13 @@ export function AdminDashboard() {
                     </div>
                   </section>
 
-                  <section className="space-y-4">
+                  {/* 시설 및 장비는 여러 줄 입력이 많아서, 반쪽 칸에 2열로 넣으면 입력칸이 너무 좁았다.
+                      가로 전체(lg:col-span-2)를 쓰고 2열로 배치해 입력칸 폭을 넓힌다. */}
+                  <section className="space-y-4 lg:col-span-2">
                     <h3 className="text-[16px] font-black text-[#191F28] flex items-center gap-2 px-1">
                       <Music className="w-4 h-4 text-[#3182F6]" /> 시설 및 장비
                     </h3>
-                    <div className="bg-[#FAFAFB] rounded-3xl p-3 border border-[#F2F4F6] grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="bg-[#FAFAFB] rounded-3xl p-3 border border-[#F2F4F6] grid grid-cols-1 md:grid-cols-2 gap-3">
                       <InfoRow icon={Music} label="보유 악기" name="instruments" value={editedVenue.instruments} isEdit={isEditMode} onChange={handleEditChange} multiline />
                       <InfoRow icon={Mic2} label="음향 시스템" name="soundSystem" value={editedVenue.soundSystem} isEdit={isEditMode} onChange={handleEditChange} multiline />
                       <InfoRow icon={Video} label="영상 장비" name="projector" value={editedVenue.projector} isEdit={isEditMode} onChange={handleEditChange} multiline />

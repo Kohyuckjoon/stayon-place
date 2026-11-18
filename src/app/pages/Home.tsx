@@ -3,7 +3,7 @@ import {
   Search, Shield, CheckCircle, Heart, TrendingDown,
   LayoutGrid, FileText, Sparkles, Lock, BookOpen, Coffee, Utensils,
   ChevronRight, AlertCircle, ShieldCheck, Umbrella, Zap, Star, MapPin,
-  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play, Copy, ExternalLink, Smartphone
+  Users, Check, Calculator, BarChart3, Home as HomeIcon, Bell, FileEdit, Trash2, CreditCard, PlusCircle, CalendarDays, CheckCircle2, Calendar, Mic2, Play, Copy, ExternalLink, Smartphone, X, Monitor, ClipboardCheck, Gift, Shirt
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MainBanner } from "../components/MainBanner";
 import { Helmet } from 'react-helmet-async';
 
-const bannerData = [
+const allBannerData = [
   {
     id: 6,
     title: "수련회 사전 답사 체크리스트 오픈! ✅",
@@ -78,19 +78,26 @@ const bannerData = [
     "icon": <CreditCard className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
   },
 ];
+
+// 잠시 숨겨둔 배너 id - 5: 만나패밀리 출연, 1: 리포미디어(유튜브) 출연.
+// 다시 보이게 하려면 여기서 해당 id만 지우면 된다.
+const HIDDEN_BANNER_IDS = [5, 1];
+const bannerData = allBannerData.filter((b) => !HIDDEN_BANNER_IDS.includes(b.id));
 const circleMenus = [
-  { name: "장소찾기", icon: <Search className="w-6 h-6" />, color: "bg-blue-50 text-blue-600", link: "/venues" },
-  { name: "최저가비교", icon: <Sparkles className="w-6 h-6" />, color: "bg-purple-50 text-purple-600", link: "/planner" },
-  { name: "일정 짜기", icon: <Calendar className="w-6 h-6" />, color: "bg-orange-50 text-orange-600", link: "/smart-planner" },
+  // image: public/quickmenu/ 아이콘(256x256 webp, 둥근 배경 포함). alt는 검색엔진용 설명 문구.
+  { name: "장소찾기", image: "/quickmenu/01_place_search.webp", alt: "수련회 장소 찾기", icon: <Search className="w-6 h-6" />, color: "bg-blue-50 text-blue-600", link: "/venues" },
+  { name: "최저가비교", image: "/quickmenu/02_price_compare.webp", alt: "수련회 장소 최저가 비교", icon: <Sparkles className="w-6 h-6" />, color: "bg-purple-50 text-purple-600", link: "/planner" },
+  { name: "일정 짜기", image: "/quickmenu/03_schedule.webp", alt: "수련회 일정표 만들기", icon: <Calendar className="w-6 h-6" />, color: "bg-orange-50 text-orange-600", link: "/smart-planner" },
   // { name: "예산플래너", icon: <Calculator className="w-6 h-6" />, color: "bg-emerald-50 text-emerald-600", link: "/budget" },
 
-  { name: "보험신청", icon: <ShieldCheck className="w-6 h-6" />, color: "bg-red-50 text-red-600", link: "#" },
+  { name: "보험신청", mobileHidden: true, image: "/quickmenu/04_insurance.webp", alt: "교회 수련회 보험 신청", icon: <ShieldCheck className="w-6 h-6" />, color: "bg-red-50 text-red-600", link: "#" },
   // { name: "커핏(Coffit)", icon: <Coffee className="w-6 h-6" />, color: "bg-amber-50 text-amber-900", link: "#" },
   // { name: "전체보기", icon: <LayoutGrid className="w-6 h-6" />, color: "bg-gray-50 text-gray-600", link: "#" },
-  { name: "프로그램", icon: <CalendarDays className="w-6 h-6" />, color: "bg-teal-50 text-teal-600", link: "/programs" },
-  { name: "장소등록", icon: <HomeIcon className="w-6 h-6" />, color: "bg-indigo-50 text-indigo-600", link: "/register" },
-  { name: "온라인주보", icon: <BookOpen className="w-6 h-6" />, color: "bg-orange-50 text-orange-600", link: "https://bulletin.stayon-platform.com/" },
-  { name: "외부 사역팀 찾기", icon: <Mic2 className="w-6 h-6" />, color: "bg-pink-50 text-pink-600", link: "/teams" },
+  { name: "프로그램", image: "/quickmenu/05_program.webp", alt: "교회 수련회 프로그램", icon: <CalendarDays className="w-6 h-6" />, color: "bg-teal-50 text-teal-600", link: "/programs" },
+  { name: "장소등록", image: "/quickmenu/06_place_register.webp", alt: "수련회 장소 등록", icon: <HomeIcon className="w-6 h-6" />, color: "bg-indigo-50 text-indigo-600", link: "/register" },
+  { name: "온라인주보", image: "/quickmenu/07_bulletin.webp", alt: "교회 온라인 주보", icon: <BookOpen className="w-6 h-6" />, color: "bg-orange-50 text-orange-600", link: "https://bulletin.stayon-platform.com/" },
+  { name: "외부 사역팀 찾기", image: "/quickmenu/08_ministry_team.webp", alt: "외부 사역팀 찬양팀 섭외", icon: <Mic2 className="w-6 h-6" />, color: "bg-pink-50 text-pink-600", link: "/teams" },
+  { name: "교회 홈페이지 제작", mobileHidden: true, image: "/quickmenu/09_church_website.webp", alt: "교회 홈페이지 제작", icon: <HomeIcon className="w-6 h-6" />, color: "bg-blue-50 text-blue-600", link: "https://website.stayon-platform.com/" },
 ];
 
 const familyServices = [
@@ -113,6 +120,16 @@ const familyServices = [
     icon: <Mic2 className="w-10 h-10" />,
     isReady: true,
     link: "/teams"
+  },
+  {
+    id: "website",
+    title: "교회 홈페이지 제작",
+    description: "월 7,900원으로 우리 교회 홈페이지를 쉽고 빠르게. 스테이온에서 지금 바로 시작해보세요.",
+    tag: "런칭 완료",
+    tagColor: "bg-blue-100 text-blue-600",
+    icon: <Monitor className="w-10 h-10" />,
+    isReady: true,
+    link: "https://website.stayon-platform.com/"
   },
   // {
   //   id: "coffit",
@@ -143,6 +160,57 @@ const familyServices = [
     icon: <Sparkles className="w-10 h-10" />,
     isReady: false,
     link: "#"
+  },
+];
+
+// "다른 서비스도 이용해보세요" 카드(신한카드 금융 탭 구조: 아이콘 → 상황 문구 → 굵은 제목 → 오른쪽 아래 강조).
+// 아이콘은 메인 빠른 메뉴와 같은 public/quickmenu 이미지를 재사용한다.
+const SHOW_LEGACY_FAMILY_SLIDER = false as boolean;
+const familyOffers = [
+  {
+    // 전용 이미지가 아직 없어 임시 아이콘(선 아이콘 + 색 배경). 이미지가 생기면 image에 경로만 넣으면 된다.
+    id: "checklist", image: "", tempIcon: <ClipboardCheck className="w-6 h-6 md:w-8 md:h-8" />, tempIconBg: "bg-gradient-to-br from-[#FFF4E5] to-[#FFE3BF] text-[#F2994A]", alt: "수련회 사전답사 체크리스트",
+    badge: "무료", eyebrow: "답사 갈 때 뭘 봐야 할지 막막할 때", title: "사전답사 체크리스트",
+    desc: "숙소 · 예배실 · 식당 · 주차까지 꼼꼼하게",
+    highlightPrefix: "체크 항목", highlight: "33", highlightUnit: "개", link: "/checklist/new",
+    accentText: "text-[#E8830C]", accentBadge: "bg-[#FFF4E5] text-[#E8830C]", accentGlow: "bg-[#F2994A]/15", accentRing: "hover:ring-[#F2994A]/30",
+  },
+  {
+    id: "teams", image: "/quickmenu/08_ministry_team.webp", tempIcon: null as React.ReactNode, tempIconBg: "", alt: "외부 사역팀 찬양팀 섭외",
+    badge: "무료 섭외", eyebrow: "수련회·집회에 사역팀이 필요할 때", title: "외부 사역팀 찾기",
+    desc: "찬양팀 · 찬양사역자 · 음향/조명 · 세션까지",
+    highlightPrefix: "섭외 수수료", highlight: "0", highlightUnit: "원", link: "/teams",
+    // Tailwind는 클래스 문자열을 그대로 찾아 빌드하므로 색은 완성된 클래스명으로 둔다.
+    accentText: "text-[#7C3AED]", accentBadge: "bg-[#F3EEFF] text-[#7C3AED]", accentGlow: "bg-[#8B5CF6]/15", accentRing: "hover:ring-[#8B5CF6]/30",
+  },
+  {
+    id: "goods", image: "", tempIcon: <Gift className="w-6 h-6 md:w-8 md:h-8" />, tempIconBg: "bg-gradient-to-br from-[#FFF9DB] to-[#FFEC99] text-[#E6A700]", alt: "수련회 굿즈 단체 제작",
+    badge: "단체 제작", eyebrow: "수련회 기념품이 필요할 때", title: "수련회 굿즈",
+    desc: "텀블러 · 에코백 · 뱃지 등 단체 굿즈",
+    highlightPrefix: "업체 비교", highlight: "무료", highlightUnit: "", link: "/goods",
+    accentText: "text-[#D99A00]", accentBadge: "bg-[#FFF9DB] text-[#C78A00]", accentGlow: "bg-[#FFC800]/20", accentRing: "hover:ring-[#FFC800]/40",
+  },
+  {
+    id: "shirts", image: "", tempIcon: <Shirt className="w-6 h-6 md:w-8 md:h-8" />, tempIconBg: "bg-gradient-to-br from-[#FFF0F6] to-[#FFD6E7] text-[#E64980]", alt: "수련회 단체 티셔츠 주문",
+    badge: "단체 주문", eyebrow: "단체티를 맞춰야 할 때", title: "수련회 티셔츠",
+    desc: "우리 교회 로고로 맞추는 단체티",
+    highlightPrefix: "업체 비교", highlight: "무료", highlightUnit: "", link: "/shirts",
+    accentText: "text-[#E64980]", accentBadge: "bg-[#FFF0F6] text-[#E64980]", accentGlow: "bg-[#F06595]/15", accentRing: "hover:ring-[#F06595]/30",
+  },
+  {
+    id: "bulletin", image: "/quickmenu/07_bulletin.webp", tempIcon: null as React.ReactNode, tempIconBg: "", alt: "교회 온라인 주보",
+    badge: "1개월 무료", eyebrow: "종이 주보가 번거로울 때", title: "온라인 주보",
+    desc: "앱 설치 없이 QR로 간편하게",
+    highlightPrefix: "첫 달", highlight: "무료", highlightUnit: "", link: "https://bulletin.stayon-platform.com/",
+    accentText: "text-[#00A86B]", accentBadge: "bg-[#E6F9F2] text-[#00A86B]", accentGlow: "bg-[#00D082]/15", accentRing: "hover:ring-[#00D082]/30",
+  },
+  {
+    id: "website", image: "/quickmenu/09_church_website.webp", tempIcon: null as React.ReactNode, tempIconBg: "", alt: "교회 홈페이지 제작",
+    badge: "관리형 출시", eyebrow: "만들어도 관리가 막막할 때", title: "교회 홈페이지 제작",
+    desc: "관리까지 맡기는 '관리형'도 출시했어요",
+    // 기본형 월 7,900원 / 관리형 월 9,900원 - 두 가지라 "부터"로 표기
+    highlightPrefix: "커피 한 잔 값, 월", highlight: "7,900", highlightUnit: "원부터", link: "https://website.stayon-platform.com/",
+    accentText: "text-[#3182F6]", accentBadge: "bg-[#EAF3FF] text-[#3182F6]", accentGlow: "bg-[#3182F6]/15", accentRing: "hover:ring-[#3182F6]/30",
   },
 ];
 
@@ -297,6 +365,59 @@ export function Home() {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isFamilyHovered, setIsFamilyHovered] = useState(false);
+  // 모바일 빠른 메뉴 "전체보기" 바텀시트
+  const [isQuickMenuSheetOpen, setIsQuickMenuSheetOpen] = useState(false);
+
+  // 시트가 열려 있는 동안 뒤 페이지 스크롤 잠금(모바일 Safari 포함 - body를 fixed로 고정하고
+  // 닫을 때 원래 스크롤 위치로 복원). Esc로도 닫힌다.
+  useEffect(() => {
+    if (!isQuickMenuSheetOpen) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const prev = { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, overflow: body.style.overflow, width: body.style.width };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsQuickMenuSheetOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      Object.assign(body.style, prev);
+      window.scrollTo(0, scrollY);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [isQuickMenuSheetOpen]);
+
+  // 빠른 메뉴 클릭 - 외부 URL(온라인주보·교회 홈페이지)은 새 탭, 내부 경로는 라우팅, "#"은 무시.
+  const handleCircleMenuClick = (link: string) => {
+    if (link === "#") return;
+    if (link.startsWith("http://") || link.startsWith("https://")) {
+      window.open(link, "_blank", "noopener,noreferrer");
+    } else {
+      navigate(link);
+    }
+  };
+
+  // 빠른 메뉴 아이콘 - 이미지가 있으면 이미지(alt는 검색엔진용 문구), 없으면 기존 아이콘 원.
+  const renderCircleMenuIcon = (menu: typeof circleMenus[number], sizeClass: string) => (
+    menu.image ? (
+      <img
+        src={menu.image}
+        alt={menu.alt || menu.name}
+        width={256}
+        height={256}
+        loading="lazy"
+        decoding="async"
+        className={`${sizeClass} rounded-[22%] object-contain transition-all group-hover:-translate-y-1 group-hover:drop-shadow-md`}
+      />
+    ) : (
+      <div className={`${sizeClass} ${menu.color} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-1`}>
+        {menu.icon}
+      </div>
+    )
+  );
   const insuranceRef = useRef<HTMLDivElement>(null);
 
   // 3초마다 다음 카드를 강조 (마우스 호버 시 정지)
@@ -803,37 +924,35 @@ export function Home() {
 
             <section className="pb-10">
               <div className="max-w-[1280px] mx-auto px-4">
-                <div className="flex flex-wrap justify-between gap-y-6 md:px-4">
-                  {circleMenus.map((menu, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col items-center gap-3 w-[25%] md:w-auto cursor-pointer group"
-                      // onClick={() => navigate(menu.link)}
-                      onClick={() => {
-                        if (menu.link === "#") return;
+                {/* 모바일: 4열 2줄만 노출(자주 쓰는 7개 + "전체보기"). 나머지는 전체보기 시트에서.
+                    mobileHidden 메뉴(보험신청·교회 홈페이지 제작)는 시트에서만 보인다. */}
+                <div className="grid grid-cols-4 gap-y-5 gap-x-1 md:hidden">
+                  {circleMenus.filter((m) => !m.mobileHidden).map((menu) => (
+                    <div key={menu.name} className="flex flex-col items-center gap-2 cursor-pointer group" onClick={() => handleCircleMenuClick(menu.link)}>
+                      {renderCircleMenuIcon(menu, "w-14 h-14")}
+                      <span className="text-[12px] font-bold text-[#333D4B] text-center break-keep leading-tight">{menu.name}</span>
+                    </div>
+                  ))}
+                  <button type="button" className="flex flex-col items-center gap-2 group" onClick={() => setIsQuickMenuSheetOpen(true)}>
+                    <div className="w-14 h-14 rounded-[22%] bg-[#F2F4F6] flex items-center justify-center transition-all group-active:scale-95">
+                      <LayoutGrid className="w-6 h-6 text-[#6B7684]" />
+                    </div>
+                    <span className="text-[12px] font-bold text-[#333D4B] text-center leading-tight">전체보기</span>
+                  </button>
+                </div>
 
-                        if (menu.link.startsWith("http://") || menu.link.startsWith("https://")) {
-                          // 1. 온라인주보 같은 외부 URL은 새 탭으로 열기
-                          window.open(menu.link, "_blank", "noopener,noreferrer");
-
-                          // 만약 새 탭이 아니라 현재 화면에서 그대로 이동하길 원하시면 아래 코드를 사용하세요.
-                          // window.location.href = menu.link;
-                        } else {
-                          // 2. 기존 내부 페이지(/venues, /planner 등) 라우팅 유지
-                          navigate(menu.link);
-                        }
-                      }}
-                    >
-
-                      <div className={`w-14 h-14 md:w-16 md:h-16 ${menu.color} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-1`}>
-                        {menu.icon}
-                      </div>
-                      <span className="text-[13px] md:text-[15px] font-bold text-[#333D4B]">{menu.name}</span>
+                {/* 데스크톱: 기존처럼 한 줄 전체 노출 */}
+                <div className="hidden md:flex flex-wrap justify-between gap-y-6 md:px-4">
+                  {circleMenus.map((menu) => (
+                    <div key={menu.name} className="flex flex-col items-center gap-3 cursor-pointer group" onClick={() => handleCircleMenuClick(menu.link)}>
+                      {renderCircleMenuIcon(menu, "w-20 h-20")}
+                      <span className="text-[15px] font-bold text-[#333D4B] text-center break-keep">{menu.name}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </section>
+
           </div>
 
           {/* <div className="bg-[#F9FAFB] rounded-[3.5rem] p-8 md:p-20 border border-gray-100 shadow-sm relative overflow-hidden"> */}
@@ -1450,6 +1569,62 @@ export function Home() {
             </p>
           </div>
 
+          {/* 카드 6장 - PC는 3장씩 2줄, 모바일은 세로 쌓기 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+            {familyOffers.map((offer) => (
+              <div
+                key={offer.id}
+                role="link"
+                tabIndex={0}
+                onClick={() => handleCircleMenuClick(offer.link)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCircleMenuClick(offer.link); }}
+                className={`group relative overflow-hidden bg-white rounded-[20px] md:rounded-[28px] p-5 md:p-7 md:min-h-[300px] flex flex-col cursor-pointer border border-[#EEF0F3] shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-2 ring-transparent ${offer.accentRing} transition-all duration-300 md:hover:-translate-y-1.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.10)] active:scale-[0.98]`}
+              >
+                {/* 오른쪽 위 은은한 색 번짐 - 서비스별 고유 색 */}
+                <div className={`absolute -top-16 -right-16 w-44 h-44 md:w-56 md:h-56 rounded-full blur-3xl pointer-events-none transition-opacity duration-300 opacity-70 group-hover:opacity-100 ${offer.accentGlow}`} />
+
+                <div className="relative flex items-start justify-between mb-3 md:mb-6">
+                  {offer.image ? (
+                    <img
+                      src={offer.image}
+                      alt={offer.alt}
+                      width={256}
+                      height={256}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-12 h-12 md:w-16 md:h-16 rounded-[22%] object-contain drop-shadow-sm transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-4deg]"
+                    />
+                  ) : (
+                    <div role="img" aria-label={offer.alt} className={`w-12 h-12 md:w-16 md:h-16 rounded-[22%] flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-4deg] ${offer.tempIconBg}`}>
+                      {offer.tempIcon}
+                    </div>
+                  )}
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] md:text-[12px] font-black ${offer.accentBadge}`}>{offer.badge}</span>
+                </div>
+
+                <p className="relative text-[12px] md:text-[14px] font-bold text-[#8B95A1] break-keep mb-1">{offer.eyebrow}</p>
+                <h3 className="relative text-[18px] md:text-[23px] font-black text-[#191F28] break-keep leading-snug tracking-tight">{offer.title}</h3>
+                <p className="relative text-[12px] md:text-[13px] font-semibold text-[#6B7684] break-keep mt-1.5">{offer.desc}</p>
+
+                <div className="relative mt-auto pt-4 md:pt-6">
+                  <div className="border-t border-dashed border-[#E5E8EB] pt-3.5 md:pt-5 flex items-end justify-between gap-2">
+                    <span className={`flex items-center gap-0.5 text-[12px] md:text-[13px] font-black shrink-0 ${offer.accentText}`}>
+                      바로가기 <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                    </span>
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="text-[11px] md:text-[13px] font-bold text-[#8B95A1] break-keep text-right">{offer.highlightPrefix}</span>
+                      <span className={`text-[26px] md:text-[34px] font-black tracking-tight leading-none ${offer.accentText}`}>{offer.highlight}</span>
+                      {offer.highlightUnit && <span className={`text-[14px] md:text-[18px] font-black ${offer.accentText}`}>{offer.highlightUnit}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 이전 디자인(모바일 티커 + PC 3D 슬라이더) - 금융 탭 스타일 카드로 교체하면서 꺼둠.
+              되돌리려면 SHOW_LEGACY_FAMILY_SLIDER를 true로 바꾸면 된다. */}
+          {SHOW_LEGACY_FAMILY_SLIDER && (<>
           {/* 모바일 전용: /teams "지금 주목받는 사역팀"과 같은 가로 자동 스크롤 티커 */}
           <div className="md:hidden">
             <FamilyServiceTicker services={familyServices} navigate={navigate} />
@@ -1539,8 +1714,49 @@ export function Home() {
               ))}
             </div>
           </div>
+          </>)}
         </div>
       </section>
+
+      {/* 모바일 빠른 메뉴 "전체보기" 바텀시트 - 상단 섹션(z-10, overflow-hidden) 안에 두면 헤더에 가려지거나 잘려서 페이지 루트 맨 끝에 둔다. */}
+        <AnimatePresence>
+          {isQuickMenuSheetOpen && (
+            <div className="fixed inset-0 z-[9000] md:hidden overscroll-contain touch-none">
+              <motion.div
+                className="absolute inset-0 bg-black/40"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsQuickMenuSheetOpen(false)}
+              />
+              <motion.div
+                role="dialog"
+                aria-label="전체 메뉴"
+                className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto overscroll-contain touch-auto bg-white rounded-t-[28px] px-5 pt-3 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]"
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 320 }}
+              >
+                <div className="w-10 h-1.5 bg-[#E5E8EB] rounded-full mx-auto mb-4" />
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-[18px] font-black text-[#191F28]">전체 메뉴</h3>
+                  <button type="button" aria-label="닫기" onClick={() => setIsQuickMenuSheetOpen(false)} className="p-2 -mr-2 rounded-full hover:bg-[#F2F4F6]">
+                    <X className="w-5 h-5 text-[#6B7684]" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-y-6 gap-x-2">
+                  {circleMenus.map((menu) => (
+                    <div
+                      key={menu.name}
+                      className="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform"
+                      onClick={() => { setIsQuickMenuSheetOpen(false); handleCircleMenuClick(menu.link); }}
+                    >
+                      {renderCircleMenuIcon(menu, "w-16 h-16")}
+                      <span className="text-[13px] font-bold text-[#333D4B] text-center break-keep leading-tight">{menu.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }

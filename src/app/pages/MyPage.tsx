@@ -18,6 +18,7 @@ import { MyVehicleFleetManagerTab } from "../components/MyVehicleFleetManagerTab
 import { MyVenueCoreManagerTab } from "../components/MyVenueCoreManagerTab";
 import { MyTeamManagerTab } from "../components/MyTeamManagerTab";
 import { httpsCallable } from "firebase/functions";
+import { showAlert, showConfirm } from "../lib/dialog";
 
 // "OO 관리자" 탭들(장소/티셔츠/굿즈/차량)이 공통으로 쓰는 구독 로직 - 본인이 직접
 // 등록한(applicantUid) 리스팅뿐 아니라, 관리자가 /admin에서 managerEmails 배열에
@@ -145,12 +146,24 @@ export function MyPage() {
   const handleConfirmInspection = async (booking: any) => {
     // 1. 예약 데이터 확인 (방어 코드)
     if (!booking || !booking.id) {
-      alert("예약 정보가 올바르지 않습니다.");
+      await showAlert("예약 정보가 올바르지 않습니다.");
       return;
     }
 
-    const message = "이 장소로 답사를 확정하시겠습니까?\n확정 시 담당자 연락처와 상세 주소를 확인하실 수 있습니다.";
-    if (!window.confirm(message)) return;
+    // 브라우저 기본 confirm 대신 확인 팝업을 띄우고, 팝업에서 "확정하기"를 누르면 아래 runConfirmInspection이 실행된다.
+    setConfirmInspectionTarget(booking);
+  };
+
+  const [confirmInspectionTarget, setConfirmInspectionTarget] = useState<any>(null);
+  const [isConfirmingInspection, setIsConfirmingInspection] = useState(false);
+  // 답사 확정 완료 팝업에 보여줄 장소명 (null이면 닫힘)
+  const [confirmedInspectionVenue, setConfirmedInspectionVenue] = useState<string | null>(null);
+
+  const runConfirmInspection = async () => {
+    const booking = confirmInspectionTarget;
+    if (!booking || isConfirmingInspection) return;
+    setIsConfirmingInspection(true);
+    setConfirmInspectionTarget(null);
 
     try {
       const bookingRef = doc(db, "bookings", booking.id);
@@ -171,10 +184,13 @@ export function MyPage() {
       });
       // ==========================================================
 
-      alert("답사 신청이 확정되었습니다. 상세 정보를 확인해주세요.");
+      // 브라우저 기본 alert 대신 완료 팝업
+      setConfirmedInspectionVenue(booking.venueName || "");
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("상태 변경 중 오류가 발생했습니다.");
+      await showAlert("상태 변경 중 오류가 발생했습니다.");
+    } finally {
+      setIsConfirmingInspection(false);
     }
   };
   // [신규 기능] 2단계: 답사 후 장소 최종 결정 (approved 상태로 변경)
@@ -192,13 +208,13 @@ export function MyPage() {
 
   const handleFinalPlaceConfirm = async (booking: any) => {
     if (!booking || !booking.id) {
-      alert("예약 정보가 올바르지 않습니다.");
+      await showAlert("예약 정보가 올바르지 않습니다.");
       return;
     }
 
     const message = "답사를 다녀오셨나요?\n이 장소로 최종 결정하시겠습니까?\n\n확인을 누르시면 장소 예약금 결제 페이지로 이동합니다.";
 
-    if (window.confirm(message)) {
+    if ((await showConfirm(message))) {
       try {
         // 결제 페이지 이동 전 관리자에게 알림 발송
         // await sendSlackNotification('FINAL_DECISION', {
@@ -322,6 +338,93 @@ export function MyPage() {
   return (
     <div className="min-h-screen bg-[#F2F4F6] font-sans antialiased text-[#333D4B]">
       <ScrollRestoration />
+
+      {/* 답사 확정 확인 팝업 - 브라우저 기본 confirm 대신 */}
+      <AnimatePresence>
+        {confirmInspectionTarget && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setConfirmInspectionTarget(null)}
+            className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-5"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 260 }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog" aria-modal="true"
+              className="w-full max-w-[360px] bg-white rounded-[32px] p-7 text-center shadow-[0_24px_80px_-20px_rgba(0,0,0,0.3)]"
+            >
+              <div className="w-20 h-20 mx-auto mb-6 bg-[#F2F8FF] rounded-full flex items-center justify-center">
+                <MapPinned className="w-9 h-9 text-[#3182F6]" strokeWidth={2.5} />
+              </div>
+              <h2 className="text-[22px] font-black tracking-tight text-[#191F28] mb-2">이 장소로 답사를 확정할까요?</h2>
+              {confirmInspectionTarget.venueName && (
+                <p className="text-[15px] font-black text-[#3182F6] mb-3">{confirmInspectionTarget.venueName}</p>
+              )}
+              <p className="text-[14px] font-bold text-[#6B7684] leading-relaxed break-keep mb-7">
+                확정하면 담당자 연락처와<br />상세 주소를 확인하실 수 있어요.
+              </p>
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setConfirmInspectionTarget(null)}
+                  className="flex-1 h-[56px] bg-[#F2F4F6] hover:bg-[#E5E8EB] text-[#4E5968] rounded-[18px] font-black text-[16px] transition-all active:scale-[0.98]"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={runConfirmInspection}
+                  className="flex-[1.4] h-[56px] bg-[#3182F6] hover:bg-[#1B64DA] text-white rounded-[18px] font-black text-[16px] shadow-lg shadow-[#3182F6]/20 transition-all active:scale-[0.98]"
+                >
+                  확정하기
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 답사 확정 완료 팝업 - 브라우저 기본 alert 대신 */}
+      <AnimatePresence>
+        {confirmedInspectionVenue !== null && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setConfirmedInspectionVenue(null)}
+            className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-5"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 260 }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog" aria-modal="true"
+              className="w-full max-w-[360px] bg-white rounded-[32px] p-7 text-center shadow-[0_24px_80px_-20px_rgba(0,0,0,0.3)]"
+            >
+              <motion.div
+                initial={{ scale: 0.5 }} animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12, delay: 0.1 }}
+                className="w-20 h-20 mx-auto mb-6 bg-[#F2F8FF] rounded-full flex items-center justify-center"
+              >
+                <Check className="w-10 h-10 text-[#3182F6]" strokeWidth={4} />
+              </motion.div>
+              <h2 className="text-[22px] font-black tracking-tight text-[#191F28] mb-2">답사가 확정되었어요</h2>
+              {confirmedInspectionVenue && (
+                <p className="text-[15px] font-black text-[#3182F6] mb-3">{confirmedInspectionVenue}</p>
+              )}
+              <p className="text-[14px] font-bold text-[#6B7684] leading-relaxed break-keep mb-7">
+                이제 담당자 연락처와 상세 주소를<br />확인하실 수 있어요.
+              </p>
+              <button
+                type="button"
+                onClick={() => setConfirmedInspectionVenue(null)}
+                className="w-full h-[56px] bg-[#3182F6] hover:bg-[#1B64DA] text-white rounded-[18px] font-black text-[17px] shadow-lg shadow-[#3182F6]/20 transition-all active:scale-[0.98]"
+              >
+                확인
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <main className="max-w-6xl mx-auto px-4 py-6 md:px-6 md:py-12">
 
         {/* ===== 모바일 전용: 앱 느낌의 요약 화면 (요청하신 목업 스타일) ===== */}

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatAvailableSchedule, formatHourlyRate } from "../lib/bandRoomDisplay";
+import { showAlert } from "../lib/dialog";
 
 // 개인정보 보호를 위해 상세 화면에서는 가운데 자리를 가려서 보여준다 (TeamDetail.tsx와 동일 패턴).
 function maskPhone(phone: string): string {
@@ -49,7 +50,7 @@ export function BandRoomDetail() {
         if (docSnap.exists() && docSnap.data().status === "approved") {
           setRoom(docSnap.data());
         } else {
-          alert("공간 정보를 찾을 수 없습니다.");
+          await showAlert("공간 정보를 찾을 수 없습니다.");
           navigate("/teams?category=bandroom");
         }
       } catch (error) {

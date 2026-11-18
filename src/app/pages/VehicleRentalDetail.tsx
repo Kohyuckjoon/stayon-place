@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getVehicleTypeImage, extractSeatCount } from "../lib/vehicleTypes";
+import { showAlert } from "../lib/dialog";
 
 const DRIVER_INCLUDED_LABELS: Record<string, string> = { included: "기사 포함", separate: "기사 별도", optional: "기사 협의 가능" };
 const DRIVER_CHRISTIAN_LABELS: Record<string, string> = { yes: "기사님 기독교인", no: "기사님 비기독교인", unknown: "기사님 신앙 무관" };
@@ -33,7 +34,7 @@ export function VehicleRentalDetail() {
         if (docSnap.exists() && docSnap.data().status === "approved") {
           setVehicle(docSnap.data());
         } else {
-          alert("업체 정보를 찾을 수 없습니다.");
+          await showAlert("업체 정보를 찾을 수 없습니다.");
           navigate("/vehicles");
         }
       } catch (error) {

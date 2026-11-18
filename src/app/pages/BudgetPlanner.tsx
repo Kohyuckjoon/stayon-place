@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Plus, Trash2, PieChart, Coins, Users, ChevronDown, RotateCcw, Lightbulb
 } from "lucide-react";
+import { showConfirm } from "../lib/dialog";
 
 type SubItem = { id: number; name: string; amount: string };
 type BudgetItem = {
@@ -157,8 +158,8 @@ export function BudgetPlanner() {
   const toggleSub = (id: number) =>
     setOpenSubIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const resetToGuide = () => {
-    if (!window.confirm("입력한 내용을 모두 지우고 기본 예시로 되돌릴까요?")) return;
+  const resetToGuide = async () => {
+    if (!(await showConfirm("입력한 내용을 모두 지우고 기본 예시로 되돌릴까요?"))) return;
     setState(INITIAL_STATE);
     setOpenSubIds([]);
   };

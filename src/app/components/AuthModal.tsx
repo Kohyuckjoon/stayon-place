@@ -16,6 +16,7 @@ import {
 } from "firebase/auth";
 import { db } from "../lib/firebase"; // 프로젝트 경로에 맞게 수정 필요
 import { doc, setDoc, getDocs, collection, query, where } from "firebase/firestore";
+import { showAlert } from "../lib/dialog";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -59,7 +60,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
       closeLoginModal();
     } catch (error: any) {
-      alert(error.message);
+      await showAlert(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +74,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       await signInWithEmailAndPassword(auth, email, password);
       closeLoginModal();
     } catch (error: any) {
-      alert("이메일 또는 비밀번호가 일치하지 않습니다.");
+      await showAlert("이메일 또는 비밀번호가 일치하지 않습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +83,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // 3. 회원가입
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) return alert("비밀번호는 8자 이상이어야 합니다.");
+    if (password.length < 8) return (await showAlert("비밀번호는 8자 이상이어야 합니다."));
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -98,7 +99,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       await sendEmailVerification(userCredential.user);
       setLoginStep('verify');
     } catch (error: any) {
-      alert(error.message);
+      await showAlert(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -112,13 +113,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const q = query(collection(db, "users"), where("displayName", "==", name));
       const querySnapshot = await getDocs(q);
       if (querySnapshot.empty) {
-        alert("해당 이름으로 가입된 정보를 찾을 수 없습니다.");
+        await showAlert("해당 이름으로 가입된 정보를 찾을 수 없습니다.");
       } else {
         const userData = querySnapshot.docs[0].data();
         setFoundEmail(userData.email);
       }
     } catch (error: any) {
-      alert("조회 중 오류가 발생했습니다.");
+      await showAlert("조회 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +133,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       await sendPasswordResetEmail(auth, email);
       setResetEmailSent(true);
     } catch (error: any) {
-      alert("가입되지 않은 이메일이거나 오류가 발생했습니다.");
+      await showAlert("가입되지 않은 이메일이거나 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }

@@ -3,6 +3,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { uploadTeamImage } from "../lib/storage";
 import { Camera, ImagePlus, Info, Loader2, Save, X } from "lucide-react";
+import { showConfirm } from "../lib/dialog";
 
 const MAX_TEAM_IMAGES = 3;
 
@@ -83,7 +84,7 @@ export function MyTeamManagerTab({ team }: { team: any }) {
   };
 
   const handlePhotoRemove = async (url: string) => {
-    if (!window.confirm("이 사진을 삭제하시겠어요?")) return;
+    if (!(await showConfirm("이 사진을 삭제하시겠어요?"))) return;
     setPhotoError("");
     setRemovingPhoto(url);
     try {

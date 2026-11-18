@@ -3,6 +3,7 @@ import { db, auth } from "../lib/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { showAlert } from "../lib/dialog";
 
 export default function FreeBoardWrite() {
     const [searchParams] = useSearchParams();
@@ -31,13 +32,13 @@ export default function FreeBoardWrite() {
             try {
                 const snap = await getDoc(doc(db, "freeboard", editingId));
                 if (!snap.exists()) {
-                    alert("글을 찾을 수 없습니다.");
+                    await showAlert("글을 찾을 수 없습니다.");
                     navigate("/freeboard");
                     return;
                 }
                 const data = snap.data();
                 if (!auth.currentUser || data.authorId !== auth.currentUser.uid) {
-                    alert("본인이 작성한 글만 수정할 수 있습니다.");
+                    await showAlert("본인이 작성한 글만 수정할 수 있습니다.");
                     navigate("/freeboard");
                     return;
                 }
@@ -75,7 +76,7 @@ export default function FreeBoardWrite() {
             navigate("/freeboard");
         } catch (error) {
             console.error("등록 실패:", error);
-            alert("저장 중 오류가 발생했습니다.");
+            await showAlert("저장 중 오류가 발생했습니다.");
         } finally {
             setSubmitting(false);
         }

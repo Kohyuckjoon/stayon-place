@@ -15,6 +15,7 @@ import { collection, query, onSnapshot, doc, updateDoc, orderBy, deleteDoc } fro
 import { httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 import { AdminSidebarLayout } from "../components/admin/AdminSidebarLayout";
+import { showAlert, showConfirm } from "../lib/dialog";
 
 // [디자인] 통계 카드 - 스타일
 const StatCard = ({ title, value, icon: Icon, colorClass, textColor }: any) => (
@@ -218,6 +219,8 @@ export function AdminDashboard2() {
   const [suspendedCount, setSuspendedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  // 답사 가능 승인 완료 후 브라우저 기본 alert 대신 띄우는 안내 팝업 내용(null이면 닫힘)
+  const [inspectionApprovedNotice, setInspectionApprovedNotice] = useState<{ churchName: string; date: string; time: string } | null>(null);
   // 교회 내부 일정이 아직 안 정해진 채로 일단 신청부터 하는 경우가 있어서, 신청자가
   // 사전답사 희망일을 안 넣었어도 관리자가 나중에 직접 추가/삭제할 수 있게 한다.
   const [newInspectionDateInput, setNewInspectionDateInput] = useState("");
@@ -312,6 +315,52 @@ export function AdminDashboard2() {
     }
   };
 
+  // 관리자 재량 결제 완료 처리 - 카드 결제(PaymentSetup) 대신 계좌이체 등으로 받은 경우.
+  // 결제 파일은 건드리지 않고, 결제 완료 시 저장되는 필드 중 카드 정보(billingKey)만 빼고
+  // 같은 형태로 저장한다. manualPayment 표시로 카드 결제 건과 구분한다.
+  const [isManualPaying, setIsManualPaying] = useState(false);
+  const handleManualPaymentComplete = async () => {
+    if (!selectedBooking || selectedBooking.status !== "approved" || isManualPaying) return;
+    const total = Number(selectedBooking.totalPrice || 0);
+    const deposit = Number(selectedBooking.depositPrice || 0);
+    const ok = await showConfirm(
+      `${selectedBooking.churchName || ""} 예약을 결제 완료로 처리할까요?\n\n계좌이체 등으로 금액을 직접 받은 경우에만 진행해 주세요.\n예약금 ${deposit.toLocaleString()}원 · 잔금 ${(total - deposit).toLocaleString()}원`,
+      { title: "관리자 결제 완료 처리", confirmText: "결제 완료 처리", tone: "info" }
+    );
+    if (!ok) return;
+    setIsManualPaying(true);
+    try {
+      await updateDoc(doc(db, "bookings", selectedBooking.id), {
+        status: "deposit_paid",
+        depositAmount: deposit,
+        balanceAmount: total - deposit,
+        manualPayment: true,
+        manualPaymentBy: getAuth().currentUser?.email || "admin",
+        paymentRegisteredAt: new Date().toISOString(),
+      });
+      try {
+        const triggerAdminNotification = httpsCallable(functions, "triggerAdminNotification");
+        await triggerAdminNotification({
+          type: "APPROVE",
+          payload: {
+            status: "관리자 결제 완료 처리",
+            venueName: selectedBooking.venueName || "장소 정보 없음",
+            userName: `${selectedBooking.churchName} (${selectedBooking.contactName})`,
+          },
+        });
+      } catch (e) {
+        console.error("관리자 알림 전송 실패:", e);
+      }
+      await showAlert("결제 완료로 처리되었어요.", { tone: "success" });
+      setSelectedBooking(null);
+    } catch (error) {
+      console.error("Error manual payment:", error);
+      await showAlert("결제 완료 처리 중 오류가 발생했습니다.", { tone: "error" });
+    } finally {
+      setIsManualPaying(false);
+    }
+  };
+
   // "답사 가능 승인"은 일반 상태 변경과 달리, 신청자가 제출(또는 관리자가 직접 추가)한
   // 희망 날짜 중 최종 1건과 시간을 같이 확정해서 저장해야 해서 별도 핸들러로 분리했다.
   const handleConfirmInspectionApproval = async () => {
@@ -334,7 +383,11 @@ export function AdminDashboard2() {
         }
       });
 
-      alert(`답사 일정이 [${confirmDateChoice} ${confirmTimeChoice}]로 확정되어 승인되었습니다.`);
+      setInspectionApprovedNotice({
+        churchName: selectedBooking?.churchName || "",
+        date: confirmDateChoice,
+        time: confirmTimeChoice,
+      });
       setSelectedBooking(null);
     } catch (error) {
       console.error("답사 승인 처리 실패:", error);
@@ -854,6 +907,15 @@ export function AdminDashboard2() {
                       <span className="text-[13px] sm:text-[14px] font-black text-[#3182F6]">{selectedBooking.depositLabel || "예약금"}</span>
                       <span className="text-[16px] sm:text-[18px] font-black text-[#3182F6]">{Number(selectedBooking.depositPrice || 0).toLocaleString()}원</span>
                     </div>
+                    {selectedBooking.manualPayment && (
+                      <div className="flex items-center gap-2 pt-3 border-t border-[#E5E8EB]">
+                        <span className="px-2.5 py-1 rounded-lg bg-[#FFF4E5] text-[#E67700] text-[12px] font-black shrink-0">수동 처리</span>
+                        <span className="text-[12px] sm:text-[13px] font-bold text-[#6B7684] break-keep">
+                          관리자가 결제 완료로 처리한 예약이에요 (카드 결제 정보 없음)
+                          {selectedBooking.paymentRegisteredAt ? ` · ${new Date(selectedBooking.paymentRegisteredAt).toLocaleDateString('ko-KR')}` : ""}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </section>
 
@@ -875,6 +937,14 @@ export function AdminDashboard2() {
                       <p className="text-[10px] sm:text-[11px] font-black text-[#ADB5BD] uppercase mb-1">소속 교단</p>
                       <p className="text-[15px] sm:text-[17px] font-black text-[#191F28] break-words">{selectedBooking.denomination || "미지정"}</p>
                     </div>
+                    {/* 참가 부서 - 예약 신청 화면에서 추가된 항목. 그 전 예약은 값이 없어 "미입력". */}
+                    <div className="p-4 sm:p-5 bg-[#F9FAFB] rounded-[18px] sm:rounded-[24px] border border-gray-50 sm:col-span-2">
+                      <p className="text-[10px] sm:text-[11px] font-black text-[#ADB5BD] uppercase mb-1">참가 부서</p>
+                      <p className={`text-[15px] sm:text-[17px] font-black break-words ${selectedBooking.department ? "text-[#191F28]" : "text-[#ADB5BD]"}`}>
+                        {selectedBooking.department || "미입력"}
+                        {selectedBooking.departmentDetail && <span className="text-[#4E5968]"> - {selectedBooking.departmentDetail}</span>}
+                      </p>
+                    </div>
                   </div>
                 </section>
 
@@ -882,6 +952,9 @@ export function AdminDashboard2() {
                   <h4 className="text-[12px] sm:text-[13px] font-black text-[#ADB5BD] mb-2.5 sm:mb-4 ml-1 tracking-widest uppercase">담당자 및 상세</h4>
                   <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
                     <InfoRow icon={User} label="담당자 성함" value={selectedBooking.contactName} />
+                    <InfoRow icon={User} label="담당자 직분" value={selectedBooking.contactRole || "미입력"} />
+                    <InfoRow icon={User} label="담당자 소속 부서" value={selectedBooking.contactDepartment || "미입력"} />
+                    <InfoRow icon={User} label="담임목사님 성함" value={selectedBooking.pastorName || "미입력"} />
                     <InfoRow icon={Phone} label="담당자 연락처" value={selectedBooking.phone} />
                     <InfoRow icon={Mail} label="이메일" value={selectedBooking.email} />
                     {selectedBooking.specialRequests && <InfoRow icon={MessageSquare} label="요청사항" value={selectedBooking.specialRequests} />}
@@ -984,11 +1057,65 @@ export function AdminDashboard2() {
                     </button>
                   )}
 
+                  {selectedBooking.status === 'approved' && (
+                    <button
+                      onClick={handleManualPaymentComplete}
+                      disabled={isManualPaying}
+                      className="flex-1 py-3.5 sm:py-5 bg-[#00D082] text-white rounded-[18px] sm:rounded-[24px] font-black text-[13px] sm:text-base shadow-xl shadow-green-100 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 break-keep disabled:opacity-50 disabled:hover:scale-100"
+                    >
+                      <CreditCard className="w-5 h-5 shrink-0" /> {isManualPaying ? "처리 중..." : "관리자 결제 완료 처리"}
+                    </button>
+                  )}
+
                   {(selectedBooking.status === 'approved' || selectedBooking.status === 'deposit_paid' || selectedBooking.status === 'confirmed') && (
                     <button onClick={() => handleStatusChange(selectedBooking.id, "pending")} className="flex-1 py-3.5 sm:py-5 bg-white border-2 border-[#E5E8EB] text-[#4E5968] rounded-[18px] sm:rounded-[24px] font-black text-[13px] sm:text-base hover:bg-[#F2F4F6] transition-all break-keep">신청 초기화 (대기로 이동)</button>
                   )}
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 답사 가능 승인 완료 팝업 - 브라우저 기본 alert 대신 */}
+      <AnimatePresence>
+        {inspectionApprovedNotice && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setInspectionApprovedNotice(null)}
+            className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm flex items-center justify-center p-5"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 260 }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog" aria-modal="true"
+              className="w-full max-w-[360px] bg-white rounded-[32px] p-7 text-center shadow-[0_24px_80px_-20px_rgba(0,0,0,0.3)]"
+            >
+              <motion.div
+                initial={{ scale: 0.5 }} animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12, delay: 0.1 }}
+                className="w-20 h-20 mx-auto mb-6 bg-[#F2F8FF] rounded-full flex items-center justify-center"
+              >
+                <Check className="w-10 h-10 text-[#3182F6]" strokeWidth={4} />
+              </motion.div>
+              <h2 className="text-[22px] font-black tracking-tight text-[#191F28] mb-2">답사 일정이 승인되었어요</h2>
+              {inspectionApprovedNotice.churchName && (
+                <p className="text-[14px] font-bold text-[#8B95A1] mb-5">{inspectionApprovedNotice.churchName}</p>
+              )}
+              <div className="flex items-center justify-center gap-2.5 py-4 px-5 mb-7 bg-[#F9FAFB] rounded-[20px] border border-[#F2F4F6]">
+                <CalendarCheck className="w-5 h-5 text-[#3182F6] shrink-0" />
+                <span className="text-[17px] font-black text-[#191F28]">
+                  {inspectionApprovedNotice.date} <span className="text-[#3182F6]">{inspectionApprovedNotice.time}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectionApprovedNotice(null)}
+                className="w-full h-[56px] bg-[#3182F6] hover:bg-[#1B64DA] text-white rounded-[18px] font-black text-[17px] shadow-lg shadow-[#3182F6]/20 transition-all active:scale-[0.98]"
+              >
+                확인
+              </button>
             </motion.div>
           </motion.div>
         )}

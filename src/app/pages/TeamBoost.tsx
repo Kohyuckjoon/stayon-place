@@ -14,6 +14,7 @@ import {
 import { CustomInput } from "../components/forms/TeamFormControls";
 import { TOP_BOOST_MAX_SLOTS, MAIN_BANNER_MAX_SLOTS, isTeamBoosted } from "../lib/teamDisplay";
 import { ROOM_TOP_BOOST_MAX_SLOTS, ROOM_MAIN_BANNER_MAX_SLOTS } from "../lib/bandRoomDisplay";
+import { showAlert } from "../lib/dialog";
 
 type PlanId = "top" | "banner";
 type TargetType = "team" | "bandroom";
@@ -239,7 +240,7 @@ export function TeamBoost() {
       setStep("done");
     } catch (error) {
       console.error("높이기 신청 실패:", error);
-      alert("신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      await showAlert("신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }

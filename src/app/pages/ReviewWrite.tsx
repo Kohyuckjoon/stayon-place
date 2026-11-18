@@ -2,6 +2,7 @@ import { useState } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { showAlert } from "../lib/dialog";
 
 export default function ReviewWrite() {
   const [title, setTitle] = useState("");
@@ -13,7 +14,7 @@ export default function ReviewWrite() {
     e.preventDefault();
 
     if (!auth.currentUser) {
-      alert("로그인 후 이용해주세요.");
+      await showAlert("로그인 후 이용해주세요.");
       navigate("/login");
       return;
     }
