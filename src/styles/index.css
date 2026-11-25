@@ -17,3 +17,11 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* "NEW" 말풍선 - 위아래로 살짝 통통 (2초 주기). 움직임 줄이기 설정한 사용자에겐 멈춤. */
+@keyframes new-badge-bob {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+}
+.new-badge-bob { animation: new-badge-bob 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .new-badge-bob { animation: none; } }

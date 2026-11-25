@@ -97,6 +97,22 @@ export default function ChecklistForm() {
   };
   const [checkinOverride, setCheckinOverride] = useState<{ enabled: boolean; checkIn: string; checkOut: string }>({ enabled: false, checkIn: "", checkOut: "" });
   const [activeBooking, setActiveBooking] = useState<{ venueId: string; venueName: string } | null>(null);
+  // 장소 이름 필수 - 이름 없이 첫 체크/메모/사진 등을 하면 "어느 장소 답사인가요?" 팝업을
+  // 띄우고, 이름을 받아야 체크리스트가 저장된다(관리자 화면 "장소 이름 미입력" 방지).
+  const [nameModalOpen, setNameModalOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const nameResolverRef = useRef<((name: string | null) => void) | null>(null);
+  const askVenueName = () => new Promise<string | null>((resolve) => {
+    nameResolverRef.current = resolve;
+    setNameDraft("");
+    setNameModalOpen(true);
+  });
+  const closeNameModal = (name: string | null) => {
+    setNameModalOpen(false);
+    const resolve = nameResolverRef.current;
+    nameResolverRef.current = null;
+    resolve?.(name);
+  };
   const [suggestModalOpen, setSuggestModalOpen] = useState(false);
   const [suggestVenueName, setSuggestVenueName] = useState("");
   const [suggestLocation, setSuggestLocation] = useState("");
@@ -204,11 +220,22 @@ export default function ChecklistForm() {
     if (docId) return docId;
     if (!docCreationRef.current) {
       docCreationRef.current = (async () => {
+        let name = venueName.trim();
+        if (!name) {
+          const entered = await askVenueName();
+          if (!entered) {
+            // 팝업을 닫으면 저장하지 않고, 다음 체크 때 다시 물어본다.
+            docCreationRef.current = null;
+            return null;
+          }
+          name = entered;
+          setVenueName(entered);
+        }
         const ref = await addDoc(collection(db, "preVisitChecklists"), {
           ownerId: user.uid,
           ownerEmail: user.email,
           venueId: venueId || null,
-          venueName: venueName || "",
+          venueName: name,
           items: {},
           photos: [],
           evaluation: { pros: "", cons: "", rating: null, memo: "" },
@@ -226,11 +253,11 @@ export default function ChecklistForm() {
 
   // 팝업이 떠 있는 동안 뒤 배경이 같이 스크롤되던 문제 - 열려있는 동안 배경 스크롤을 잠근다.
   useEffect(() => {
-    if (!suggestModalOpen) return;
+    if (!suggestModalOpen && !nameModalOpen) return;
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = original; };
-  }, [suggestModalOpen]);
+  }, [suggestModalOpen, nameModalOpen]);
 
   // 장소 추천 팝업의 주소 검색 - RegisterVenue.tsx와 동일한 다음 우편번호 API.
   useEffect(() => {
@@ -261,8 +288,15 @@ export default function ChecklistForm() {
         ALL_CHECKLIST_ITEM_IDS.forEach((iid) => {
           if (checked[iid] || notes[iid]?.trim()) items[iid] = { checked: !!checked[iid], note: notes[iid] || "" };
         });
+        // 로그인 전에 체크해둔 내용 - 장소 이름부터 받는다. 팝업을 닫아도 체크한 내용은
+        // 잃어버리지 않게 이름 없이 저장한다.
+        let name = venueName.trim();
+        if (!name) {
+          name = (await askVenueName()) || "";
+          if (name) setVenueName(name);
+        }
         const ref = await addDoc(collection(db, "preVisitChecklists"), {
-          ownerId: user!.uid, ownerEmail: user!.email, venueId: venueId || null, venueName: venueName || "",
+          ownerId: user!.uid, ownerEmail: user!.email, venueId: venueId || null, venueName: name,
           items, photos: [], evaluation: { pros: "", cons: "", rating: null, memo: "" },
           createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
         });
@@ -282,7 +316,11 @@ export default function ChecklistForm() {
     if (!user) return;
     try {
       const dId = await ensureDoc();
-      if (!dId) return;
+      if (!dId) {
+        // 장소 이름 팝업을 닫은 경우 - 저장 안 됐으니 체크도 되돌린다.
+        setChecked((prev) => ({ ...prev, [itemId]: !next }));
+        return;
+      }
       await updateDoc(doc(db, "preVisitChecklists", dId), { [`items.${itemId}.checked`]: next, updatedAt: serverTimestamp() });
       pulseSaved();
     } catch (error) { console.error("저장 실패:", error); }
@@ -519,7 +557,7 @@ export default function ChecklistForm() {
             <h1 className="text-lg sm:text-xl font-black text-[#191F28] mb-1">{venueName} 답사 체크리스트</h1>
           ) : user ? (
             <>
-              <label className="block text-[13px] font-bold text-[#6B7684] mb-1.5">장소 이름 (선택)</label>
+              <label className="block text-[13px] font-bold text-[#6B7684] mb-1.5">장소 이름 <span className="text-[#F04452]">(필수)</span></label>
               <input
                 type="text"
                 value={venueName}
@@ -886,6 +924,54 @@ export default function ChecklistForm() {
           추천이 접수되었습니다! 확인 후 등록을 검토할게요.
         </div>
       )}
+
+      <AnimatePresence>
+        {nameModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center"
+            onClick={() => closeNameModal(null)}
+          >
+            <motion.form
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (nameDraft.trim()) closeNameModal(nameDraft.trim());
+              }}
+              className="bg-white w-full sm:max-w-sm rounded-t-[28px] sm:rounded-[28px] p-6 pb-8"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-[17px] font-black text-[#191F28]">어느 장소 답사인가요?</h3>
+                <button type="button" onClick={() => closeNameModal(null)} className="p-1.5 -mr-1.5 text-[#ADB5BD] active:scale-90 transition-transform">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-[12.5px] font-bold text-[#8B95A1] mb-5 leading-relaxed break-keep">장소 이름을 적어주시면 체크한 내용이 바로 저장돼요. 나중에 어떤 장소였는지 찾기도 쉬워요.</p>
+              <input
+                type="text"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder="예: 은혜수양관"
+                autoFocus
+                className="w-full h-12 bg-[#F9FAFB] rounded-[14px] px-4 font-bold text-[14px] outline-none border-2 border-transparent focus:border-[#3182F6] transition-all"
+              />
+              <button
+                type="submit"
+                disabled={!nameDraft.trim()}
+                className="mt-5 w-full h-14 bg-[#3182F6] text-white rounded-[16px] font-black text-[15px] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                저장하고 계속하기
+              </button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {suggestModalOpen && (

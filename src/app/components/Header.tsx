@@ -637,6 +637,8 @@ export function Header() {
                   className="flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-bold rounded-2xl whitespace-nowrap text-[#4E5968] hover:bg-[#F9FAFB] hover:text-[#3182F6] transition-all group shrink-0"
                 >
                   <span>교회 홈페이지 제작</span>
+                  {/* 신규 기능 오픈 표시 */}
+                  <span aria-hidden="true" className="new-badge-bob pointer-events-none absolute -top-2 right-1 z-10 px-1.5 py-0.5 rounded-md bg-[#F04452] text-white text-[9px] font-black leading-none tracking-wide whitespace-nowrap shadow-sm">NEW<span className="absolute left-1/2 -bottom-[3px] -translate-x-1/2 w-1.5 h-1.5 bg-[#F04452] rotate-45" /></span>
                   <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                 </a>
                 <AnimatePresence>
@@ -646,7 +648,7 @@ export function Header() {
                       transition={{ duration: 0.15 }}
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap px-3.5 py-2 bg-[#191F28] text-white text-[12px] font-bold rounded-xl shadow-lg z-50"
                     >
-                      월 7,900원부터 저렴하게!
+                      월 9,900원부터 저렴하게!
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#191F28] rotate-45" />
                     </motion.div>
                   )}
@@ -843,8 +845,9 @@ export function Header() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex flex-col items-center gap-1 py-3 bg-[#E6F9F2] rounded-xl text-center active:scale-95 transition-all"
+                    className="relative flex flex-col items-center gap-1 py-3 bg-[#E6F9F2] rounded-xl text-center active:scale-95 transition-all"
                   >
+                    <span aria-hidden="true" className="new-badge-bob pointer-events-none absolute -top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded-md bg-[#F04452] text-white text-[9px] font-black leading-none tracking-wide whitespace-nowrap shadow-sm">NEW<span className="absolute left-1/2 -bottom-[3px] -translate-x-1/2 w-1.5 h-1.5 bg-[#F04452] rotate-45" /></span>
                     <Monitor className="w-5 h-5 text-[#00B373]" />
                     <span className="text-[11px] font-black text-[#191F28] leading-tight break-keep">교회 홈페이지 제작</span>
                   </a>

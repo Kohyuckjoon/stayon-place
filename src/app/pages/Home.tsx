@@ -12,8 +12,20 @@ import { ScrollRestoration } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { MainBanner } from "../components/MainBanner";
 import { Helmet } from 'react-helmet-async';
+import { RecommendedVenues } from "../components/RecommendedVenues";
 
 const allBannerData = [
+  {
+    // 교회 사이트 제작 플랫폼 오픈 - 신규라 맨 앞. 클릭 시 홈페이지 제작 사이트(새 탭).
+    id: 7,
+    title: "교회 사이트 제작 플랫폼 오픈!",
+    desc: "셀프형 / 관리형 오픈. 오픈 기념 제작 비용 무료.",
+    tag: "OPEN",
+    bgColor: "bg-gradient-to-br from-[#1FB386] via-[#13A07A] to-[#0E7A5C]",
+    textColor: "text-white",
+    image: "/main_image_08.webp" as string | undefined,
+    icon: <Monitor className="w-32 h-32 text-white/10 absolute -right-4 -bottom-4 rotate-12 stroke-[1.5]" />
+  },
   {
     id: 6,
     title: "수련회 사전 답사 체크리스트 오픈! ✅",
@@ -97,7 +109,7 @@ const circleMenus = [
   { name: "장소등록", image: "/quickmenu/06_place_register.webp", alt: "수련회 장소 등록", icon: <HomeIcon className="w-6 h-6" />, color: "bg-indigo-50 text-indigo-600", link: "/register" },
   { name: "온라인주보", image: "/quickmenu/07_bulletin.webp", alt: "교회 온라인 주보", icon: <BookOpen className="w-6 h-6" />, color: "bg-orange-50 text-orange-600", link: "https://bulletin.stayon-platform.com/" },
   { name: "외부 사역팀 찾기", image: "/quickmenu/08_ministry_team.webp", alt: "외부 사역팀 찬양팀 섭외", icon: <Mic2 className="w-6 h-6" />, color: "bg-pink-50 text-pink-600", link: "/teams" },
-  { name: "교회 홈페이지 제작", mobileHidden: true, image: "/quickmenu/09_church_website.webp", alt: "교회 홈페이지 제작", icon: <HomeIcon className="w-6 h-6" />, color: "bg-blue-50 text-blue-600", link: "https://website.stayon-platform.com/" },
+  { name: "교회 홈페이지 제작", mobileHidden: true, isNew: true, image: "/quickmenu/09_church_website.webp", alt: "교회 홈페이지 제작", icon: <HomeIcon className="w-6 h-6" />, color: "bg-blue-50 text-blue-600", link: "https://website.stayon-platform.com/" },
 ];
 
 const familyServices = [
@@ -124,7 +136,7 @@ const familyServices = [
   {
     id: "website",
     title: "교회 홈페이지 제작",
-    description: "월 7,900원으로 우리 교회 홈페이지를 쉽고 빠르게. 스테이온에서 지금 바로 시작해보세요.",
+    description: "월 9,900원으로 우리 교회 홈페이지를 쉽고 빠르게. 스테이온에서 지금 바로 시작해보세요.",
     tag: "런칭 완료",
     tagColor: "bg-blue-100 text-blue-600",
     icon: <Monitor className="w-10 h-10" />,
@@ -208,8 +220,8 @@ const familyOffers = [
     id: "website", image: "/quickmenu/09_church_website.webp", tempIcon: null as React.ReactNode, tempIconBg: "", alt: "교회 홈페이지 제작",
     badge: "관리형 출시", eyebrow: "만들어도 관리가 막막할 때", title: "교회 홈페이지 제작",
     desc: "관리까지 맡기는 '관리형'도 출시했어요",
-    // 기본형 월 7,900원 / 관리형 월 9,900원 - 두 가지라 "부터"로 표기
-    highlightPrefix: "커피 한 잔 값, 월", highlight: "7,900", highlightUnit: "원부터", link: "https://website.stayon-platform.com/",
+    // 월 9,900원부터 (가격 변경 시 아래 highlight 숫자만 바꾸면 됨)
+    highlightPrefix: "커피 한 잔 값, 월", highlight: "9,900", highlightUnit: "원부터", link: "https://website.stayon-platform.com/",
     accentText: "text-[#3182F6]", accentBadge: "bg-[#EAF3FF] text-[#3182F6]", accentGlow: "bg-[#3182F6]/15", accentRing: "hover:ring-[#3182F6]/30",
   },
 ];
@@ -402,7 +414,12 @@ export function Home() {
 
   // 빠른 메뉴 아이콘 - 이미지가 있으면 이미지(alt는 검색엔진용 문구), 없으면 기존 아이콘 원.
   const renderCircleMenuIcon = (menu: typeof circleMenus[number], sizeClass: string) => (
-    menu.image ? (
+    <div className="relative">
+      {/* 신규 기능 오픈 말풍선 (isNew 메뉴만) */}
+      {"isNew" in menu && menu.isNew && (
+        <span aria-hidden="true" className="new-badge-bob pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 px-1.5 py-0.5 rounded-md bg-[#F04452] text-white text-[9px] font-black leading-none tracking-wide whitespace-nowrap shadow-sm">신규 오픈!<span className="absolute left-1/2 -bottom-[3px] -translate-x-1/2 w-1.5 h-1.5 bg-[#F04452] rotate-45" /></span>
+      )}
+    {menu.image ? (
       <img
         src={menu.image}
         alt={menu.alt || menu.name}
@@ -416,7 +433,8 @@ export function Home() {
       <div className={`${sizeClass} ${menu.color} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-1`}>
         {menu.icon}
       </div>
-    )
+    )}
+    </div>
   );
   const insuranceRef = useRef<HTMLDivElement>(null);
 
@@ -461,6 +479,8 @@ export function Home() {
       window.open("https://www.youtube.com/watch?v=Y6j8fm9NGxo", "_blank", "noopener,noreferrer");
     } else if (bannerId === 6) {
       navigate("/checklist/new");
+    } else if (bannerId === 7) {
+      window.open("https://website.stayon-platform.com/", "_blank", "noopener,noreferrer");
     }
   };
 
@@ -1132,6 +1152,9 @@ export function Home() {
         `}</style>
       </section>
 
+
+      {/* 스테이온 추천 장소 - 장소 상세로 가는 진짜 링크(구글 색인용) */}
+      <RecommendedVenues />
 
       {/* Why StayOn Section */}
       <section className="py-10 md:py-16 px-4 md:px-6 bg-white">

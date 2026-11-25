@@ -29,7 +29,7 @@ import {
 import { db } from "../lib/firebase";
 import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
-import { ScrollRestoration, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, ScrollRestoration, useNavigate, useSearchParams } from "react-router-dom";
 import { showAlert } from "../lib/dialog";
 
 // 지자체 데이터
@@ -1005,7 +1005,8 @@ export function VenueList() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h3 className="text-[15px] sm:text-[16px] font-black text-[#191F28] truncate">{venue.venueName}</h3>
+                              {/* 장소명은 진짜 링크(구글 색인용). 카드 전체 클릭 이동은 기존 그대로. */}
+                              <h3 className="text-[15px] sm:text-[16px] font-black text-[#191F28] truncate"><Link to={`/venue/${venue.id}`} onClick={(e) => e.stopPropagation()} className="hover:underline underline-offset-2">{venue.venueName}</Link></h3>
                               <div className="flex items-center gap-1.5 text-[#8B95A1] font-bold text-[12px] mt-0.5">
                                 <MapPin className="w-3 h-3 shrink-0" />
                                 <span className="truncate">{(venue.address || venue.location || "").split(" ").slice(0, 3).join(" ")}</span>
@@ -1102,7 +1103,8 @@ export function VenueList() {
                       </div>
                       <div className="p-2.5 md:p-5 flex flex-col gap-2.5 md:gap-4">
                         <div className="space-y-1 md:space-y-2">
-                          <h3 className="text-[14px] md:text-[18px] font-black text-[#191F28] line-clamp-1">{venue.venueName}</h3>
+                          {/* 장소명은 진짜 링크(구글 색인용). 카드 전체 클릭 이동은 기존 그대로. */}
+                          <h3 className="text-[14px] md:text-[18px] font-black text-[#191F28] line-clamp-1"><Link to={`/venue/${venue.id}`} onClick={(e) => e.stopPropagation()} className="hover:underline underline-offset-2">{venue.venueName}</Link></h3>
                           <div className="flex items-center gap-1 md:gap-1.5 text-[#8B95A1] font-bold text-[11px] md:text-[13px]">
                             <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
                               <span className="truncate">

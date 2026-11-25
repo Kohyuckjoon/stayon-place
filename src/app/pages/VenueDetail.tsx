@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { loginWithGoogle } from "../lib/auth";
 import AvailabilityCalendar from '../pages/AvailabilityCalendar';
 import { showAlert, showConfirm } from "../lib/dialog";
+import { OtherVenues } from "../components/OtherVenues";
 
 // 사진이 최대 100장 넘게 등록될 수 있게 되면서, "사진" 탭을 처음 누를 때 수십 장이
 // 한꺼번에 다운로드되느라 버튼을 눌러도 한동안 반응이 없는 것처럼 보이는 문제가 있었다.
@@ -73,6 +74,16 @@ export function VenueDetail() {
   const hideInPhotos = activeInfoTab === "photos" ? "hidden" : "";
   const reviewSectionRef = useRef<HTMLDivElement>(null);
   const [venueReviews, setVenueReviews] = useState<any[]>([]);
+
+  // 하단 "다른 수련회 장소"로 장소 → 장소 이동 시 같은 화면이 재사용되므로,
+  // 이전 장소의 사진 위치·탭·확대 상태가 남지 않게 초기화한다.
+  useEffect(() => {
+    setCurrentImgIdx(0);
+    setSelectedImage(null);
+    setIsModalOpen(false);
+    setActiveInfoTab("info");
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+  }, [id]);
 
   // "사진" 탭을 눌렀을 때 사진이 아직 다 안 불러와졌어도 "버튼이 눌렸다"는 걸 바로
   // 알 수 있게, 개별 사진의 회색 스켈레톤과는 별도로 화면 중앙에 뚜렷한 로딩 팝업을
@@ -929,6 +940,13 @@ export function VenueDetail() {
               </button>
             )}
           </section>
+
+          {/* 다른 수련회 장소 - 장소 상세끼리 진짜 링크로 연결(구글 색인용) */}
+          {id && (
+            <div className={`${hideInPhotos} lg:col-span-2`}>
+              <OtherVenues currentId={id} />
+            </div>
+          )}
         </div>
         {/* 배치 그리드 끝 */}
       </main>
